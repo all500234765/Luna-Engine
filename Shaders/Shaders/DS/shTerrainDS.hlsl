@@ -38,7 +38,7 @@ PS main(TS In, float3 uvwCoord : SV_DomainLocation, const OutputPatch<DS, 3> pat
     Out.Position = mul(mView, Out.Position);
     Out.Position = mul(mProj, Out.Position);
 
-    Out.Normal = mul(mWorld, float4(Normal, 0.));
+    Out.Normal = mul(mWorld, float4(Normal, 0.)).xyz;
     Out.Texcoord = path[0].Texcoord;
 
     return Out;

@@ -16,11 +16,11 @@ void PolygonLayout::Push(D3D11_INPUT_ELEMENT_DESC desc) {
 }
 
 bool PolygonLayout::End(Shader* shader) {
-    UINT numEls = descs.size();
+    UINT numEls = static_cast<UINT>(descs.size());
     D3D11_INPUT_ELEMENT_DESC *desc = (D3D11_INPUT_ELEMENT_DESC*)malloc(sizeof(D3D11_INPUT_ELEMENT_DESC) * numEls);
 
     // Gather elements
-    for( int i = 0; i < numEls; i++ ) desc[i] = descs[i];
+    for( UINT i = 0; i < numEls; i++ ) desc[i] = descs[i];
 
     // Create input layout
     auto blob = shader->GetBlob(Shader::Vertex);

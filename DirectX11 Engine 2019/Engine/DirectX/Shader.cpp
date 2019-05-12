@@ -56,12 +56,12 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
 }
 
 void Shader::DeleteShaders() {
-    if( (Type & Vertex   == Vertex  ) && (Linked & Vertex   == Vertex  ) ) { sVertex->Release(); }
-    if( (Type & Pixel    == Pixel   ) && (Linked & Pixel    == Pixel   ) ) { sPixel->Release(); }
-    if( (Type & Geometry == Geometry) && (Linked & Geometry == Geometry) ) { sGeometry->Release(); }
-    if( (Type & Hull     == Hull    ) && (Linked & Hull     == Hull    ) ) { sHull->Release(); }
-    if( (Type & Domain   == Domain  ) && (Linked & Domain   == Domain  ) ) { sDomain->Release(); }
-    if( (Type & Compute  == Compute ) && (Linked & Compute  == Compute ) ) { sCompute->Release(); }
+    if( ((Type & Vertex  ) == Vertex  ) && ((Linked & Vertex  ) == Vertex  ) ) { sVertex->Release(); }
+    if( ((Type & Pixel   ) == Pixel   ) && ((Linked & Pixel   ) == Pixel   ) ) { sPixel->Release(); }
+    if( ((Type & Geometry) == Geometry) && ((Linked & Geometry) == Geometry) ) { sGeometry->Release(); }
+    if( ((Type & Hull    ) == Hull    ) && ((Linked & Hull    ) == Hull    ) ) { sHull->Release(); }
+    if( ((Type & Domain  ) == Domain  ) && ((Linked & Domain  ) == Domain  ) ) { sDomain->Release(); }
+    if( ((Type & Compute ) == Compute ) && ((Linked & Compute ) == Compute ) ) { sCompute->Release(); }
 
     pl->Release();
 }
@@ -71,7 +71,7 @@ void Shader::ReleaseBlobs() {
         char j = 1 << i;
 
         // If exists and not linked
-        if( (Type & j == Type) && (Linked & j == 0) ) {
+        if( ((Type & j) == Type) && ((Linked & j) == 0) && bShader[i] ) {
             bShader[i]->Release();
             bShader[i] = 0;
         }
@@ -85,16 +85,16 @@ ID3DBlob* Shader::GetBlob(ShaderType type) {
 void Shader::Bind() {
     pl->Bind();
 
-    if( (Type & Vertex   == Vertex  ) ) { gDirectX->gContext->VSSetShader(sVertex, NULL, 0); }
-    if( (Type & Pixel    == Pixel   ) ) { gDirectX->gContext->PSSetShader(sPixel, NULL, 0); }
-    if( (Type & Geometry == Geometry) ) { gDirectX->gContext->GSSetShader(sGeometry, NULL, 0); }
-    if( (Type & Hull     == Hull    ) ) { gDirectX->gContext->HSSetShader(sHull, NULL, 0); }
-    if( (Type & Domain   == Domain  ) ) { gDirectX->gContext->DSSetShader(sDomain, NULL, 0); }
-//  if( (Type & Compute  == Compute ) ) { gDirectX->gContext->CSSetShader(sCompute, NULL, 0); }
+    if( ((Type & Vertex  ) == Vertex  ) ) { gDirectX->gContext->VSSetShader(sVertex, NULL, 0); }
+    if( ((Type & Pixel   ) == Pixel   ) ) { gDirectX->gContext->PSSetShader(sPixel, NULL, 0); }
+    if( ((Type & Geometry) == Geometry) ) { gDirectX->gContext->GSSetShader(sGeometry, NULL, 0); }
+    if( ((Type & Hull    ) == Hull    ) ) { gDirectX->gContext->HSSetShader(sHull, NULL, 0); }
+    if( ((Type & Domain  ) == Domain  ) ) { gDirectX->gContext->DSSetShader(sDomain, NULL, 0); }
+//  if( ((Type & Compute ) == Compute ) ) { gDirectX->gContext->CSSetShader(sCompute, NULL, 0); }
 }
 
 void Shader::Dispatch(UINT x, UINT y, UINT z) {
-    if( Type & Compute == Compute ) {
+    if( (Type & Compute) == Compute ) {
         gDirectX->gContext->CSSetShader(sCompute, NULL, 0);
         gDirectX->gContext->Dispatch(x, y, z);
     }
@@ -202,7 +202,7 @@ HRESULT Shader::CreateInputLayoutDescFromVertexShaderSignature(ID3D11InputLayout
     }
 
     // Try to create Input Layout
-    hr = gDirectX->gDevice->CreateInputLayout(&inputLayoutDesc[0], inputLayoutDesc.size(), pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pInputLayout);
+    hr = gDirectX->gDevice->CreateInputLayout(&inputLayoutDesc[0], static_cast<UINT>(inputLayoutDesc.size()), pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pInputLayout);
 
     if( FAILED(hr)) {
         // Failed
