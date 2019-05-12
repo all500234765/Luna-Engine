@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\Compiler\poppack1.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\Compiler\pstdint.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\Compiler\pushpack1.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\port\AndroidJNI\AndroidJNIIOSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\ai_assert.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\anim.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\camera.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\cexport.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\cfileio.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\cimport.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\color4.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\config.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\DefaultIOStream.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\DefaultIOSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\DefaultLogger.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\Defines.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\defs.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\Exporter.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\Importer.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\importerdesc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\IOStream.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\IOSystem.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\light.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\Logger.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\LogStream.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\material.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\matrix3x3.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\matrix4x4.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\mesh.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\metadata.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\NullLogger.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\postprocess.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\ProgressHandler.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\quaternion.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\scene.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\SceneCombiner.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\texture.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\types.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector2.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector3.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\version.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\ansel\Camera.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\ansel\Configuration.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\ansel\Defines.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\ansel\Hints.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\ansel\Session.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\ansel\UserControls.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\ansel\Version.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\nv\Quat.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\nv\Vec3.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\AnselSDK.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\HBAOPlus\GFSDK_SSAO.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\x64\assimp-vc140-mt.dll" />
+    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\color4.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\material.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\matrix3x3.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\matrix4x4.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\quaternion.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector2.inl" />
+    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector3.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="$(MSBuildThisFileDirectory)Vendor\Assimp\x64\assimp.lib" />
+  </ItemGroup>
+</Project>
