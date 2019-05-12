@@ -63,19 +63,12 @@ int _DirectX::Create(DirectXConfig config) {
     }
 
     // Create device and swapchain
-    //IDXGIFactory *pFactory;
-    //HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)(&pFactory));
-    //
-    //IDXGIAdapter *pWarpAdapter;
-    //pFactory->CreateSoftwareAdapter(GetModuleHandle(), &pWarpAdapter);
-    //pFactory->EnumAdapters(0, &pWarpAdapter);
-
     res = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, pFeatureLevels, 1, D3D11_SDK_VERSION,
                                         &scd, &gSwapchain, &gDevice, &level, &gContext);
     if( FAILED(res) ) { return 1; }
 
-    // 
-    cfg.Ansel = ansel::isAnselAvailable();
+    // Set ansel state
+    if( cfg.Ansel ) cfg.Ansel = ansel::isAnselAvailable();
 
     // Get texture
     ID3D11Texture2D *BackBufferColor;

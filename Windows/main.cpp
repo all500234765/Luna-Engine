@@ -44,9 +44,9 @@ static _DirectX* gDirectX = 0;
 static Window* gWindow = 0;
 
 // Test instances
-Camera *cPlayer;
-Shader *shTest, *shTerrain, *shSkeletalAnimations;
-Model *mModel1, *mModel2;
+Camera *cPlayer, *c2DScreen;
+Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI;
+Model *mModel1, *mModel2, *mScreenPlane;
 
 // HBAO+
 #if USE_HBAO_PLUS
@@ -105,7 +105,7 @@ bool _DirectX::FrameFunction() {
 #endif
 
     // 2D Rendering
-    //ComposeUI();
+    ComposeUI();
 
     // End of frame
     gSwapchain->Present(1, 0);
@@ -113,6 +113,10 @@ bool _DirectX::FrameFunction() {
 }
 
 void _DirectX::ComposeUI() {
+    shGUI->Bind();
+
+
+
     //CreateDeviceResources();
 
     // Begin rendering
@@ -169,6 +173,9 @@ void _DirectX::Resize() {
     CameraConfig cfg2 = cPlayer->GetParams();
     cfg2.fAspect = cfg.CurrentWidth / cfg.CurrentHeight;
 
+    cfg2 = c2DScreen->GetParams();
+    cfg2.fAspect = cfg.CurrentWidth / cfg.CurrentHeight;
+
     // Set up the viewport
     D3D11_VIEWPORT vp;
     vp.Width = cfg.CurrentWidth;
@@ -185,8 +192,10 @@ void _DirectX::Load() {
     shTest = new Shader();
     shTerrain = new Shader();
     shSkeletalAnimations = new Shader();
+    shGUI = new Shader();
 
     cPlayer = new Camera(DirectX::XMFLOAT3(0, 2, -2), DirectX::XMFLOAT3(0., 180., 0.));
+    c2DScreen = new Camera();
 
     // Ansel support
 #if USE_ANSEL
@@ -206,6 +215,15 @@ void _DirectX::Load() {
     cPlayer->BuildProj();
     cPlayer->BuildView();
 
+    cfg2.FOV = 90.f;
+    cfg2.fNear = .1f;
+    cfg2.fFar = 1.f;
+    c2DScreen->SetParams(cfg2);
+
+    // Build default matrices
+    c2DScreen->BuildProj();
+    c2DScreen->BuildView();
+
     // Load shader
     shTest->LoadFile("../CompiledShaders/shTestVS.cso", Shader::Vertex);
     shTest->LoadFile("../CompiledShaders/shTestPS.cso", Shader::Pixel);
@@ -220,10 +238,15 @@ void _DirectX::Load() {
     shSkeletalAnimations->LoadFile("../CompiledShaders/shSkeletalAnimationsVS.cso", Shader::Vertex);
     shSkeletalAnimations->LoadFile("../CompiledShaders/shSkeletalAnimationsPS.cso", Shader::Pixel);
 
+    // GUI
+    shGUI->LoadFile("../CompiledShaders/shGUIVS.cso", Shader::Vertex);
+    shGUI->LoadFile("../CompiledShaders/shGUIPS.cso", Shader::Pixel);
+
     // Clean shaders
     shTest->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
     shSkeletalAnimations->ReleaseBlobs();
+    shGUI->ReleaseBlobs();
 
     // Create model
     mModel1 = new Model("Test model #1");
