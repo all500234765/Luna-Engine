@@ -1,6 +1,8 @@
 #include "DirectX.h"
 #include <iostream>
 
+#include "Engine/Extensions/Default.h"
+
 #if USE_ANSEL
 #include "Vendor/Ansel/AnselSDK.h"
 #endif

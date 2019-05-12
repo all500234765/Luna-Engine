@@ -21,6 +21,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\PolygonLayout.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\Shader.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Default.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Model.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.h" />

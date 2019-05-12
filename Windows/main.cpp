@@ -1,6 +1,5 @@
 // Extensions
-#define USE_ANSEL 0
-#define USE_HBAO_PLUS 0
+#include "Engine/Extensions/Default.h"
 
 #include "Engine/Window/Window.h"
 #include "Engine/DirectX/DirectX.h"
@@ -66,7 +65,7 @@ bool _DirectX::FrameFunction() {
     // Bind and clear RTV
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
 
-    float Clear[4] = {.2, .2, .2, 1.}; // RGBA
+    float Clear[4] = {.2f, .2f, .2f, 1.f}; // RGBA
     gContext->ClearRenderTargetView(gRTV, Clear);
     gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
@@ -178,8 +177,8 @@ void _DirectX::Resize() {
 
     // Set up the viewport
     D3D11_VIEWPORT vp;
-    vp.Width = cfg.CurrentWidth;
-    vp.Height = cfg.CurrentHeight;
+    vp.Width = static_cast<float>(cfg.CurrentWidth);
+    vp.Height = static_cast<float>(cfg.CurrentHeight);
     vp.MinDepth = 0.0f;
     vp.MaxDepth = 1.0f;
     vp.TopLeftX = 0;
@@ -256,7 +255,7 @@ void _DirectX::Load() {
     mModel2->LoadModel("../Models/Landscape1.obj");
 
     mScreenPlane = new Model("Screen plane model");
-    mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
+    //mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
 
 
     // HBAO+
