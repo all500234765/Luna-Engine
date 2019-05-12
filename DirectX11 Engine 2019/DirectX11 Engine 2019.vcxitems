@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{79d4268e-1245-4885-8313-6550d975a81d}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\ConstantBuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectX.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectXChild.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\PolygonLayout.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\Shader.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Model.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Vertices.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\Window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Buffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\ConstantBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectX.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectXChild.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Buffer.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\IndexBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\IndexBuffer.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\PolygonLayout.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Shader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Model.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />
+  </ItemGroup>
+</Project>

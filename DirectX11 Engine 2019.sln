@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.106
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectX11 Engine 2019", "DirectX11 Engine 2019\DirectX11 Engine 2019.vcxitems", "{79D4268E-1245-4885-8313-6550D975A81D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Windows", "Windows\Windows.vcxproj", "{ABED622B-2A33-4FD2-BFBF-89210C7D407F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shaders", "Shaders\Shaders.vcxitems", "{1B756E0E-719D-49B2-AC1D-C57C6D2780EF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Vendor", "Vendor\Vendor.vcxitems", "{D7295C9C-105D-4960-A8CE-218B71C5AC6B}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Shaders\Shaders.vcxitems*{1b756e0e-719d-49b2-ac1d-c57c6d2780ef}*SharedItemsImports = 9
+		DirectX11 Engine 2019\DirectX11 Engine 2019.vcxitems*{79d4268e-1245-4885-8313-6550d975a81d}*SharedItemsImports = 9
+		DirectX11 Engine 2019\DirectX11 Engine 2019.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
+		Shaders\Shaders.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
+		Vendor\Vendor.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
+		Vendor\Vendor.vcxitems*{d7295c9c-105d-4960-a8ce-218b71c5ac6b}*SharedItemsImports = 9
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ABED622B-2A33-4FD2-BFBF-89210C7D407F}.Debug|x64.ActiveCfg = Debug|x64
+		{ABED622B-2A33-4FD2-BFBF-89210C7D407F}.Debug|x64.Build.0 = Debug|x64
+		{ABED622B-2A33-4FD2-BFBF-89210C7D407F}.Debug|x86.ActiveCfg = Debug|Win32
+		{ABED622B-2A33-4FD2-BFBF-89210C7D407F}.Debug|x86.Build.0 = Debug|Win32
+		{ABED622B-2A33-4FD2-BFBF-89210C7D407F}.Release|x64.ActiveCfg = Release|x64
+		{ABED622B-2A33-4FD2-BFBF-89210C7D407F}.Release|x64.Build.0 = Release|x64
+		{ABED622B-2A33-4FD2-BFBF-89210C7D407F}.Release|x86.ActiveCfg = Release|Win32
+		{ABED622B-2A33-4FD2-BFBF-89210C7D407F}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EE1C68FA-CDC5-49A1-8A12-88CB8ED2B0CE}
+	EndGlobalSection
+EndGlobal
