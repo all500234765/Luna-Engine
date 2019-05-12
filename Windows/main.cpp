@@ -1,5 +1,5 @@
 // Extensions
-#define USE_ANSEL 1
+#define USE_ANSEL 0
 #define USE_HBAO_PLUS 0
 
 #include "Engine/Window/Window.h"
