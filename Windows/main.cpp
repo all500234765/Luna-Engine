@@ -88,7 +88,14 @@ bool _DirectX::FrameFunction() {
     shTest->Bind();
     cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
     cPlayer->BindBuffer(Shader::Vertex, 0); // Bind camera
-    mModel1->Render();
+    //mModel1->Render();
+
+    // Set default states
+    shTerrain->Bind();
+    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+    cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
+    cPlayer->BindBuffer(Shader::Domain, 0); // Bind camera
+    mModel2->Render();
 
     cPlayer->SetWorldMatrix(DirectX::XMMatrixIdentity());
 
@@ -252,7 +259,7 @@ void _DirectX::Load() {
     mModel1->LoadModel("../Models/cornellbox.obj");
 
     mModel2 = new Model("Test model #2");
-    mModel2->LoadModel("../Models/Landscape1.obj");
+    mModel2->LoadModel("../Models/Dunes1.obj");
 
     mScreenPlane = new Model("Screen plane model");
     //mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
@@ -392,7 +399,7 @@ void _DirectX::AnselSession() {
                                                     DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
                                                     DirectX::XMLoadFloat4(reinterpret_cast<const DirectX::XMFLOAT4*>(&cam.rotation)),
                                                     DirectX::XMLoadFloat3(reinterpret_cast<const DirectX::XMFLOAT3*>(&cam.position)));
-    camCFG.FOV = cam.fov / 180.f * DirectX::XM_PI;
+    camCFG.FOV = cam.fov;
 
     // Update in-game camera
     cPlayer->SetViewMatrix(XMMatrixInverse(nullptr, invView));
