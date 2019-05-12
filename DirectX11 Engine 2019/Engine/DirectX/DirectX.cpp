@@ -1,6 +1,9 @@
 #include "DirectX.h"
 #include <iostream>
+
+#if USE_ANSEL
 #include "Vendor/Ansel/AnselSDK.h"
+#endif
 
 _DirectX::_DirectX() {
 }
@@ -68,7 +71,9 @@ int _DirectX::Create(DirectXConfig config) {
     if( FAILED(res) ) { return 1; }
 
     // Set ansel state
+#if USE_ANSEL
     if( cfg.Ansel ) cfg.Ansel = ansel::isAnselAvailable();
+#endif
 
     // Get texture
     ID3D11Texture2D *BackBufferColor;

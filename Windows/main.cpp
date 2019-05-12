@@ -18,7 +18,7 @@
 //#include "Engine/External/Ansel.h"
 
 // Ansel support
-#ifdef USE_ANSEL
+#if USE_ANSEL
 #include "Vendor/Ansel/AnselSDK.h"
 
 #ifdef _WIN64
@@ -113,7 +113,7 @@ bool _DirectX::FrameFunction() {
 }
 
 void _DirectX::ComposeUI() {
-    shGUI->Bind();
+    //shGUI->Bind();
 
 
 
@@ -171,10 +171,10 @@ void _DirectX::Resize() {
 
     // Recalculate camer's aspect ratio
     CameraConfig cfg2 = cPlayer->GetParams();
-    cfg2.fAspect = cfg.CurrentWidth / cfg.CurrentHeight;
+    cfg2.fAspect = static_cast<float>(cfg.CurrentWidth / cfg.CurrentHeight);
 
     cfg2 = c2DScreen->GetParams();
-    cfg2.fAspect = cfg.CurrentWidth / cfg.CurrentHeight;
+    cfg2.fAspect = static_cast<float>(cfg.CurrentWidth / cfg.CurrentHeight);
 
     // Set up the viewport
     D3D11_VIEWPORT vp;
@@ -205,7 +205,7 @@ void _DirectX::Load() {
     // Setup camera
     const WindowConfig& cfg = gWindow->GetCFG();
     CameraConfig cfg2;
-    cfg2.fAspect = cfg.CurrentWidth / cfg.CurrentHeight;
+    cfg2.fAspect = static_cast<float>(cfg.CurrentWidth / cfg.CurrentHeight);
     cfg2.FOV = 70.f;
     cfg2.fNear = .1f;
     cfg2.fFar = 300.f;
@@ -254,6 +254,10 @@ void _DirectX::Load() {
 
     mModel2 = new Model("Test model #2");
     mModel2->LoadModel("../Models/Landscape1.obj");
+
+    mScreenPlane = new Model("Screen plane model");
+    mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
+
 
     // HBAO+
 #if USE_HBAO_PLUS
