@@ -100,6 +100,9 @@ void Window::Create(WindowConfig* config) {
     SetForegroundWindow(m_hwnd);
     SetFocus(m_hwnd);
 
+    // Setup input
+    gInput = new Input();
+
     // 
     std::cout << "New window(x=" << posX << ", y=" << posY << ", w=" << config->CurrentWidth << ", h=" << config->CurrentHeight << ")" << std::endl;
 
@@ -181,6 +184,10 @@ const WindowConfig& Window::GetCFG() {
     return cfg;
 }
 
+Input* Window::GetInputDevice() {
+    return gInput;
+}
+
 /*LRESULT CALLBACK Window::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam) {
     switch( umsg ) {
         // Check if a key has been pressed on the keyboard.
@@ -232,6 +239,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
             ApplicationHandle->cfg.CurrentWidth  = LOWORD(lparam);
             ApplicationHandle->cfg.CurrentHeight = HIWORD(lparam);
             ApplicationHandle->cfg.Resized = true;
+            return 0;
+
+        case WM_KEYUP:
+            ApplicationHandle->gInput->PushKeyboardState(wparam, false);
+            return 0;
+
+        case WM_KEYDOWN:
+            ApplicationHandle->gInput->PushKeyboardState(wparam, true);
             return 0;
 
         // All other messages pass to the message handler in the system class.

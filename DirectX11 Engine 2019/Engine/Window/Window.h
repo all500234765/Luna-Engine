@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include "Engine/Input/Input.h"
 #include "Engine/DirectX/DirectX.h"
 
 struct WindowConfig {
@@ -29,6 +30,7 @@ private:
     HWND m_hwnd;
     HINSTANCE m_hinstance;
     _DirectX *gDirectX;
+    Input *gInput;
 
     HICON hIcon;
 
@@ -41,6 +43,7 @@ public:
     
     HWND GetHWND();
     const WindowConfig& GetCFG();
+    Input *GetInputDevice();
 
     friend static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 };

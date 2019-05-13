@@ -93,6 +93,7 @@ public:
 
     // 
     bool FrameFunction();
+    void Tick();
     void ComposeUI();
     void Resize();
     void Load();

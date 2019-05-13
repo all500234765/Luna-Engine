@@ -1,5 +1,8 @@
+#include "..\DirectX11 Engine 2019\Engine\DirectX\DirectX.h"
 // Extensions
 #include "Engine/Extensions/Default.h"
+
+#include "Engine/Input/Input.h"
 
 #include "Engine/Window/Window.h"
 #include "Engine/DirectX/DirectX.h"
@@ -41,7 +44,7 @@
 // Global game instances
 static _DirectX* gDirectX = 0;
 static Window* gWindow = 0;
-//static Input* gInput = 0;
+static Input* gInput = 0;
 
 // Test instances
 Camera *cPlayer, *c2DScreen;
@@ -63,6 +66,9 @@ GFSDK_SSAO_Output_D3D11 Output;
 bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
+
+    // Tick
+    Tick();
     
     // Bind and clear RTV
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
@@ -84,14 +90,16 @@ bool _DirectX::FrameFunction() {
     if( !gAnselSessionIsActive ) 
 #endif
         cPlayer->BuildView();
-    cPlayer->BuildConstantBuffer();
 
     // Render model
-    shTest->Bind();
+    mLevel1->Bind(cPlayer);
+    mLevel1->Render();
+
+    /*shTest->Bind();
     cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
     cPlayer->BindBuffer(Shader::Vertex, 0); // Bind camera
     cPlayer->BuildConstantBuffer();
-    mModel1->Render();
+    mModel1->Render();*/
 
     // Set default states
     //shTerrain->Bind();
@@ -99,8 +107,6 @@ bool _DirectX::FrameFunction() {
     //cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
     //cPlayer->BindBuffer(Shader::Domain, 0); // Bind camera
     //mModel2->Render();
-
-    cPlayer->SetWorldMatrix(DirectX::XMMatrixIdentity());
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -119,6 +125,29 @@ bool _DirectX::FrameFunction() {
     // End of frame
     gSwapchain->Present(1, 0);
     return false;
+}
+
+void _DirectX::Tick() {
+    // Update camera
+    const float fSpeed = .3f, fRotSpeed = 2.f;
+    float fDir = 0.f, fPitch = 0.f;
+    DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f);
+
+    if( gInput->GetKeyboard()->IsDown(VK_W) ) f3Move.x = +fSpeed;  // Forward / Backward
+    if( gInput->GetKeyboard()->IsDown(VK_S) ) f3Move.x = -fSpeed;
+    if( gInput->GetKeyboard()->IsDown(VK_D) ) f3Move.z = +fSpeed;  // Strafe
+    if( gInput->GetKeyboard()->IsDown(VK_A) ) f3Move.z = -fSpeed;
+
+    if( gInput->GetKeyboard()->IsDown(VK_LEFT ) ) fDir = -fRotSpeed; // Right / Left 
+    if( gInput->GetKeyboard()->IsDown(VK_RIGHT) ) fDir = +fRotSpeed;
+
+    // I got used to KSP and other avia/space sims
+    // So i flipped them
+    if( gInput->GetKeyboard()->IsDown(VK_UP  ) ) fPitch = -fRotSpeed; // Look Up / Down
+    if( gInput->GetKeyboard()->IsDown(VK_DOWN) ) fPitch = +fRotSpeed;
+
+    cPlayer->TranslateLookAt(f3Move);
+    cPlayer->Rotate(DirectX::XMFLOAT3(fPitch, fDir, 0.));
 }
 
 void _DirectX::ComposeUI() {
@@ -203,7 +232,7 @@ void _DirectX::Load() {
     shSkeletalAnimations = new Shader();
     shGUI = new Shader();
 
-    cPlayer = new Camera(DirectX::XMFLOAT3(0, 2, -2), DirectX::XMFLOAT3(0., 180., 0.));
+    cPlayer = new Camera(DirectX::XMFLOAT3(0, 2, -2), DirectX::XMFLOAT3(0., 130., 0.));
     c2DScreen = new Camera();
 
     // Ansel support
@@ -215,7 +244,7 @@ void _DirectX::Load() {
     const WindowConfig& cfg = gWindow->GetCFG();
     CameraConfig cfg2;
     cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
-    cfg2.FOV = 100.f;
+    cfg2.FOV = 80.f;
     cfg2.fNear = .1f;
     cfg2.fFar = 300.f;
     cPlayer->SetParams(cfg2);
@@ -267,6 +296,12 @@ void _DirectX::Load() {
     mScreenPlane = new Model("Screen plane model");
     //mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
 
+    // Create model instances
+    mLevel1 = new ModelInstance();
+    mLevel1->SetName("Level 1 Instance");
+    mLevel1->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
+    mLevel1->SetShader(shTest);
+    mLevel1->SetModel(mModel1);
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -428,6 +463,9 @@ int main() {
     
     // Create window
     gWindow->Create(&winCFG);
+
+    // Get input device
+    gInput = gWindow->GetInputDevice();
 
     // DirectX config
     DirectXConfig dxCFG;

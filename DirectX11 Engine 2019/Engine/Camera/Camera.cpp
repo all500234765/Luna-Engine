@@ -61,6 +61,54 @@ void Camera::Translate(DirectX::XMFLOAT3 p) {
     pPos += p;
 }
 
+void Camera::TranslateLookAt(DirectX::XMFLOAT3 p) {
+    using namespace DirectX;
+
+    // 
+    /*XMVECTOR EyePos = {pPos.x, pPos.y, pPos.z},
+        Focus = {0., 0., 1.},
+        Up = {0.f, 1.f, 0.f};
+
+    // Set the yaw (Y axis), pitch (X axis), and roll (Z axis) rotations in radians.
+    float pitch = pRot.x * 0.0174532925f;
+    float yaw = pRot.y * 0.0174532925f;
+    float roll = pRot.z * 0.0174532925f;
+
+    // Create the rotation matrix from the yaw, pitch, and roll values.
+    XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(pitch, yaw, roll);
+
+    // Transform the lookAt and up vector by the rotation matrix so the view is correctly rotated at the origin.
+    XMVECTOR lookAt = XMVector3TransformCoord(Focus, rotationMatrix);
+
+    // Store XMFLOAT3 in XMVECTOR
+    XMVECTOR q;
+    q.m128_f32[0] = p.x;
+    q.m128_f32[1] = p.y;
+    q.m128_f32[2] = p.z;
+
+    // Normalize and apply movement
+    XMFLOAT3 q2;
+    XMStoreFloat3(&q2, XMVector3Normalize(lookAt) * q);
+
+    pPos += q2;*/
+
+    float pr = XMConvertToRadians(pRot.x);
+    float yr = XMConvertToRadians(pRot.y);
+    float qr = yr - XMConvertToRadians(90.f * (p.z / fabsf(p.z)));
+
+    // Move the direction we looking at
+    pPos += XMFLOAT3(
+        // X
+        (p.x * sinf(yr) + p.z * cosf(yr)) * cosf(pr),
+
+        // Y
+        -p.x * sinf(pr), 
+
+        // Z
+        (p.x * cosf(yr) - p.z * sinf(yr)) * cosf(pr)
+    );
+}
+
 void Camera::Rotate(DirectX::XMFLOAT3 r) {
     pRot += r;
 }

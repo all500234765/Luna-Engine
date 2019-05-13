@@ -5,6 +5,6 @@ struct PS {
 };
 
 float4 main(PS In) : SV_Target0 {
-    float l = max(.3, dot(normalize(float3(10., 5., 10.)), In.Normal));
+    float l = max(.3, dot(normalize(float3(200., 50., 200.)), In.Normal));
     return float4(.7, .9, 0., 1.) * float4(l.xxx, 1.);
 }

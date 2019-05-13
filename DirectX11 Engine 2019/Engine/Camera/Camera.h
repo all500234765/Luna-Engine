@@ -36,6 +36,7 @@ public:
     void BuildProj();
 
     void Translate(DirectX::XMFLOAT3 p);
+    void TranslateLookAt(DirectX::XMFLOAT3 p);
     void Rotate(DirectX::XMFLOAT3 r);
 
     void SetWorldMatrix(DirectX::XMMATRIX w);
