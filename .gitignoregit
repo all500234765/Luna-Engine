@@ -1,0 +1,1 @@
+FOLDERNAME/ for-each-ref --format=%(refname) refs/original/
