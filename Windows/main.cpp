@@ -41,11 +41,13 @@
 // Global game instances
 static _DirectX* gDirectX = 0;
 static Window* gWindow = 0;
+//static Input* gInput = 0;
 
 // Test instances
 Camera *cPlayer, *c2DScreen;
 Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI;
 Model *mModel1, *mModel2, *mScreenPlane;
+ModelInstance *mLevel1;
 
 // HBAO+
 #if USE_HBAO_PLUS
@@ -88,14 +90,15 @@ bool _DirectX::FrameFunction() {
     shTest->Bind();
     cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
     cPlayer->BindBuffer(Shader::Vertex, 0); // Bind camera
-    //mModel1->Render();
+    cPlayer->BuildConstantBuffer();
+    mModel1->Render();
 
     // Set default states
-    shTerrain->Bind();
-    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-    cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
-    cPlayer->BindBuffer(Shader::Domain, 0); // Bind camera
-    mModel2->Render();
+    //shTerrain->Bind();
+    //gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+    //cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
+    //cPlayer->BindBuffer(Shader::Domain, 0); // Bind camera
+    //mModel2->Render();
 
     cPlayer->SetWorldMatrix(DirectX::XMMatrixIdentity());
 
@@ -177,10 +180,10 @@ void _DirectX::Resize() {
 
     // Recalculate camer's aspect ratio
     CameraConfig cfg2 = cPlayer->GetParams();
-    cfg2.fAspect = static_cast<float>(cfg.CurrentWidth / cfg.CurrentHeight);
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
 
     cfg2 = c2DScreen->GetParams();
-    cfg2.fAspect = static_cast<float>(cfg.CurrentWidth / cfg.CurrentHeight);
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
 
     // Set up the viewport
     D3D11_VIEWPORT vp;
@@ -211,8 +214,8 @@ void _DirectX::Load() {
     // Setup camera
     const WindowConfig& cfg = gWindow->GetCFG();
     CameraConfig cfg2;
-    cfg2.fAspect = static_cast<float>(cfg.CurrentWidth / cfg.CurrentHeight);
-    cfg2.FOV = 70.f;
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
+    cfg2.FOV = 100.f;
     cfg2.fNear = .1f;
     cfg2.fFar = 300.f;
     cPlayer->SetParams(cfg2);
@@ -256,7 +259,7 @@ void _DirectX::Load() {
 
     // Create model
     mModel1 = new Model("Test model #1");
-    mModel1->LoadModel("../Models/cornellbox.obj");
+    mModel1->LoadModel("../Models/TestLevel1.obj");
 
     mModel2 = new Model("Test model #2");
     mModel2->LoadModel("../Models/Dunes1.obj");
@@ -304,6 +307,7 @@ void _DirectX::Unload() {
     // Release model
     mModel1->Release();
     mModel2->Release();
+    mScreenPlane->Release();
 }
 
 #if USE_ANSEL

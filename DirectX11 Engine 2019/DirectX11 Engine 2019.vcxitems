@@ -42,6 +42,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Model.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />

@@ -167,7 +167,7 @@ int _DirectX::Create(DirectXConfig config) {
     D3D11_RASTERIZER_DESC rDesc;
     ZeroMemory(&rDesc, sizeof(D3D11_RASTERIZER_DESC));
     rDesc.AntialiasedLineEnable = false;
-    rDesc.CullMode = D3D11_CULL_BACK;
+    rDesc.CullMode = D3D11_CULL_NONE; // Disabled culling (Default: D3D11_CULL_BACK)
     rDesc.DepthBias = 0;
     rDesc.DepthBiasClamp = 0.0f;
     rDesc.DepthClipEnable = true;
@@ -189,7 +189,7 @@ int _DirectX::Create(DirectXConfig config) {
     rDesc2.MultisampleEnable = false;
     rDesc2.ScissorEnable = false;
     rDesc2.SlopeScaledDepthBias = 0.0f;
-
+    
     // Create R States
     gDevice->CreateRasterizerState(&rDesc, &gRSDefault);
     gDevice->CreateRasterizerState(&rDesc2, &gRSDefaultWriteframe);
