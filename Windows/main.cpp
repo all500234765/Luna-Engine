@@ -147,13 +147,13 @@ void _DirectX::Tick() {
 
     // Move view around
     if( gInput->GetMouse()->IsPressed(MouseButton::Left) ) {
-        //std::cout << gInput->GetMouse()->GetX() << " " << gInput->GetMouse()->GetY() << std::endl;
+        std::cout << gInput->GetMouse()->GetX() << " " << gInput->GetMouse()->GetY() << std::endl;
 
         pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
     }
 
     if( gInput->GetMouse()->IsDown(MouseButton::Left) ) {
-        fDir   = +(float(gInput->GetMouse()->GetX() - pLastPos.x) / 10.f);
+        fDir = +(float(gInput->GetMouse()->GetX() - pLastPos.x) / 5.f);
         //fPitch = +(float(gInput->GetMouse()->GetY() - pLastPos.y) / 10.f);
 
         pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());

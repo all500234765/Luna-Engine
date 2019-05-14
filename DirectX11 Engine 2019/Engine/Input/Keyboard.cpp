@@ -29,7 +29,7 @@ Keyboard::Keyboard(HWND q) {
     rid[0].usUsage = 0x06;
 
     // Register RID
-    //if( !RegisterRawInputDevices(rid, 1, sizeof(rid[0])) ) 
+    if( !RegisterRawInputDevices(rid, 1, sizeof(rid[0])) ) 
     {
         std::cout << "Can't register Keyboard RID: " << GetLastError() << std::endl;
     }
@@ -38,6 +38,8 @@ Keyboard::Keyboard(HWND q) {
 void Keyboard::SetState(WPARAM w, bool Down) {
     // Down state
     if( Down ) {
+        std::cout << "Pressed" << std::endl;
+
         // Was pressed => Press = false
         PressState[w] = !DownState[w];
 
@@ -47,6 +49,7 @@ void Keyboard::SetState(WPARAM w, bool Down) {
         // Up state
         UpState[w] = true;
         DownState[w] = false;
+        std::cout << "Released" << std::endl;
     }
 }
 

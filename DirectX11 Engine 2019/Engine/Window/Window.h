@@ -46,7 +46,9 @@ public:
     Input *GetInputDevice();
 
     friend static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+    friend static LRESULT CALLBACK InputWndProc(HWND, UINT, WPARAM, LPARAM);
 };
 
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+static LRESULT CALLBACK InputWndProc(HWND, UINT, WPARAM, LPARAM);
 static Window* ApplicationHandle = 0;

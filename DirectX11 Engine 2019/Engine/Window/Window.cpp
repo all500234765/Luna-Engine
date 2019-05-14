@@ -137,28 +137,28 @@ void Window::Loop() {
     
     // Loop until there is a quit message from the window or the user.
     while( true ) {
-        // Reset states
-        cfg.Resized = false;
-        gInput->GetMouse()->Refresh();
-        gInput->GetKeyboard()->Refresh();
-
         // Handle the windows messages.
-        if( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
+        while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
 
             // If windows signals to end the application then exit out.
             if( msg.message == WM_QUIT ) {
-                break;
+                return;
             }
-
-            // Tick function
-            // Collisions, AI, Input etc...
-            gDirectX->Tick();
-        } else {
-            // Otherwise do the frame processing.
-            if( gDirectX->FrameFunction() ) { break; }
         }
+
+        // Reset states
+        cfg.Resized = false;
+        gInput->GetMouse()->Refresh();
+        gInput->GetKeyboard()->Refresh();
+
+        // Tick function
+        // Collisions, AI, Input etc...
+        gDirectX->Tick();
+
+        // Otherwise do the frame processing.
+        if( gDirectX->FrameFunction() ) { break; }
     }
 }
 
@@ -206,6 +206,22 @@ Input* Window::GetInputDevice() {
     return gInput;
 }
 
+LRESULT CALLBACK InputWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
+    switch( umessage ) {
+        // Keyboard
+        case WM_KEYUP:
+            ApplicationHandle->gInput->PushKeyboardState(wparam, false);
+            return 0;
+
+        case WM_KEYDOWN:
+            //if( (lparam & 0x40000000) == 0 ) 
+            ApplicationHandle->gInput->PushKeyboardState(wparam, true);
+            return 0;
+    }
+
+    return DefWindowProc(hwnd, umessage, wparam, lparam);
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
     MINMAXINFO* info = (MINMAXINFO*)(lparam);
 
@@ -231,15 +247,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
             ApplicationHandle->cfg.CurrentWidth  = LOWORD(lparam);
             ApplicationHandle->cfg.CurrentHeight = HIWORD(lparam);
             ApplicationHandle->cfg.Resized = true;
-            return 0;
-
-            // Keyboard
-        case WM_KEYUP:
-            ApplicationHandle->gInput->PushKeyboardState(wparam, false);
-            return 0;
-
-        case WM_KEYDOWN:
-            if( (lparam & 0x40000000) == 0 ) ApplicationHandle->gInput->PushKeyboardState(wparam, true);
             return 0;
 
             // Mouse
