@@ -47,6 +47,10 @@ private:
 public:
     Keyboard();
 
+    void Refresh();
+
+    Keyboard(HWND q);
+
     void SetState(WPARAM w, bool Down);
     bool IsDown(WPARAM key);
     bool IsPressed(WPARAM key);

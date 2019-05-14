@@ -1,6 +1,7 @@
-#include "Window.h"
-
+#include <Windowsx.h>
 #include <iostream>
+
+#include "Window.h"
 
 void Window::Create(WindowConfig* config) {
     WNDCLASSEX wc;
@@ -100,8 +101,19 @@ void Window::Create(WindowConfig* config) {
     SetForegroundWindow(m_hwnd);
     SetFocus(m_hwnd);
 
+    // Create message only window
+    /*HWND input_hwnd = 0;
+    WNDCLASSEX wx = {};
+    wx.cbSize = sizeof(WNDCLASSEX);
+    wx.lpfnWndProc = InputWndProc;        // function which will handle messages
+    wx.hInstance = GetModuleHandle(NULL);
+    wx.lpszClassName = L"Input";
+    if( RegisterClassEx(&wx) ) {
+        input_hwnd = CreateWindowEx(0, wx.lpszClassName, L"Input", 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, NULL, NULL);
+    }*/
+
     // Setup input
-    gInput = new Input();
+    gInput = new Input(m_hwnd);
 
     // 
     std::cout << "New window(x=" << posX << ", y=" << posY << ", w=" << config->CurrentWidth << ", h=" << config->CurrentHeight << ")" << std::endl;
@@ -125,18 +137,24 @@ void Window::Loop() {
     
     // Loop until there is a quit message from the window or the user.
     while( true ) {
-        // Reset state
+        // Reset states
         cfg.Resized = false;
+        gInput->GetMouse()->Refresh();
+        gInput->GetKeyboard()->Refresh();
 
         // Handle the windows messages.
         if( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-        }
 
-        // If windows signals to end the application then exit out.
-        if( msg.message == WM_QUIT ) {
-            break;
+            // If windows signals to end the application then exit out.
+            if( msg.message == WM_QUIT ) {
+                break;
+            }
+
+            // Tick function
+            // Collisions, AI, Input etc...
+            gDirectX->Tick();
         } else {
             // Otherwise do the frame processing.
             if( gDirectX->FrameFunction() ) { break; }
@@ -188,32 +206,6 @@ Input* Window::GetInputDevice() {
     return gInput;
 }
 
-/*LRESULT CALLBACK Window::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam) {
-    switch( umsg ) {
-        // Check if a key has been pressed on the keyboard.
-        case WM_KEYDOWN:
-        {
-            // If a key is pressed send it to the input object so it can record that state.
-            m_Input->KeyDown((unsigned int)wparam);
-            return 0;
-        }
-
-        // Check if a key has been released on the keyboard.
-        case WM_KEYUP:
-        {
-            // If a key is released then send it to the input object so it can unset the state for that key.
-            m_Input->KeyUp((unsigned int)wparam);
-            return 0;
-        }
-
-        // Any other messages send to the default message handler as our application won't make use of them.
-        default:
-        {
-            return DefWindowProc(hwnd, umsg, wparam, lparam);
-        }
-    }
-}*/
-
 LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
     MINMAXINFO* info = (MINMAXINFO*)(lparam);
 
@@ -241,13 +233,79 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
             ApplicationHandle->cfg.Resized = true;
             return 0;
 
+            // Keyboard
         case WM_KEYUP:
             ApplicationHandle->gInput->PushKeyboardState(wparam, false);
             return 0;
 
         case WM_KEYDOWN:
-            ApplicationHandle->gInput->PushKeyboardState(wparam, true);
+            if( (lparam & 0x40000000) == 0 ) ApplicationHandle->gInput->PushKeyboardState(wparam, true);
             return 0;
+
+            // Mouse
+        case WM_INPUT:
+        {
+            UINT dwSize;
+            GetRawInputData((HRAWINPUT)lparam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+            LPBYTE lpb = new BYTE[dwSize];
+            if( lpb == NULL ) {
+                return 0;
+            }
+
+            if( GetRawInputData((HRAWINPUT)lparam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize )
+                OutputDebugString(TEXT("GetRawInputData does not return correct size !\n"));
+
+            RAWINPUT* raw = (RAWINPUT*)lpb;
+
+            if( raw->header.dwType == RIM_TYPEMOUSE ) {
+                // Update mouse position
+                ApplicationHandle->gInput->GetMouse()->SetMouse(raw->data.mouse.lLastX, raw->data.mouse.lLastX, !(raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE));
+
+                // Update buttons
+                if( raw->data.mouse.ulButtons > 0 ) ApplicationHandle->gInput->GetMouse()->SetState(raw->data.mouse.ulButtons);
+            }
+
+            if( raw->header.dwType == RIM_TYPEKEYBOARD ) {
+                std::cout << raw->data.keyboard.VKey << std::endl;
+                ApplicationHandle->gInput->GetKeyboard()->SetState(raw->data.keyboard.VKey, !(raw->data.keyboard.Flags & RI_KEY_BREAK));
+            }
+
+            return DefWindowProc(hwnd, umessage, wparam, lparam);
+        }
+            
+        /*case WM_LBUTTONDOWN:
+            //ApplicationHandle->gInput->GetMouse()->SetState(MK_LBUTTON, true);
+            //ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+
+        case WM_LBUTTONUP:
+            //ApplicationHandle->gInput->GetMouse()->SetState(MK_LBUTTON, false);
+            //ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+
+        case WM_RBUTTONDOWN:
+            ApplicationHandle->gInput->GetMouse()->SetState(MK_RBUTTON, true);
+            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+
+        case WM_RBUTTONUP:
+            ApplicationHandle->gInput->GetMouse()->SetState(MK_RBUTTON, false);
+            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+
+        case WM_MBUTTONDOWN:
+            ApplicationHandle->gInput->GetMouse()->SetState(MK_MBUTTON, true);
+            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+
+        case WM_MBUTTONUP:
+            ApplicationHandle->gInput->GetMouse()->SetState(MK_MBUTTON, false);
+            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;
+
+        case WM_MOUSEMOVE:
+            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            return 0;*/
 
         // All other messages pass to the message handler in the system class.
         default:

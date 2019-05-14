@@ -1,4 +1,5 @@
 #pragma once
+#if USE_GAMEPADS
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -88,3 +89,4 @@ public:
     bool IsButtonPressed(ButtonState button);
     bool IsButtonDown(ButtonState button);
 };
+#endif

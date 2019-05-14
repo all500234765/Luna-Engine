@@ -66,9 +66,6 @@ GFSDK_SSAO_Output_D3D11 Output;
 bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
-
-    // Tick
-    Tick();
     
     // Bind and clear RTV
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
@@ -130,8 +127,10 @@ bool _DirectX::FrameFunction() {
 void _DirectX::Tick() {
     // Update camera
     const float fSpeed = .3f, fRotSpeed = 2.f;
-    float fDir = 0.f, fPitch = 0.f;
-    DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f);
+    DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
+
+    float fDir = 0.f, fPitch = 0.f;             // 
+    static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
 
     if( gInput->GetKeyboard()->IsDown(VK_W) ) f3Move.x = +fSpeed;  // Forward / Backward
     if( gInput->GetKeyboard()->IsDown(VK_S) ) f3Move.x = -fSpeed;
@@ -145,6 +144,20 @@ void _DirectX::Tick() {
     // So i flipped them
     if( gInput->GetKeyboard()->IsDown(VK_UP  ) ) fPitch = -fRotSpeed; // Look Up / Down
     if( gInput->GetKeyboard()->IsDown(VK_DOWN) ) fPitch = +fRotSpeed;
+
+    // Move view around
+    if( gInput->GetMouse()->IsPressed(MouseButton::Left) ) {
+        //std::cout << gInput->GetMouse()->GetX() << " " << gInput->GetMouse()->GetY() << std::endl;
+
+        pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
+    }
+
+    if( gInput->GetMouse()->IsDown(MouseButton::Left) ) {
+        fDir   = +(float(gInput->GetMouse()->GetX() - pLastPos.x) / 10.f);
+        //fPitch = +(float(gInput->GetMouse()->GetY() - pLastPos.y) / 10.f);
+
+        pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
+    }
 
     cPlayer->TranslateLookAt(f3Move);
     cPlayer->Rotate(DirectX::XMFLOAT3(fPitch, fDir, 0.));

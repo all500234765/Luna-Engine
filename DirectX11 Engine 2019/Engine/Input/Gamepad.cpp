@@ -1,3 +1,4 @@
+#if USE_GAMEPADS
 #include "Gamepad.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -103,3 +104,4 @@ bool Gamepad::IsButtonPressed(ButtonState button) {
 bool Gamepad::IsButtonDown(ButtonState button) {
     return DownState[button];
 }
+#endif

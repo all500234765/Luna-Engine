@@ -13,19 +13,27 @@
 #endif
 
 #include "Keyboard.h"
+#include "Mouse.h"
 
 class Input {
 private:
+#if USE_GAMEPADS > 0
     Gamepad *iGamepads[NUM_GAMEPAD];
+#endif
+
     Keyboard iKeyboard;
-    //Mouse iMouse;
+    Mouse iMouse;
 
 public:
     Input();
+    Input(HWND q);
 
+#if USE_GAMEPADS > 0
     Gamepad* GetGamepad(int i);
+#endif
+
     Keyboard* GetKeyboard();
-    //Mouse* GetMouse();
+    Mouse* GetMouse();
 
     void PushKeyboardState(WPARAM w, bool Down);
 };

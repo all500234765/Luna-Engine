@@ -27,6 +27,7 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Input\Input.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Input\Keyboard.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Input\Mouse.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Model.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.h" />
@@ -49,6 +50,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\GamepadNew.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\Input.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\Keyboard.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\Mouse.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Model.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.cpp" />
