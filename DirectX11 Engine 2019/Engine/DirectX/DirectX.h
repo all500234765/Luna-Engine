@@ -62,6 +62,7 @@ private:
     D3D11_DEPTH_STENCIL_VIEW_DESC pDesc2;
     D3D11_TEXTURE2D_DESC pTex2DDesc;
     D3D11_DEPTH_STENCIL_DESC pDSD;
+    DXGI_SWAP_CHAIN_DESC scd;
 public:
     // Globals
     // 3D Rendering

@@ -4,7 +4,7 @@
 #include "Engine/DirectX/ConstantBuffer.h"
 
 struct CameraConfig {
-    float FOV, fAspect, fNear, fFar;
+    float FOV /* X */, fAspect, fNear, fFar;
 };
 
 class Camera: public DirectXChild {

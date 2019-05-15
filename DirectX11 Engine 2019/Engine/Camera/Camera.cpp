@@ -54,7 +54,7 @@ void Camera::BuildView() {
 }
 
 void Camera::BuildProj() {
-    mProj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(cfg.FOV), cfg.fAspect, cfg.fNear, cfg.fFar);
+    mProj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(cfg.FOV / cfg.fAspect), cfg.fAspect, cfg.fNear, cfg.fFar);
 }
 
 void Camera::Translate(DirectX::XMFLOAT3 p) {

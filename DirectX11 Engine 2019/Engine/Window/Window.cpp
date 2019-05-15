@@ -137,6 +137,9 @@ void Window::Loop() {
     
     // Loop until there is a quit message from the window or the user.
     while( true ) {
+        // Reset states
+        cfg.Resized = false;
+
         // Handle the windows messages.
         while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
             TranslateMessage(&msg);
@@ -149,7 +152,6 @@ void Window::Loop() {
         }
 
         // Reset states
-        cfg.Resized = false;
         gInput->GetMouse()->Refresh();
         gInput->GetKeyboard()->Refresh();
 
@@ -209,14 +211,14 @@ Input* Window::GetInputDevice() {
 LRESULT CALLBACK InputWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
     switch( umessage ) {
         // Keyboard
-        case WM_KEYUP:
+        /*case WM_KEYUP:
             ApplicationHandle->gInput->PushKeyboardState(wparam, false);
             return 0;
 
         case WM_KEYDOWN:
             //if( (lparam & 0x40000000) == 0 ) 
             ApplicationHandle->gInput->PushKeyboardState(wparam, true);
-            return 0;
+            return 0;*/
     }
 
     return DefWindowProc(hwnd, umessage, wparam, lparam);
@@ -266,14 +268,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 
             if( raw->header.dwType == RIM_TYPEMOUSE ) {
                 // Update mouse position
-                ApplicationHandle->gInput->GetMouse()->SetMouse(raw->data.mouse.lLastX, raw->data.mouse.lLastX, !(raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE));
+                POINT lp; GetCursorPos(&lp);
+                ScreenToClient(hwnd, &lp);
+
+                //ApplicationHandle->gInput->GetMouse()->SetMouse(raw->data.mouse.lLastX, raw->data.mouse.lLastX, !(raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE));
+                ApplicationHandle->gInput->GetMouse()->SetMouse(lp.x, lp.y);
+                //std::cout << lp.x << " " << lp.y << std::endl;
 
                 // Update buttons
                 if( raw->data.mouse.ulButtons > 0 ) ApplicationHandle->gInput->GetMouse()->SetState(raw->data.mouse.ulButtons);
             }
 
             if( raw->header.dwType == RIM_TYPEKEYBOARD ) {
-                std::cout << raw->data.keyboard.VKey << std::endl;
                 ApplicationHandle->gInput->GetKeyboard()->SetState(raw->data.keyboard.VKey, !(raw->data.keyboard.Flags & RI_KEY_BREAK));
             }
 

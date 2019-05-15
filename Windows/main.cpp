@@ -1,4 +1,3 @@
-#include "..\DirectX11 Engine 2019\Engine\DirectX\DirectX.h"
 // Extensions
 #include "Engine/Extensions/Default.h"
 
@@ -49,8 +48,8 @@ static Input* gInput = 0;
 // Test instances
 Camera *cPlayer, *c2DScreen;
 Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI;
-Model *mModel1, *mModel2, *mScreenPlane;
-ModelInstance *mLevel1;
+Model *mModel1, *mModel2, *mScreenPlane, *mModel3;
+ModelInstance *mLevel1, *mDunes, *mCornellBox;
 
 // HBAO+
 #if USE_HBAO_PLUS
@@ -61,6 +60,8 @@ GFSDK_SSAO_InputData_D3D11 Input;
 GFSDK_SSAO_Parameters Params;
 GFSDK_SSAO_Output_D3D11 Output;
 #endif
+
+static int SceneID = 0;
 
 // Define Frame Function
 bool _DirectX::FrameFunction() {
@@ -89,8 +90,22 @@ bool _DirectX::FrameFunction() {
         cPlayer->BuildView();
 
     // Render model
-    mLevel1->Bind(cPlayer);
-    mLevel1->Render();
+    switch( SceneID ) {
+        case 0: // Test level
+            mLevel1->Bind(cPlayer);
+            mLevel1->Render();
+            break;
+
+        case 1: // Dunes
+            mDunes->Bind(cPlayer);
+            mDunes->Render();
+            break;
+
+        case 2: // Cornell box
+            mCornellBox->Bind(cPlayer);
+            mCornellBox->Render();
+            break;
+    }
 
     /*shTest->Bind();
     cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
@@ -125,6 +140,11 @@ bool _DirectX::FrameFunction() {
 }
 
 void _DirectX::Tick() {
+    // Select scenes
+    if( gInput->GetKeyboard()->IsPressed(VK_0) ) SceneID = 0;
+    if( gInput->GetKeyboard()->IsPressed(VK_1) ) SceneID = 1;
+    if( gInput->GetKeyboard()->IsPressed(VK_2) ) SceneID = 2;
+
     // Update camera
     const float fSpeed = .3f, fRotSpeed = 2.f;
     DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
@@ -132,6 +152,7 @@ void _DirectX::Tick() {
     float fDir = 0.f, fPitch = 0.f;             // 
     static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
 
+    // Camera
     if( gInput->GetKeyboard()->IsDown(VK_W) ) f3Move.x = +fSpeed;  // Forward / Backward
     if( gInput->GetKeyboard()->IsDown(VK_S) ) f3Move.x = -fSpeed;
     if( gInput->GetKeyboard()->IsDown(VK_D) ) f3Move.z = +fSpeed;  // Strafe
@@ -146,18 +167,22 @@ void _DirectX::Tick() {
     if( gInput->GetKeyboard()->IsDown(VK_DOWN) ) fPitch = +fRotSpeed;
 
     // Move view around
-    if( gInput->GetMouse()->IsPressed(MouseButton::Left) ) {
-        std::cout << gInput->GetMouse()->GetX() << " " << gInput->GetMouse()->GetY() << std::endl;
+    //if( gInput->GetMouse()->IsPressed(MouseButton::Left) ) {
+    //    std::cout << gInput->GetMouse()->GetX() << " " << gInput->GetMouse()->GetY() << std::endl;
+    //
+    //    pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
+    //}
+    //
+    //if( gInput->GetMouse()->IsDown(MouseButton::Left) ) {
+    //    fDir   = +(float(gInput->GetMouse()->GetX() - pLastPos.x) / 5.f);
+    //    fPitch = +(float(gInput->GetMouse()->GetY() - pLastPos.y) / 10.f);
+    //
+    //    pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
+    //}
 
-        pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
-    }
-
-    if( gInput->GetMouse()->IsDown(MouseButton::Left) ) {
-        fDir = +(float(gInput->GetMouse()->GetX() - pLastPos.x) / 5.f);
-        //fPitch = +(float(gInput->GetMouse()->GetY() - pLastPos.y) / 10.f);
-
-        pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
-    }
+    fDir   = +(float(gInput->GetMouse()->GetX() - cfg.Width  * .5f) / 20.f);
+    fPitch = +(float(gInput->GetMouse()->GetY() - cfg.Height * .5f) / 20.f);
+    gInput->GetMouse()->SetAt(cfg.Width  * .5f, cfg.Height * .5f);
 
     cPlayer->TranslateLookAt(f3Move);
     cPlayer->Rotate(DirectX::XMFLOAT3(fPitch, fDir, 0.));
@@ -200,6 +225,11 @@ void _DirectX::Resize() {
     gRTV->Release();
 
     // Resize swapchain
+    scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
+    scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
+
+    gSwapchain->ResizeTarget(&scd.BufferDesc);
+
     std::cout << (gSwapchain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0) == S_OK) << std::endl;
 
     // Create RTV
@@ -220,12 +250,14 @@ void _DirectX::Resize() {
     // Bind default targets
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
 
-    // Recalculate camer's aspect ratio
+    // Recalculate camer's aspect ratio and projection matrix
     CameraConfig cfg2 = cPlayer->GetParams();
     cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
+    cPlayer->BuildProj();
 
     cfg2 = c2DScreen->GetParams();
     cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
+    c2DScreen->BuildProj();
 
     // Set up the viewport
     D3D11_VIEWPORT vp;
@@ -257,7 +289,7 @@ void _DirectX::Load() {
     const WindowConfig& cfg = gWindow->GetCFG();
     CameraConfig cfg2;
     cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
-    cfg2.FOV = 80.f;
+    cfg2.FOV = 100.f;
     cfg2.fNear = .1f;
     cfg2.fFar = 300.f;
     cPlayer->SetParams(cfg2);
@@ -306,15 +338,35 @@ void _DirectX::Load() {
     mModel2 = new Model("Test model #2");
     mModel2->LoadModel("../Models/Dunes1.obj");
 
+    mModel3 = new Model("Test model #3");
+    mModel3->LoadModel("../Models/cornellbox.obj");
+
     mScreenPlane = new Model("Screen plane model");
     //mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
 
     // Create model instances
+    // Test level
     mLevel1 = new ModelInstance();
     mLevel1->SetName("Level 1 Instance");
     mLevel1->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
     mLevel1->SetShader(shTest);
     mLevel1->SetModel(mModel1);
+
+    // Dunes
+    mDunes = new ModelInstance();
+    mDunes->SetName("Dunes Instance");
+    mDunes->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
+    mDunes->SetShader(shTerrain);
+    mDunes->SetModel(mModel2);
+    mDunes->SetTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+    mDunes->SetBindBuffer(Shader::Domain);
+
+    // Cornell box
+    mCornellBox = new ModelInstance();
+    mCornellBox->SetName("Dunes Instance");
+    mCornellBox->SetWorldMatrix(DirectX::XMMatrixScaling(1, 1, 1));
+    mCornellBox->SetShader(shTest);
+    mCornellBox->SetModel(mModel3);
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -355,6 +407,7 @@ void _DirectX::Unload() {
     // Release model
     mModel1->Release();
     mModel2->Release();
+    mModel3->Release();
     mScreenPlane->Release();
 }
 

@@ -17,7 +17,7 @@ int _DirectX::Create(DirectXConfig config) {
     // Temp variables
     D3D_FEATURE_LEVEL level;
     HRESULT res;
-    D3D_FEATURE_LEVEL pFeatureLevels[] = {D3D_FEATURE_LEVEL_11_1};
+    D3D_FEATURE_LEVEL pFeatureLevels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0};
 
     DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
     if( config.UseHDR ) {
@@ -41,7 +41,6 @@ int _DirectX::Create(DirectXConfig config) {
     }
 
     // Create swapchain
-    DXGI_SWAP_CHAIN_DESC scd;
     SecureZeroMemory(&scd, sizeof(scd));
     scd.BufferDesc.Width = config.Width;
     scd.BufferDesc.Height = config.Height;
