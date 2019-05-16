@@ -64,7 +64,4 @@
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector2.inl" />
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector3.inl" />
   </ItemGroup>
-  <ItemGroup>
-    <Library Include="$(MSBuildThisFileDirectory)Vendor\Assimp\x64\assimp.lib" />
-  </ItemGroup>
 </Project>

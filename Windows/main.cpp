@@ -61,7 +61,7 @@ GFSDK_SSAO_Parameters Params;
 GFSDK_SSAO_Output_D3D11 Output;
 #endif
 
-static int SceneID = 0;
+int SceneID = 0;
 
 // Define Frame Function
 bool _DirectX::FrameFunction() {
@@ -81,7 +81,7 @@ bool _DirectX::FrameFunction() {
 #endif
 
     // Set default states
-    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    //gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // Render scene and every thing else here
 #if USE_ANSEL
@@ -120,6 +120,9 @@ bool _DirectX::FrameFunction() {
     //cPlayer->BindBuffer(Shader::Domain, 0); // Bind camera
     //mModel2->Render();
 
+    // Set default topology
+    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
     // HBAO+
 #if USE_HBAO_PLUS
     DirectX::XMFLOAT4X4 mProjDest;
@@ -141,9 +144,9 @@ bool _DirectX::FrameFunction() {
 
 void _DirectX::Tick() {
     // Select scenes
-    if( gInput->GetKeyboard()->IsPressed(VK_0) ) SceneID = 0;
-    if( gInput->GetKeyboard()->IsPressed(VK_1) ) SceneID = 1;
-    if( gInput->GetKeyboard()->IsPressed(VK_2) ) SceneID = 2;
+    if( gInput->GetKeyboard()->IsPressed(VK_0) ) { SceneID = 0; }
+    if( gInput->GetKeyboard()->IsPressed(VK_1) ) { SceneID = 1; }
+    if( gInput->GetKeyboard()->IsPressed(VK_2) ) { SceneID = 2; }
 
     // Update camera
     const float fSpeed = .3f, fRotSpeed = 2.f;
@@ -182,7 +185,7 @@ void _DirectX::Tick() {
 
     fDir   = +(float(gInput->GetMouse()->GetX() - cfg.Width  * .5f) / 20.f);
     fPitch = +(float(gInput->GetMouse()->GetY() - cfg.Height * .5f) / 20.f);
-    gInput->GetMouse()->SetAt(cfg.Width  * .5f, cfg.Height * .5f);
+    gInput->GetMouse()->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
 
     cPlayer->TranslateLookAt(f3Move);
     cPlayer->Rotate(DirectX::XMFLOAT3(fPitch, fDir, 0.));

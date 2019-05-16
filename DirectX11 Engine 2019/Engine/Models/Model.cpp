@@ -27,7 +27,7 @@ void Model::LoadModel(std::string fname) {
     const aiScene *scene = importer.ReadFile(fname, aiProcess_Triangulate);
 
     if( !scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode ) {
-        std::cout << "Can't load model! (" << fname << std::endl;
+        std::cout << "Can't load model! (" << fname << ")" << std::endl;
     }
 
     // Process scene
@@ -42,13 +42,13 @@ void Model::Release() {
 
 void Model::ProcessNode(aiNode* node, const aiScene* scene) {
     // Process meshes
-    for( int i = 0; i < node->mNumMeshes; i++ ) {
+    for( UINT i = 0; i < node->mNumMeshes; i++ ) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
         MeshBuffer.push_back(ProcessMesh(mesh, scene));
     }
 
     // Process children
-    for( int i = 0; i < node->mNumChildren; i++ ) {
+    for( UINT i = 0; i < node->mNumChildren; i++ ) {
         ProcessNode(node->mChildren[i], scene);
     }
 }
@@ -71,7 +71,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
 
     // Load mesh data
     // Process Vertices
-    for( int i = 0; i < inMesh->mNumVertices; i++ ) {
+    for( UINT i = 0; i < inMesh->mNumVertices; i++ ) {
         Vertex_PNT v;
             
             v.Position = DirectX::XMFLOAT3(inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z);
@@ -86,20 +86,14 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
     }
 
     // Process indices
-    for( int i = 0; i < inMesh->mNumFaces; i++ ) {
+    for( UINT i = 0; i < inMesh->mNumFaces; i++ ) {
         aiFace face = inMesh->mFaces[i];
         IndexNum += face.mNumIndices;
         //std::cout << face.mNumIndices << std::endl; // 
-        for( int j = 0; j < face.mNumIndices; j++ ) {
+        for( UINT j = 0; j < face.mNumIndices; j++ ) {
             indices.push_back(face.mIndices[j]);
-            //std::cout << "\t" << face.mIndices[j] << std::endl; // 
         }
     }
-
-    /*for( int i = 0; i < 6; i++ ) {
-        Vertex *v = &vertices[i];
-        std::cout << v->Position.x << "\t" << v->Position.y << "\t" << v->Position.z << std::endl;
-    }*/
 
     // Process materials
     // ...

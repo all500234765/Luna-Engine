@@ -55,6 +55,10 @@ void Mouse::SetMouse(int X, int Y, bool rel) {
 }
 
 void Mouse::SetAt(int X, int Y) {
+    // If window isn't focused, then do nothing
+    if( GetFocus() != m_hwnd ) { return; }
+
+    // 
     POINT pt = {X, Y};
     x = X;
     y = Y;
@@ -103,7 +107,7 @@ void Mouse::SetState(WPARAM w, bool Down) {
     }
 }
 
-void Mouse::SetState(USHORT flags) {
+void Mouse::SetState(ULONG flags) {
     // https://docs.microsoft.com/en-us/windows/desktop/api/winuser/ns-winuser-tagrawmouse
     if( flags & RI_MOUSE_LEFT_BUTTON_DOWN ) SetState(Left, true);
     if( flags & RI_MOUSE_LEFT_BUTTON_UP   ) SetState(Left, false);

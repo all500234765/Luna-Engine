@@ -209,7 +209,7 @@ Input* Window::GetInputDevice() {
 }
 
 LRESULT CALLBACK InputWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
-    switch( umessage ) {
+    /*switch( umessage ) {
         // Keyboard
         /*case WM_KEYUP:
             ApplicationHandle->gInput->PushKeyboardState(wparam, false);
@@ -218,8 +218,8 @@ LRESULT CALLBACK InputWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lp
         case WM_KEYDOWN:
             //if( (lparam & 0x40000000) == 0 ) 
             ApplicationHandle->gInput->PushKeyboardState(wparam, true);
-            return 0;*/
-    }
+            return 0;* /
+    }*/
 
     return DefWindowProc(hwnd, umessage, wparam, lparam);
 }
@@ -276,7 +276,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
                 //std::cout << lp.x << " " << lp.y << std::endl;
 
                 // Update buttons
-                if( raw->data.mouse.ulButtons > 0 ) ApplicationHandle->gInput->GetMouse()->SetState(raw->data.mouse.ulButtons);
+                if( raw->data.mouse.ulButtons > (ULONG)0 ) ApplicationHandle->gInput->GetMouse()->SetState(raw->data.mouse.ulButtons);
             }
 
             if( raw->header.dwType == RIM_TYPEKEYBOARD ) {

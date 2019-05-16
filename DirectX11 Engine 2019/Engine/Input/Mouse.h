@@ -50,5 +50,5 @@ public:
     bool IsReleased(MouseButton mkey);
 
     void SetState(WPARAM w, bool Down);
-    void SetState(USHORT flags);
+    void SetState(ULONG flags);
 };
