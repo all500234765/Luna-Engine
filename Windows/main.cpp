@@ -17,6 +17,7 @@
 #include "Engine/Camera/Camera.h"
 #include "Engine/Materials/Sampler.h"
 #include "Engine/Materials/Texture.h"
+#include "Engine/Materials/Material.h"
 
 //#include "Engine/External/Ansel.h"
 
@@ -54,7 +55,10 @@ Model *mModel1, *mModel2, *mScreenPlane, *mModel3;
 ModelInstance *mLevel1, *mDunes, *mCornellBox;
 
 Texture *tDefault;
+DiffuseMap *mDefaultDiffuse;
 Sampler *sPoint;
+
+Material *mDefault;
 
 // HBAO+
 #if USE_HBAO_PLUS
@@ -98,8 +102,7 @@ bool _DirectX::FrameFunction() {
     switch( SceneID ) {
         case 0: // Test level
             mLevel1->Bind(cPlayer);
-            tDefault->Bind(Shader::Pixel, 0);
-            sPoint->Bind(Shader::Pixel, 0);
+            mDefault->BindTextures(Shader::Pixel);
             mLevel1->Render();
             break;
 
@@ -291,8 +294,9 @@ void _DirectX::Load() {
     c2DScreen = new Camera();
 
     tDefault = new Texture();
-
     sPoint = new Sampler();
+    mDefaultDiffuse = new DiffuseMap();
+    mDefault = new Material();
 
     // Ansel support
 #if USE_ANSEL
@@ -311,6 +315,13 @@ void _DirectX::Load() {
     pDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
     sPoint->Create(pDesc);
     sPoint->SetName("Point sampler");
+
+    // Create maps
+    mDefaultDiffuse->mTexture = tDefault;
+
+    mDefault->SetDiffuse(mDefaultDiffuse);
+    mDefault->SetSampler(sPoint);
+    mDefault->SetName("Default material");
 
     // Setup camera
     const WindowConfig& cfg = gWindow->GetCFG();
@@ -430,9 +441,14 @@ void _DirectX::Unload() {
     pAOContext->Release();
 #endif
 
+    // Release materials
+    mDefault->Release();
+
     // Release shaders
     shTest->DeleteShaders();
     shTerrain->DeleteShaders();
+    shGUI->DeleteShaders();
+    shSkeletalAnimations->DeleteShaders();
 
     // Release model
     mModel1->Release();
