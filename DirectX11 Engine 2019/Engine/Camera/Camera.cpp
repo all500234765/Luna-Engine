@@ -72,7 +72,7 @@ void Camera::TranslateLookAt(DirectX::XMFLOAT3 p) {
     float qr = yr - XMConvertToRadians(90.f * (p.z / fabsf(p.z)));
 
     // Move the direction we looking at
-    pPos += XMFLOAT3(
+    XMFLOAT3 q = XMFLOAT3(
         // X
         (p.x * sinf(yr) + p.z * cosf(yr)) * cosf(pr),
 
@@ -82,6 +82,10 @@ void Camera::TranslateLookAt(DirectX::XMFLOAT3 p) {
         // Z
         (p.x * cosf(yr) - p.z * sinf(yr)) * cosf(pr)
     );
+
+    pPos.x += q.x;
+    pPos.y += q.y;
+    pPos.z += q.z;
 }
 
 void Camera::Rotate(DirectX::XMFLOAT3 r) {
