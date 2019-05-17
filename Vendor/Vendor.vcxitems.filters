@@ -53,6 +53,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\nv\Vec3.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\AnselSDK.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\HBAOPlus\GFSDK_SSAO.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\x64\assimp-vc140-mt.dll" />
@@ -63,5 +64,8 @@
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\quaternion.inl" />
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector2.inl" />
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector3.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.cpp" />
   </ItemGroup>
 </Project>

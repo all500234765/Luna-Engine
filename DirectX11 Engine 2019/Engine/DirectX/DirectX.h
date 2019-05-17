@@ -68,7 +68,11 @@ public:
     // 3D Rendering
     ID3D11Device *gDevice;
     ID3D11DeviceContext *gContext;
-    
+
+#ifdef _DEBUG
+    ID3D11Debug *gDebug;
+#endif
+
     // 2D Rendering
     /*ID2D1HwndRenderTarget *g2DRT;
 

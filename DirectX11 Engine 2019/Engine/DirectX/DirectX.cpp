@@ -55,9 +55,15 @@ int _DirectX::Create(DirectXConfig config) {
     scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     scd.OutputWindow = config.m_hwnd;
     scd.Windowed = config.Windowed;
-    scd.Flags = D3D11_CREATE_DEVICE_DEBUG;
+    scd.Flags = 0;
     scd.SwapEffect = (config.BufferCount >= 2) ? DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL : DXGI_SWAP_EFFECT_SEQUENTIAL;
 
+    UINT DeviceFlags = 0;
+
+#ifdef _DEBUG
+    DeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+    
     if( config.MSAA ) {
         scd.SampleDesc.Count = config.MSAA_Samples;
         scd.SampleDesc.Quality = config.MSAA_Quality;
@@ -67,9 +73,13 @@ int _DirectX::Create(DirectXConfig config) {
     }
 
     // Create device and swapchain
-    res = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, pFeatureLevels, 1, D3D11_SDK_VERSION,
+    res = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, DeviceFlags, pFeatureLevels, 1, D3D11_SDK_VERSION,
                                         &scd, &gSwapchain, &gDevice, &level, &gContext);
     if( FAILED(res) ) { return 1; }
+
+#ifdef _DEBUG
+    gDevice->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&gDebug));
+#endif
 
     // Set ansel state
 #if USE_ANSEL

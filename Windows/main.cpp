@@ -15,6 +15,8 @@
 #include "Engine/Models/Model.h"
 #include "Engine/Models/ModelInstance.h"
 #include "Engine/Camera/Camera.h"
+#include "Engine/Materials/Sampler.h"
+#include "Engine/Materials/Texture.h"
 
 //#include "Engine/External/Ansel.h"
 
@@ -50,6 +52,9 @@ Camera *cPlayer, *c2DScreen;
 Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI;
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3;
 ModelInstance *mLevel1, *mDunes, *mCornellBox;
+
+Texture *tDefault;
+Sampler *sPoint;
 
 // HBAO+
 #if USE_HBAO_PLUS
@@ -93,6 +98,8 @@ bool _DirectX::FrameFunction() {
     switch( SceneID ) {
         case 0: // Test level
             mLevel1->Bind(cPlayer);
+            tDefault->Bind(Shader::Pixel, 0);
+            sPoint->Bind(Shader::Pixel, 0);
             mLevel1->Render();
             break;
 
@@ -283,10 +290,27 @@ void _DirectX::Load() {
     cPlayer = new Camera(DirectX::XMFLOAT3(0, 2, -2), DirectX::XMFLOAT3(0., 130., 0.));
     c2DScreen = new Camera();
 
+    tDefault = new Texture();
+
+    sPoint = new Sampler();
+
     // Ansel support
 #if USE_ANSEL
     AnselEnable(cPlayer->GetViewMatrix());
 #endif
+
+    // Create default texture and sampler
+    tDefault->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    sPoint->SetName("Default tile texture");
+
+    D3D11_SAMPLER_DESC pDesc;
+    ZeroMemory(&pDesc, sizeof(D3D11_SAMPLER_DESC));
+    pDesc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+    pDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    pDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    pDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    sPoint->Create(pDesc);
+    sPoint->SetName("Point sampler");
 
     // Setup camera
     const WindowConfig& cfg = gWindow->GetCFG();
@@ -395,6 +419,9 @@ void _DirectX::Load() {
     Output.pRenderTargetView = gRTV;
     Output.Blend.Mode = GFSDK_SSAO_BlendMode::GFSDK_SSAO_MULTIPLY_RGB;
 #endif
+
+    // Debug report if we can
+    if( gDirectX->gDebug ) gDirectX->gDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 }
 
 void _DirectX::Unload() {

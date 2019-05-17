@@ -54,7 +54,7 @@ bool Keyboard::IsDown(WPARAM key) {
 }
 
 bool Keyboard::IsPressed(WPARAM key) {
-    return PressState[key];
+    return PressState[key]; // TODO: Release compilation: Fix somewhy true value by default or press issues
 }
 
 bool Keyboard::IsReleased(WPARAM key) {
