@@ -52,3 +52,4 @@ public:
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 static LRESULT CALLBACK InputWndProc(HWND, UINT, WPARAM, LPARAM);
 static Window* ApplicationHandle = 0;
+static float fTimeDelay = 1000.f / 60.f;

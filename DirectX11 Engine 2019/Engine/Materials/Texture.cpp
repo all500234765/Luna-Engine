@@ -65,7 +65,7 @@ void Texture::Load(std::string fname, UINT bpc) {
 void Texture::Load(std::string fname, DXGI_FORMAT format) {
     // Load texture
     stbi_set_flip_vertically_on_load(true);
-    unsigned char* data = stbi_load(fname.c_str(), &w, &h, &channels, 0);
+    void* data = stbi_load(fname.c_str(), &w, &h, &channels, 0);
     if( !data ) {
         std::cout << "Failed to load texture. (" << fname.c_str() << ")" << std::endl;
         return;
@@ -88,9 +88,9 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
     pDesc.SampleDesc.Count = 1;
     pDesc.SampleDesc.Quality = 0;
     pDesc.Usage = D3D11_USAGE_DEFAULT;
-    pDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    pDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
     pDesc.CPUAccessFlags = 0;
-    pDesc.MiscFlags = 0;
+    pDesc.MiscFlags = D3D11_RESOURCE_MISC_FLAG::D3D11_RESOURCE_MISC_GENERATE_MIPS;
     
     D3D11_SUBRESOURCE_DATA pData;
     pData.pSysMem = data;
@@ -108,10 +108,10 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
     D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
     ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
     pSRVDesc.Format = format;
-    pSRVDesc.Texture2D.MipLevels = 1;
+    pSRVDesc.Texture2D.MipLevels = pDesc.MipLevels;
     pSRVDesc.Texture2D.MostDetailedMip = 0;
     pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-
+        
     res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
     if( FAILED(res) ) {
         std::cout << "Failed to create shader resource view!" << std::endl;
@@ -146,4 +146,12 @@ int Texture::GetWidth() {
 
 int Texture::GetHeight() {
     return h;
+}
+
+ID3D11ShaderResourceView* Texture::GetSRV() {
+    return pSRV;
+}
+
+ID3D11Texture2D* Texture::GetTexture() {
+    return pTexture;
 }

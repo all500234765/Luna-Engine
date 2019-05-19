@@ -45,6 +45,8 @@ public:
 
     Shader();
 
+    void SetNullShader(ShaderType type);
+
     bool LoadFile(std::string fname, ShaderType type);
     void DeleteShaders();
     void ReleaseBlobs();

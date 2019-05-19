@@ -1,5 +1,6 @@
 #include <Windowsx.h>
 #include <iostream>
+#include <chrono>
 
 #include "Window.h"
 
@@ -134,7 +135,14 @@ void Window::Loop() {
 
     // Initialize the message structure.
     ZeroMemory(&msg, sizeof(MSG));
-    
+
+    // Create new clock
+    std::chrono::high_resolution_clock Clock;
+    fTimeDelay = 1000.f / gDirectX->GetConfig()->RefreshRate;
+    std::chrono::time_point<std::chrono::steady_clock> tLast;
+    auto tp1 = Clock.now();
+    auto tp2 = tp1;
+
     // Loop until there is a quit message from the window or the user.
     while( true ) {
         // Reset states
@@ -155,9 +163,17 @@ void Window::Loop() {
         gInput->GetMouse()->Refresh();
         gInput->GetKeyboard()->Refresh();
 
+        // Calculate dt and fps
+        tp2 = Clock.now();
+        std::chrono::duration<float> dt = tp2 - tp1;
+        tp1 = tp2;
+        float fDeltaTime = dt.count();
+        
+        //float fFPS = 1.f / fDeltaTime;
+
         // Tick function
         // Collisions, AI, Input etc...
-        gDirectX->Tick();
+        gDirectX->Tick(fDeltaTime);
 
         // Otherwise do the frame processing.
         if( gDirectX->FrameFunction() ) { break; }

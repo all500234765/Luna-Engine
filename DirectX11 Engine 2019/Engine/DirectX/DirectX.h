@@ -96,9 +96,11 @@ public:
     int Create(DirectXConfig config);
     void ShowError(int id);
 
+    DirectXConfig* GetConfig();
+
     // 
     bool FrameFunction();
-    void Tick();
+    void Tick(float fDeltaTime);
     void ComposeUI();
     void Resize();
     void Load();

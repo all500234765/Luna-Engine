@@ -12,6 +12,21 @@ Shader::Shader() {
     pl = new PolygonLayout();
 }
 
+void Shader::SetNullShader(ShaderType type) {
+    // Create shader
+    switch( type ) {
+        case Vertex  : sVertex   = 0; break;
+        case Pixel   : sPixel    = 0; break;
+        case Geometry: sGeometry = 0; break;
+        case Hull    : sHull     = 0; break;
+        case Domain  : sDomain   = 0; break;
+        case Compute : sCompute  = 0; break;
+    }
+
+    // Shader was compiled natively
+    Type |= type;
+}
+
 bool Shader::LoadFile(std::string fname, ShaderType type) {
     // Create shader
     HRESULT hr;
@@ -83,7 +98,7 @@ ID3DBlob* Shader::GetBlob(ShaderType type) {
 }
 
 void Shader::Bind() {
-    pl->Bind();
+    if( pl->GetLayout() ) pl->Bind();
 
     if( ((Type & Vertex  ) == Vertex  ) ) { gDirectX->gContext->VSSetShader(sVertex, NULL, 0); }
     if( ((Type & Pixel   ) == Pixel   ) ) { gDirectX->gContext->PSSetShader(sPixel, NULL, 0); }
@@ -100,7 +115,7 @@ void Shader::Dispatch(UINT x, UINT y, UINT z) {
     }
 }
 
-HRESULT Shader::CreateInputLayoutDescFromVertexShaderSignature(ID3D11InputLayout ** pInputLayout, int * inputLayoutByteLength) {
+HRESULT Shader::CreateInputLayoutDescFromVertexShaderSignature(ID3D11InputLayout** pInputLayout, int* inputLayoutByteLength) {
     std::vector<D3D11_INPUT_ELEMENT_DESC> q;
     return CreateInputLayoutDescFromVertexShaderSignature(pInputLayout, inputLayoutByteLength, q);
 }

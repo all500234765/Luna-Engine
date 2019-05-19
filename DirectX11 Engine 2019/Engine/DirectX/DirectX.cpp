@@ -163,8 +163,8 @@ int _DirectX::Create(DirectXConfig config) {
 
     // Viewport
     D3D11_VIEWPORT vp;
-    vp.Width = (FLOAT)config.Width;
-    vp.Height = (FLOAT)config.Height;
+    vp.Width    = (FLOAT)config.Width;
+    vp.Height   = (FLOAT)config.Height;
     vp.MinDepth = 0.0f;
     vp.MaxDepth = 1.0f;
     vp.TopLeftX = 0;
@@ -268,4 +268,8 @@ void _DirectX::ShowError(int id) {
 
     MessageBox(NULL, error, L"DirectX Initialization failed", MB_OK);
 
+}
+
+DirectXConfig* _DirectX::GetConfig() {
+    return &cfg;
 }

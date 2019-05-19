@@ -28,4 +28,6 @@ public:
 
     int GetWidth();
     int GetHeight();
+    ID3D11ShaderResourceView* GetSRV();
+    ID3D11Texture2D* GetTexture();
 };

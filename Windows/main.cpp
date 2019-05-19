@@ -1,64 +1,24 @@
 // Extensions
 #include "Engine/Extensions/Default.h"
 
-#include "Engine/Input/Input.h"
-
-#include "Engine/Window/Window.h"
-#include "Engine/DirectX/DirectX.h"
-#include "Engine/DirectX/Shader.h"
-#include "Engine/DirectX/PolygonLayout.h"
-#include "Engine/DirectX/Buffer.h"
-#include "Engine/DirectX/IndexBuffer.h"
-#include "Engine/DirectX/VertexBuffer.h"
-#include "Engine/DirectX/ConstantBuffer.h"
-#include "Engine/Models/Mesh.h"
-#include "Engine/Models/Model.h"
-#include "Engine/Models/ModelInstance.h"
-#include "Engine/Camera/Camera.h"
-#include "Engine/Materials/Sampler.h"
-#include "Engine/Materials/Texture.h"
-#include "Engine/Materials/Material.h"
-
-//#include "Engine/External/Ansel.h"
-
-// Ansel support
-#if USE_ANSEL
-#include "Vendor/Ansel/AnselSDK.h"
-
-#ifdef _WIN64
-#pragma comment(lib, "Ansel/AnselSDK64.lib")
-#else
-#pragma comment(lib, "Ansel/AnselSDK32.lib")
-#endif
-#endif
-
-// HBAO+
-#if USE_HBAO_PLUS
-#include "Vendor/HBAOPlus/GFSDK_SSAO.h"
-
-#ifdef _WIN64
-#pragma comment(lib, "HBAOPlus/GFSDK_SSAO_D3D11.win64.lib")
-#else
-#pragma comment(lib, "HBAOPlus/GFSDK_SSAO_D3D11.win32.lib")
-#endif
-#endif
-
-// Global game instances
-static _DirectX* gDirectX = 0;
-static Window* gWindow = 0;
-static Input* gInput = 0;
+#include "EngineIncludes/MainInclude.h"
 
 // Test instances
-Camera *cPlayer, *c2DScreen;
-Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI;
+Camera *cPlayer, *c2DScreen, *cLight;
+Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly;
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3;
 ModelInstance *mLevel1, *mDunes, *mCornellBox;
 
 Texture *tDefault;
+Texture *tBlueNoiseRG;
 DiffuseMap *mDefaultDiffuse;
 Sampler *sPoint;
 
 Material *mDefault;
+
+RenderBufferDepth2D *bDepth;
+
+CubemapTexture *pCubemap;
 
 // HBAO+
 #if USE_HBAO_PLUS
@@ -89,17 +49,46 @@ bool _DirectX::FrameFunction() {
     AnselSession();
 #endif
 
-    // Set default states
-    //gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
     // Render scene and every thing else here
 #if USE_ANSEL
-    if( !gAnselSessionIsActive ) 
+    if( !gAnselSessionIsActive )
 #endif
+    {
         cPlayer->BuildView();
+    }
 
-    // Render model
-    switch( SceneID ) {
+    // Render depth buffer
+    bDepth->Bind();
+        
+        gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+
+        mLevel1->Bind(cLight);
+        shVertexOnly->Bind();
+        mLevel1->Render();
+    
+    // Render default
+    gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+
+    mLevel1->Bind(cPlayer);
+        
+        // Bind material
+        mDefault->BindTextures(Shader::Pixel);
+
+        // Bind depth buffer
+        bDepth->BindResources(Shader::Pixel, 1);
+        sPoint->Bind(Shader::Pixel, 1);
+
+        // Bind noise texture
+        tBlueNoiseRG->Bind(Shader::Pixel, 2);
+        sPoint->Bind(Shader::Pixel, 2);
+
+        // Bind light buffer
+        cLight->BindBuffer(Shader::Vertex, 1);
+
+        // Render level
+        mLevel1->Render();
+
+    /*switch( SceneID ) {
         case 0: // Test level
             mLevel1->Bind(cPlayer);
             mDefault->BindTextures(Shader::Pixel);
@@ -115,20 +104,7 @@ bool _DirectX::FrameFunction() {
             mCornellBox->Bind(cPlayer);
             mCornellBox->Render();
             break;
-    }
-
-    /*shTest->Bind();
-    cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
-    cPlayer->BindBuffer(Shader::Vertex, 0); // Bind camera
-    cPlayer->BuildConstantBuffer();
-    mModel1->Render();*/
-
-    // Set default states
-    //shTerrain->Bind();
-    //gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-    //cPlayer->SetWorldMatrix(DirectX::XMMatrixTranslation(0, 0, 0));
-    //cPlayer->BindBuffer(Shader::Domain, 0); // Bind camera
-    //mModel2->Render();
+    }*/
 
     // Set default topology
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -152,50 +128,56 @@ bool _DirectX::FrameFunction() {
     return false;
 }
 
-void _DirectX::Tick() {
+void _DirectX::Tick(float fDeltaTime) {
     // Select scenes
-    if( gInput->GetKeyboard()->IsPressed(VK_0) ) { SceneID = 0; }
-    if( gInput->GetKeyboard()->IsPressed(VK_1) ) { SceneID = 1; }
-    if( gInput->GetKeyboard()->IsPressed(VK_2) ) { SceneID = 2; }
+    //if( gKeyboard->IsPressed(VK_0) ) { SceneID = 0; }
+    //if( gKeyboard->IsPressed(VK_1) ) { SceneID = 1; }
+    //if( gKeyboard->IsPressed(VK_2) ) { SceneID = 2; }
+
+    if( gKeyboard->IsPressed(VK_SPACE) ) {
+        // Set light's view matrix to math main camera's one
+        cLight->SetViewMatrix(cPlayer->GetViewMatrix());
+        cLight->BuildConstantBuffer();
+    }
 
     // Update camera
-    const float fSpeed = .3f, fRotSpeed = 2.f;
+    const float fSpeed = 20.f, fRotSpeed = 5.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
     DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
 
     float fDir = 0.f, fPitch = 0.f;             // 
     static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
 
     // Camera
-    if( gInput->GetKeyboard()->IsDown(VK_W) ) f3Move.x = +fSpeed;  // Forward / Backward
-    if( gInput->GetKeyboard()->IsDown(VK_S) ) f3Move.x = -fSpeed;
-    if( gInput->GetKeyboard()->IsDown(VK_D) ) f3Move.z = +fSpeed;  // Strafe
-    if( gInput->GetKeyboard()->IsDown(VK_A) ) f3Move.z = -fSpeed;
+    if( gKeyboard->IsDown(VK_W) ) f3Move.x = +fSpeed * fDeltaTime;  // Forward / Backward
+    if( gKeyboard->IsDown(VK_S) ) f3Move.x = -fSpeed * fDeltaTime;
+    if( gKeyboard->IsDown(VK_D) ) f3Move.z = +fSpeed * fDeltaTime;  // Strafe
+    if( gKeyboard->IsDown(VK_A) ) f3Move.z = -fSpeed * fDeltaTime;
 
-    if( gInput->GetKeyboard()->IsDown(VK_LEFT ) ) fDir = -fRotSpeed; // Right / Left 
-    if( gInput->GetKeyboard()->IsDown(VK_RIGHT) ) fDir = +fRotSpeed;
+    if( gKeyboard->IsDown(VK_LEFT ) ) fDir = -fRotSpeed * fDeltaTime; // Right / Left 
+    if( gKeyboard->IsDown(VK_RIGHT) ) fDir = +fRotSpeed * fDeltaTime;
 
     // I got used to KSP and other avia/space sims
     // So i flipped them
-    if( gInput->GetKeyboard()->IsDown(VK_UP  ) ) fPitch = -fRotSpeed; // Look Up / Down
-    if( gInput->GetKeyboard()->IsDown(VK_DOWN) ) fPitch = +fRotSpeed;
+    if( gKeyboard->IsDown(VK_UP  ) ) fPitch = -fRotSpeed * fDeltaTime; // Look Up / Down
+    if( gKeyboard->IsDown(VK_DOWN) ) fPitch = +fRotSpeed * fDeltaTime;
 
     // Move view around
-    //if( gInput->GetMouse()->IsPressed(MouseButton::Left) ) {
-    //    std::cout << gInput->GetMouse()->GetX() << " " << gInput->GetMouse()->GetY() << std::endl;
+    //if( gMouse->IsPressed(MouseButton::Left) ) {
+    //    std::cout << gMouse->GetX() << " " << gMouse->GetY() << std::endl;
     //
-    //    pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
+    //    pLastPos = DirectX::XMFLOAT2(gMouse->GetX(), gMouse->GetY());
     //}
     //
-    //if( gInput->GetMouse()->IsDown(MouseButton::Left) ) {
-    //    fDir   = +(float(gInput->GetMouse()->GetX() - pLastPos.x) / 5.f);
-    //    fPitch = +(float(gInput->GetMouse()->GetY() - pLastPos.y) / 10.f);
+    //if( gMouse->IsDown(MouseButton::Left) ) {
+    //    fDir   = +(float(gMouse->GetX() - pLastPos.x) / 5.f);
+    //    fPitch = +(float(gMouse->GetY() - pLastPos.y) / 10.f);
     //
-    //    pLastPos = DirectX::XMFLOAT2(gInput->GetMouse()->GetX(), gInput->GetMouse()->GetY());
+    //    pLastPos = DirectX::XMFLOAT2(gMouse->GetX(), gMouse->GetY());
     //}
 
-    fDir   = +(float(gInput->GetMouse()->GetX() - cfg.Width  * .5f) / 20.f);
-    fPitch = +(float(gInput->GetMouse()->GetY() - cfg.Height * .5f) / 20.f);
-    gInput->GetMouse()->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
+    fDir   = +(float(gMouse->GetX() - cfg.Width  * .5f) * fSensetivityX * fDeltaTime);
+    fPitch = +(float(gMouse->GetY() - cfg.Height * .5f) * fSensetivityY * fDeltaTime);
+    gMouse->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
 
     cPlayer->TranslateLookAt(f3Move);
     cPlayer->Rotate(DirectX::XMFLOAT3(fPitch, fDir, 0.));
@@ -289,24 +271,40 @@ void _DirectX::Load() {
     shTerrain = new Shader();
     shSkeletalAnimations = new Shader();
     shGUI = new Shader();
+    shVertexOnly = new Shader();
 
     cPlayer = new Camera(DirectX::XMFLOAT3(0, 2, -2), DirectX::XMFLOAT3(0., 130., 0.));
     c2DScreen = new Camera();
+    cLight = new Camera(DirectX::XMFLOAT3(-10.f, 10.f, -10.f), DirectX::XMFLOAT3(45.f, 130.f, 0.f));
 
     tDefault = new Texture();
+    tBlueNoiseRG = new Texture();
     sPoint = new Sampler();
     mDefaultDiffuse = new DiffuseMap();
     mDefault = new Material();
+
+    bDepth = new RenderBufferDepth2D();
+
+    pCubemap = new CubemapTexture();
 
     // Ansel support
 #if USE_ANSEL
     AnselEnable(cPlayer->GetViewMatrix());
 #endif
 
-    // Create default texture and sampler
-    tDefault->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
-    sPoint->SetName("Default tile texture");
+    // Create cubemap
+    pCubemap->CreateFromFiles("../Textures/Cubemaps/Test/", false, DXGI_FORMAT_R8G8B8A8_UNORM);
 
+    // Create depth buffer
+    bDepth->Create(1024, 1024, 32);
+    bDepth->SetName("Depth buffer");
+
+    // Create default texture
+    tDefault->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    tDefault->SetName("Default tile texture");
+    //gContext->GenerateMips(tDefault->GetSRV());
+
+    // Create point sampler
     D3D11_SAMPLER_DESC pDesc;
     ZeroMemory(&pDesc, sizeof(D3D11_SAMPLER_DESC));
     pDesc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
@@ -319,10 +317,14 @@ void _DirectX::Load() {
     // Create maps
     mDefaultDiffuse->mTexture = tDefault;
 
+    // Create materials
     mDefault->SetDiffuse(mDefaultDiffuse);
     mDefault->SetSampler(sPoint);
     mDefault->SetName("Default material");
 
+    // Load blue noise texture
+    tBlueNoiseRG->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
+    
     // Setup camera
     const WindowConfig& cfg = gWindow->GetCFG();
     CameraConfig cfg2;
@@ -331,8 +333,6 @@ void _DirectX::Load() {
     cfg2.fNear = .1f;
     cfg2.fFar = 300.f;
     cPlayer->SetParams(cfg2);
-
-    // Build default matrices
     cPlayer->BuildProj();
     cPlayer->BuildView();
 
@@ -340,10 +340,16 @@ void _DirectX::Load() {
     cfg2.fNear = .1f;
     cfg2.fFar = 1.f;
     c2DScreen->SetParams(cfg2);
-
-    // Build default matrices
     c2DScreen->BuildProj();
     c2DScreen->BuildView();
+
+    cfg2.fNear = .1f;
+    cfg2.fFar = 300.f;
+    cfg2.FOV = 90.f;
+    cfg2.fAspect = 1.f;
+    cLight->SetParams(cfg2);
+    cLight->BuildProj();
+    cLight->BuildView();
 
     // Load shader
     shTest->LoadFile("../CompiledShaders/shTestVS.cso", Shader::Vertex);
@@ -362,12 +368,17 @@ void _DirectX::Load() {
     // GUI
     shGUI->LoadFile("../CompiledShaders/shGUIVS.cso", Shader::Vertex);
     shGUI->LoadFile("../CompiledShaders/shGUIPS.cso", Shader::Pixel);
+    
+    // Vertex only shader
+    shVertexOnly->LoadFile("../CompiledShaders/shSimpleVS.cso", Shader::Vertex);
+    shVertexOnly->SetNullShader(Shader::Pixel);
 
     // Clean shaders
     shTest->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
     shSkeletalAnimations->ReleaseBlobs();
     shGUI->ReleaseBlobs();
+    shVertexOnly->ReleaseBlobs();
 
     // Create model
     mModel1 = new Model("Test model #1");
@@ -441,20 +452,30 @@ void _DirectX::Unload() {
     pAOContext->Release();
 #endif
 
+    // Release cubemaps
+    pCubemap->Release();
+
     // Release materials
     mDefault->Release();
+
+    // Release textures
+    tBlueNoiseRG->Release();
 
     // Release shaders
     shTest->DeleteShaders();
     shTerrain->DeleteShaders();
     shGUI->DeleteShaders();
     shSkeletalAnimations->DeleteShaders();
+    shVertexOnly->DeleteShaders();
 
     // Release model
     mModel1->Release();
     mModel2->Release();
     mModel3->Release();
     mScreenPlane->Release();
+
+    // Release buffers
+    bDepth->Release();
 }
 
 #if USE_ANSEL
@@ -576,8 +597,13 @@ int main() {
     // Create window
     gWindow->Create(&winCFG);
 
-    // Get input device
+    // Get input devices
     gInput = gWindow->GetInputDevice();
+    gKeyboard = gInput->GetKeyboard();
+    gMouse = gInput->GetMouse();
+#if USE_GAMEPAD
+    for( int i = 0; i < NUM_GAMEPAD; i++ ) gGamepad[i] = gInput->GetGamepad(i);
+#endif
 
     // DirectX config
     DirectXConfig dxCFG;
@@ -590,6 +616,7 @@ int main() {
     dxCFG.Windowed = winCFG.Windowed;
     dxCFG.Ansel = USE_ANSEL;
 
+    // TODO: MSAA Support
     dxCFG.MSAA = false;
     dxCFG.MSAA_Samples = 1;
     dxCFG.MSAA_Quality = 0;
