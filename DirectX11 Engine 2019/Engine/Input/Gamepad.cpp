@@ -10,7 +10,7 @@ void Gamepad::Update() {
 
     // Update buttons
     for( int i = 0; i < ButtonCount; i++ ) {
-        CurrState[i] = IsButtonPressed(ButtonState(i));
+        CurrState[i] = IsButtonDown(ButtonState(i));
         DownState[i] = (!PrevState[i] && CurrState[i]);
     }
 }
@@ -106,9 +106,9 @@ void Gamepad::Vibrate(float value, bool isRight) {
 }
 
 bool Gamepad::IsButtonPressed(ButtonState button) {
-    return ((mState.Gamepad.wButtons & XINPUT_GamepadButtons[button]) == XINPUT_GamepadButtons[button]);
+    return DownState[button];
 }
 
 bool Gamepad::IsButtonDown(ButtonState button) {
-    return DownState[button];
+    return ((mState.Gamepad.wButtons & XINPUT_GamepadButtons[button]) == XINPUT_GamepadButtons[button]);
 }

@@ -334,21 +334,26 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gGamepad[0]->IsConnected() ) {
         float fLeft = 0.f, fRight = 0.f;
 
+        // Move around
         if( !gGamepad[0]->IsDeadZoneL() ) {
-            fLeft = .2;
+            fLeft = .5;
 
             f3Move.x = gGamepad[0]->LeftY() * fSpeed * fDeltaTime;
             f3Move.z = gGamepad[0]->LeftX() * fSpeed * fDeltaTime;
         }
 
+        // Look around
         if( !gGamepad[0]->IsDeadZoneR() ) {
-            fRight = .2;
+            fRight = .5;
 
             fDir   =  gGamepad[0]->RightX() * 100.f * fSensetivityX * fDeltaTime;
             fPitch = -gGamepad[0]->RightY() *  50.f * fSensetivityY * fDeltaTime;
         }
 
+        // Vibrate when sticks are moving
         gGamepad[0]->Vibrate(fLeft, fRight);
+
+        
     }
 #endif
 
