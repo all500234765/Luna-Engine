@@ -19,14 +19,42 @@ typedef enum {
     Count
 } MouseButton;
 
+typedef unsigned int uint32_t;
+
 class Mouse {
 private:
-    bool PressState[MouseButton::Count],
-         DownState [MouseButton::Count],
-         UpState   [MouseButton::Count];
+    struct State {
+        bool Left : 1;
+        bool Right : 1;
+        bool Middle : 1;
+        bool X1 : 1;
+        bool X2 : 1;
 
-    std::vector<WPARAM> Update;
+        bool __cdecl IsKeyDown(MouseButton key) const {
+            if( key >= 0 && key <= 0xfe ) {
+                auto ptr = reinterpret_cast<const bool*>(this);
+                unsigned int bf = 1u << (key & 0x1f);
+                return (ptr[(key >> 5)] & bf) != 0;
+            }
+            return false;
+        }
 
+        bool __cdecl IsKeyUp(MouseButton key) const {
+            if( key >= 0 && key <= 0xfe ) {
+                auto ptr = reinterpret_cast<const bool*>(this);
+                unsigned int bf = 1u << (key & 0x1f);
+                return (ptr[(key >> 5)] & bf) == 0;
+            }
+            return false;
+        }
+    };
+
+    State mState;
+    State mPressed;
+    State mReleased;
+    State mLastState;
+
+    bool bIsFocused;
     int x = 0, y = 0;
     HWND m_hwnd;
 public:
@@ -51,4 +79,6 @@ public:
 
     void SetState(WPARAM w, bool Down);
     void SetState(ULONG flags);
+    void SetFocus(bool isFocused);
+    void SetHWND(HWND handle);
 };

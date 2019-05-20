@@ -3,20 +3,30 @@
 #include <iostream>
 
 Keyboard::Keyboard() {
-    memset(&UpState, false, sizeof(UpState));
-    memset(&DownState, false, sizeof(DownState));
-    memset(&PressState, false, sizeof(PressState));
+    memset(&mState, 0, sizeof(State));
+    
+    // Bug fix...
+    /*SetState(VK_W, true);
+    SetState(VK_S, true);*/
 }
 
 void Keyboard::Refresh() {
-    for( int i = 0; i < 256; i++ ) {
-        if( UpState[i] ) {
-            // Release button
-            DownState[i] = false;
-            UpState[i] = false;
-            PressState[i] = false;
-        }
+    auto currPtr = reinterpret_cast<const uint32_t*>(&mState);
+    auto prevPtr = reinterpret_cast<const uint32_t*>(&mLastState);
+    auto releasedPtr = reinterpret_cast<uint32_t*>(&mReleased);
+    auto pressedPtr = reinterpret_cast<uint32_t*>(&mPressed);
+    for( size_t j = 0; j < (256 / 32); ++j ) {
+        *pressedPtr = *currPtr & ~(*prevPtr);
+        *releasedPtr = ~(*currPtr) & *prevPtr;
+
+        ++currPtr;
+        ++prevPtr;
+        ++releasedPtr;
+        ++pressedPtr;
     }
+
+    mLastState = mState;
+
 }
 
 Keyboard::Keyboard(HWND q) {
@@ -35,28 +45,26 @@ Keyboard::Keyboard(HWND q) {
 }
 
 void Keyboard::SetState(WPARAM w, bool Down) {
-    // Down state
-    if( Down ) {
-        // Was pressed => Press = false
-        PressState[w] = !DownState[w];
+    if( w < 0 || w > 0xfe ) return;
+    auto ptr = reinterpret_cast<uint32_t*>(&mState);
+    unsigned int bf = 1u << (w & 0x1f);
 
-        //  
-        DownState[w] = true;
+    if( Down ) {
+        ptr[(w >> 5)] |= bf;
     } else {
-        // Up state
-        UpState[w] = true;
-        DownState[w] = false;
+        ptr[(w >> 5)] &= ~bf;
     }
 }
 
 bool Keyboard::IsDown(WPARAM key) {
-    return DownState[key];
+    return mState.IsKeyDown((KeyboardUtils::Keys)key); // DownState[key];
 }
 
 bool Keyboard::IsPressed(WPARAM key) {
-    return PressState[key]; // TODO: Release compilation: Fix somewhy true value by default or press issues
+    // TODO: Release compilation: Fix somewhy true value by default or press issues
+    return mPressed.IsKeyDown((KeyboardUtils::Keys)key); // ((reinterpret_cast<uint32_t>(&mState) & key) == key);
 }
 
 bool Keyboard::IsReleased(WPARAM key) {
-    return UpState[key];
+    return mReleased.IsKeyDown((KeyboardUtils::Keys)key); // mState.IsKeyUp((KeyboardUtils::Keys)key); // UpState[key];
 }

@@ -1,6 +1,4 @@
 #pragma once
-#if USE_GAMEPADS
-
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Xinput.h>
@@ -85,8 +83,8 @@ public:
     float TriggerL();
     float TriggerR();
 
+    void Vibrate(float value, bool isRight);
     void Vibrate(float left, float right);
     bool IsButtonPressed(ButtonState button);
     bool IsButtonDown(ButtonState button);
 };
-#endif

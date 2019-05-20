@@ -14,7 +14,7 @@ void Buffer::Create(D3D11_BUFFER_DESC desc, D3D11_SUBRESOURCE_DATA data, UINT st
 }
 
 void Buffer::Release() {
-    pBuff->Release();
+    if( pBuff ) pBuff->Release();
     pBuff = 0;
 }
 

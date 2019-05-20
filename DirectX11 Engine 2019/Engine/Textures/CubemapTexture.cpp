@@ -30,7 +30,6 @@ void CubemapTexture::CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMA
     for( int i = 0; i < 6; i++ ) {
         // Load file
         std::string fname = folder + sSideNames[i];
-        stbi_set_flip_vertically_on_load(true); // Flip texture
         void* data = stbi_load(fname.c_str(), &Width, &Height, &channels, 0);
 
         // Set data
@@ -83,6 +82,10 @@ void CubemapTexture::CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMA
             return;
         }
     }
+}
+
+void CubemapTexture::Bind(Shader::ShaderType type, UINT slot) {
+    
 }
 
 void CubemapTexture::Release() {

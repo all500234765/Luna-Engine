@@ -2,9 +2,8 @@
 
 Input::Input() {
 #if USE_GAMEPADS
-    //iGamepads = (Gamepad*)malloc(sizeof(Gamepad) * NUM_GAMEPAD);
     for( int i = 0; i < NUM_GAMEPAD; i++ ) {
-        iGamepads[i] = new Gamepad(i);
+        iGamepads[i] = i;
     }
 #endif
 }
@@ -17,7 +16,7 @@ Input::Input(HWND q) {
 
 #if USE_GAMEPADS
 Gamepad* Input::GetGamepad(int i) {
-    return iGamepads[i];
+    return &iGamepads[i];
 }
 #endif
 
@@ -32,4 +31,3 @@ Mouse* Input::GetMouse() {
 void Input::PushKeyboardState(WPARAM w, bool Down) {
     iKeyboard.SetState(w, Down);
 }
-

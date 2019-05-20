@@ -17,8 +17,8 @@
 
 class Input {
 private:
-#if USE_GAMEPADS > 0
-    Gamepad *iGamepads[NUM_GAMEPAD];
+#if USE_GAMEPADS
+    Gamepad iGamepads[NUM_GAMEPAD];
 #endif
 
     Keyboard iKeyboard;
@@ -28,7 +28,7 @@ public:
     Input();
     Input(HWND q);
 
-#if USE_GAMEPADS > 0
+#if USE_GAMEPADS
     Gamepad* GetGamepad(int i);
 #endif
 

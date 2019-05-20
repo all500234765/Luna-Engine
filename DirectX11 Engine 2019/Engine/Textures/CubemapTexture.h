@@ -32,7 +32,7 @@ private:
 public:
     void CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMAT format);
 
-    void CreateSide(int side, ID3D11Texture2D* tex);
+    void Bind(Shader::ShaderType type, UINT slot=0);
 
     void Release();
 };

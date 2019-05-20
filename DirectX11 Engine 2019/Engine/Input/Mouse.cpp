@@ -22,26 +22,25 @@ Mouse::Mouse(HWND q): m_hwnd(q) {
 }
 
 void Mouse::Reset() {
-    memset(&UpState, false, sizeof(UpState));
-    memset(&DownState, false, sizeof(DownState));
-    memset(&PressState, false, sizeof(PressState));
+    memset(&mState, 0, sizeof(State));
 }
 
 void Mouse::Refresh() {
-    for( int i = 0; i < Update.size(); i++ ) {
-        SetState(Update[i], true);
+    auto currPtr = reinterpret_cast<const bool*>(&mState);
+    auto prevPtr = reinterpret_cast<const bool*>(&mLastState);
+    auto releasedPtr = reinterpret_cast<bool*>(&mReleased);
+    auto pressedPtr = reinterpret_cast<bool*>(&mPressed);
+    for( size_t j = 0; j < (Count / 1); ++j ) {
+        *pressedPtr = *currPtr & ~(*prevPtr);
+        *releasedPtr = ~(*currPtr) & *prevPtr;
+
+        ++currPtr;
+        ++prevPtr;
+        ++releasedPtr;
+        ++pressedPtr;
     }
 
-    Update.clear();
-
-    for( int i = 0; i < MouseButton::Count; i++ ) {
-        if( UpState[i] ) {
-            // Release button
-            DownState[i]  = false;
-            UpState[i]    = false;
-            PressState[i] = false;
-        }
-    }
+    mLastState = mState;
 }
 
 void Mouse::SetMouse(int X, int Y, bool rel) {
@@ -58,52 +57,48 @@ void Mouse::SetAt(int X, int Y) {
     // If window isn't focused, then do nothing
     if( GetFocus() != m_hwnd ) { return; }
 
-    // 
+    // Create vector
     POINT pt = {X, Y};
-    x = X;
-    y = Y;
 
+    // Store new mouse pos
+    this->x = X;
+    this->y = Y;
+
+    // Map point to the screen
     ClientToScreen(m_hwnd, &pt);
     SetCursorPos(pt.x, pt.y);
 }
 
 int Mouse::GetX() {
-    return x;
+    return this->x;
 }
 
 int Mouse::GetY() {
-    return y;
+    return this->y;
 }
 
 bool Mouse::IsPressed(MouseButton mkey) {
-    return PressState[mkey];
+    return mPressed.IsKeyDown(mkey);
 }
 
 bool Mouse::IsDown(MouseButton mkey) {
-    return DownState[mkey];
+    return mState.IsKeyDown(mkey);
 }
 
 bool Mouse::IsReleased(MouseButton mkey) {
-    return UpState[mkey];
+    // TODO: Somewhy not being registered
+    return mReleased.IsKeyDown(mkey);
 }
 
 void Mouse::SetState(WPARAM w, bool Down) {
-    // Down state
+    if( w < 0 || w > Count ) return;
+    auto ptr = reinterpret_cast<bool*>(&mState);
+    unsigned int bf = 1u << (w & 0x1f);
+
     if( Down ) {
-        // Was pressed => Press = false
-        bool q = PressState[w];
-        PressState[w] = !DownState[w];
-
-        // Now button is on hold
-        DownState[w] = true;
-
-        // Call only if button wasn't pressed earlier
-        if( q == false ) Update.push_back(w);
+        ptr[(w >> 5)] |= bf;
     } else {
-        // Up state
-        PressState[w] = false;
-        UpState[w] = true;
-        DownState[w] = false;
+        ptr[(w >> 5)] &= ~bf;
     }
 }
 

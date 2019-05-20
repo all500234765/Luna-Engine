@@ -1,11 +1,11 @@
 Texture2D _DiffuseTexture    : register(t0);
 SamplerState _DiffuseSampler : register(s0);
 
-Texture2D _DepthTexture    : register(t1);
-SamplerState _DepthSampler : register(s1);
+Texture2D<float1> _DepthTexture : register(t1);
+SamplerState _DepthSampler      : register(s1);
 
-Texture2D _NoiseTexture    : register(t2);
-SamplerState _NoiseSampler : register(s2);
+Texture2D<float2> _NoiseTexture : register(t2);
+SamplerState _NoiseSampler      : register(s2);
 
 struct PS {
     float4 Position : SV_Position;
@@ -16,21 +16,27 @@ struct PS {
 };
 
 float SampleShadow(float4 lpos) {
-    float3 projCoords = float3((+1. + lpos.x / lpos.z) * .5, 
-                               (-3. + lpos.y / lpos.z) * .5, 
-                               lpos.z);
+    const float bias = 1.f / 2048.f;
 
-    float sDepth = _DepthTexture.Sample(_DepthSampler, projCoords.xy + _NoiseTexture.Sample(_NoiseSampler, projCoords.xy).rg).r;
+    float3 projCoords = float3((1. + lpos.x / lpos.z) * .5,
+                               (3. - lpos.y / lpos.z) * .5,
+                                    (lpos.z / lpos.w) - bias);
 
-    const float bias = .005f;
-    return (sDepth - bias) > projCoords.z ? 1. : 0.;
+    //if( saturate(projCoords.x) != projCoords.x || saturate(projCoords.y) != projCoords.y ) return 0.;
+
+    float sDepth = _DepthTexture.Sample(_DepthSampler, projCoords.xy + _NoiseTexture.Sample(_NoiseSampler, projCoords.xy)*0.);
+    
+    return (projCoords.z < sDepth) ? 1. : 0.;
 }
 
 float4 main(PS In) : SV_Target0 {
+    /*return float4((1. + In.LightPos.x / In.LightPos.z) * .5, 
+                  (3. - In.LightPos.y / In.LightPos.z) * .5, 0., 1.);*/
+    
     float3 N = normalize(In.Normal);
-    float S = SampleShadow(In.LightPos);
+    float S = 1.; // SampleShadow(In.LightPos) * .2 + .8;
+    float4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord);
 
-    float L = clamp(dot(normalize(float3(10., 10., 0.)), N), .3f, 1.f) * S;
-    return float4((1. + In.LightPos.x / In.LightPos.z) * .5, 
-                  (3. - In.LightPos.y / In.LightPos.z) * .5, 0., 1.); // _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord) /*float4(.7, .9, 0., 1.)*/ * float4(L.xxx, 1.);
+    float L = clamp(dot(normalize(float3(10., 10., 0.)), N), .3f, 1.f);
+    return lerp(float4(.5, .6, .8, 1.), Diff, S) * float4(L.xxx, 1.);
 }

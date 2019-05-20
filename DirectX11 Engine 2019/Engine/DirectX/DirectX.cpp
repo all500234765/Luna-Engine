@@ -199,11 +199,11 @@ int _DirectX::Create(DirectXConfig config) {
     rDesc2.ScissorEnable = false;
     rDesc2.SlopeScaledDepthBias = 0.0f;
     
-    // Create R States
+    // Create RSs
     gDevice->CreateRasterizerState(&rDesc, &gRSDefault);
     gDevice->CreateRasterizerState(&rDesc2, &gRSDefaultWriteframe);
 
-    // Set R S
+    // Set RS
     gContext->RSSetState(gRSDefault);
 
     // Create SRV for DSV

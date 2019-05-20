@@ -64,7 +64,6 @@ void Texture::Load(std::string fname, UINT bpc) {
 
 void Texture::Load(std::string fname, DXGI_FORMAT format) {
     // Load texture
-    stbi_set_flip_vertically_on_load(true);
     void* data = stbi_load(fname.c_str(), &w, &h, &channels, 0);
     if( !data ) {
         std::cout << "Failed to load texture. (" << fname.c_str() << ")" << std::endl;

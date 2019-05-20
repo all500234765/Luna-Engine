@@ -34,6 +34,6 @@ PS main(VS In) {
         Out.Texcoord = In.Texcoord;
         Out.Normal   = mul(mWorld, float4(In.Normal, 0.)).xyz;
         Out.WorldPos = WorldPos;
-        Out.LightPos = mul(_LightMatrix, float4(WorldPos.xyz, 1.));
+        Out.LightPos = mul(mLightProj, mul(mLightView, float4(WorldPos.xyz, 1.)));
     return Out;
 }

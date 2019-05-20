@@ -119,6 +119,8 @@ void Window::Create(WindowConfig* config) {
     // 
     std::cout << "New window(x=" << posX << ", y=" << posY << ", w=" << config->CurrentWidth << ", h=" << config->CurrentHeight << ")" << std::endl;
 
+    std::cout << m_hwnd << " " << GetFocus() << std::endl;
+
     // Save configuration
     cfg = *config;
 
@@ -147,6 +149,9 @@ void Window::Loop() {
     while( true ) {
         // Reset states
         cfg.Resized = false;
+#if USE_GAMEPADS
+        for( int i = 0; i < NUM_GAMEPAD; i++ ) gInput->GetGamepad(i)->Refresh();
+#endif
 
         // Handle the windows messages.
         while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
@@ -162,6 +167,10 @@ void Window::Loop() {
         // Reset states
         gInput->GetMouse()->Refresh();
         gInput->GetKeyboard()->Refresh();
+
+#if USE_GAMEPADS
+        for( int i = 0; i < NUM_GAMEPAD; i++ ) gInput->GetGamepad(i)->Update();
+#endif
 
         // Calculate dt and fps
         tp2 = Clock.now();
@@ -287,10 +296,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
                 POINT lp; GetCursorPos(&lp);
                 ScreenToClient(hwnd, &lp);
 
-                //ApplicationHandle->gInput->GetMouse()->SetMouse(raw->data.mouse.lLastX, raw->data.mouse.lLastX, !(raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE));
                 ApplicationHandle->gInput->GetMouse()->SetMouse(lp.x, lp.y);
-                //std::cout << lp.x << " " << lp.y << std::endl;
-
+                
                 // Update buttons
                 if( raw->data.mouse.ulButtons > (ULONG)0 ) ApplicationHandle->gInput->GetMouse()->SetState(raw->data.mouse.ulButtons);
             }

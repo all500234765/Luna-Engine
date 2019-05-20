@@ -1,5 +1,6 @@
 // Extensions
 #include "Engine/Extensions/Default.h"
+#include "Engine/Input/Gamepad.h"
 
 #include "EngineIncludes/MainInclude.h"
 
@@ -19,6 +20,164 @@ Material *mDefault;
 RenderBufferDepth2D *bDepth;
 
 CubemapTexture *pCubemap;
+
+// Not yet done
+//#define LOWPOLY_EXAMPLE
+#ifdef LOWPOLY_EXAMPLE
+Mesh* mTerrainMesh;
+
+// Terrain example
+// Single square
+struct Square {
+    int row, col;
+    int NL, NR;
+
+    Vertex_PNT StoreData(int size) {
+        Vertex_PNT v;
+            v.Position = DirectX::XMFLOAT3(row, 0., col);
+            v.Normal   = DirectX::XMFLOAT3(0., 1., 0.);
+            v.Texcoord = DirectX::XMFLOAT2((float)row / (float)size, (float)col / (float)size);
+        return v;
+    }
+
+    Vertex_PNT StoreBottomRow(int size) {
+        Vertex_PNT v;
+            v.Position = DirectX::XMFLOAT3(row, 0., col);
+            v.Normal   = DirectX::XMFLOAT3(0., 1., 0.);
+            v.Texcoord = DirectX::XMFLOAT2((float)row / (float)size, (float)col / (float)size);
+        return v;
+    }
+};
+
+void CreateLowpolyTerrain(Mesh* mesh, int size) {
+    IndexBuffer *ib = new IndexBuffer;
+    VertexBuffer *vb = new VertexBuffer;
+
+    // 
+    int mNumVertices = 0, mIndexNum = 0;
+    std::vector<int> indices;
+    std::vector<Vertex_PNT> vertices;
+
+    std::vector<Square> vLastRow;
+
+    // Calculate vertex count
+    mNumVertices = size * 2 + (size - 2) * (size - 1) * 2;
+
+    // Resize vector
+    vertices.resize(mNumVertices);
+
+    // Populate vertices
+    for( int i = 0; i < size - 1; i++ ) {
+        for( int j = 0; j < size - 1; j++ ) {
+            // Store square
+            Square s = {i, j};
+            vertices.push_back(s.StoreData(size));
+
+            // Save last row
+            if( i == size - 2 ) {
+                vLastRow.push_back(s);
+            }
+        }
+    }
+
+    std::cout << "Vertices populated" << std::endl;
+
+    // Process last row
+    for( int i = 0; i < vLastRow.size(); i++ ) {
+        vertices.push_back(vLastRow[i].StoreBottomRow(size));
+    }
+
+    std::cout << "Last row processed" << std::endl;
+
+    // Generate indices
+    // ...
+    // 
+    int rLen = (mNumVertices - 1) * 2;
+    mIndexNum = (mNumVertices - 1) * (mNumVertices - 1) * 6;
+
+    // Store top section
+    for( int i = 0; i < mNumVertices - 3; i++ ) {
+        for( int j = 0; j < mNumVertices - 1; j++ ) {
+            int TL = (i * rLen) + j * 2;
+            int TR = (TL + 1);
+            int BL = TL + rLen;
+            int BR = BL + 1;
+
+            // Store quad
+            bool bRighthanded = (i % 2) != (j % 2);
+
+            // Store Left Tri
+            indices.push_back(TL);
+            indices.push_back(BL);
+            indices.push_back(bRighthanded ? BR : TR);
+
+            // Store Right Tri
+            indices.push_back(TR);
+            indices.push_back(bRighthanded ? TL : BL);
+            indices.push_back(BR);
+        }
+    }
+
+    std::cout << "Top section is stored" << std::endl;
+
+    // Store 2nd last line
+    for( int i = 0, j = mNumVertices - 3; i < mNumVertices - 1; i++ ) {
+        int TL = (j * rLen) + i * 2;
+        int TR = (TL + 1);
+        int BL = TL + rLen - i;
+        int BR = BL + 1;
+
+        // Store quad
+        bool bRighthanded = (i % 2) != (j % 2);
+
+        // Store Left Tri
+        indices.push_back(TL);
+        indices.push_back(BL);
+        indices.push_back(bRighthanded ? BR : TR);
+
+        // Store Right Tri
+        indices.push_back(TR);
+        indices.push_back(bRighthanded ? TL : BL);
+        indices.push_back(BR);
+    }
+
+    std::cout << "2nd line is stored" << std::endl;
+
+    // Store last line
+    for( int i = 0, j = mNumVertices - 2; i < mNumVertices - 1; i++ ) {
+        int TL = (j * rLen) + i;
+        int TR = (TL + 1);
+        int BL = TL + mNumVertices;
+        int BR = BL + 1;
+
+        // Store last row quad
+        bool bRighthanded = (i % 2) != (j % 2);
+
+        // Store Left Tri
+        indices.push_back(TL);
+        indices.push_back(BL);
+        indices.push_back(bRighthanded ? BR : TR);
+
+        // Store Right Tri
+        indices.push_back(BR);
+        indices.push_back(TR);
+        indices.push_back(bRighthanded ? TL : BL);
+    }
+
+    std::cout << "Last line is stored" << std::endl;
+
+    // Create buffers
+    ib->CreateDefault(mIndexNum, &indices[0]);
+    vb->CreateDefault(mNumVertices, sizeof(Vertex_PNT), &vertices[0]);
+
+    // Debug
+    ib->SetName("Lowpoly Terrain's Index Buffer");
+    vb->SetName("Lowpoly Terrain's Vertex Buffer");
+
+    // Create mesh
+    mesh->SetBuffer(vb, ib);
+}
+#endif
 
 // HBAO+
 #if USE_HBAO_PLUS
@@ -58,13 +217,13 @@ bool _DirectX::FrameFunction() {
     }
 
     // Render depth buffer
-    bDepth->Bind();
+    /*bDepth->Bind();
         
         gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
         mLevel1->Bind(cLight);
         shVertexOnly->Bind();
-        mLevel1->Render();
+        mLevel1->Render();*/
     
     // Render default
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
@@ -87,6 +246,8 @@ bool _DirectX::FrameFunction() {
 
         // Render level
         mLevel1->Render();
+        //mTerrainMesh->Bind();
+        //mTerrainMesh->Render();
 
     /*switch( SceneID ) {
         case 0: // Test level
@@ -128,20 +289,36 @@ bool _DirectX::FrameFunction() {
     return false;
 }
 
+static bool bIsWireframe = false;
+
 void _DirectX::Tick(float fDeltaTime) {
+    // Set focust handle for mouse
+    //gMouse->SetFocus(GetFocus());
+
     // Select scenes
     //if( gKeyboard->IsPressed(VK_0) ) { SceneID = 0; }
     //if( gKeyboard->IsPressed(VK_1) ) { SceneID = 1; }
     //if( gKeyboard->IsPressed(VK_2) ) { SceneID = 2; }
 
+    // Set light's view matrix to math main camera's one
     if( gKeyboard->IsPressed(VK_SPACE) ) {
-        // Set light's view matrix to math main camera's one
         cLight->SetViewMatrix(cPlayer->GetViewMatrix());
         cLight->BuildConstantBuffer();
     }
 
+    // Toggle wireframe mode
+    if( gKeyboard->IsPressed(VK_F1) ) {
+        bIsWireframe ^= true;
+
+        if( bIsWireframe ) {
+            gContext->RSSetState(gRSDefaultWriteframe);
+        } else {
+            gContext->RSSetState(gRSDefault);
+        }
+    }
+
     // Update camera
-    const float fSpeed = 20.f, fRotSpeed = 5.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
+    const float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
     DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
 
     float fDir = 0.f, fPitch = 0.f;             // 
@@ -153,6 +330,28 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsDown(VK_D) ) f3Move.z = +fSpeed * fDeltaTime;  // Strafe
     if( gKeyboard->IsDown(VK_A) ) f3Move.z = -fSpeed * fDeltaTime;
 
+#if USE_GAMEPADS
+    if( gGamepad[0]->IsConnected() ) {
+        float fLeft = 0.f, fRight = 0.f;
+
+        if( !gGamepad[0]->IsDeadZoneL() ) {
+            fLeft = .2;
+
+            f3Move.x = gGamepad[0]->LeftY() * fSpeed * fDeltaTime;
+            f3Move.z = gGamepad[0]->LeftX() * fSpeed * fDeltaTime;
+        }
+
+        if( !gGamepad[0]->IsDeadZoneR() ) {
+            fRight = .2;
+
+            fDir   =  gGamepad[0]->RightX() * 100.f * fSensetivityX * fDeltaTime;
+            fPitch = -gGamepad[0]->RightY() *  50.f * fSensetivityY * fDeltaTime;
+        }
+
+        gGamepad[0]->Vibrate(fLeft, fRight);
+    }
+#endif
+
     if( gKeyboard->IsDown(VK_LEFT ) ) fDir = -fRotSpeed * fDeltaTime; // Right / Left 
     if( gKeyboard->IsDown(VK_RIGHT) ) fDir = +fRotSpeed * fDeltaTime;
 
@@ -163,22 +362,24 @@ void _DirectX::Tick(float fDeltaTime) {
 
     // Move view around
     //if( gMouse->IsPressed(MouseButton::Left) ) {
-    //    std::cout << gMouse->GetX() << " " << gMouse->GetY() << std::endl;
-    //
     //    pLastPos = DirectX::XMFLOAT2(gMouse->GetX(), gMouse->GetY());
     //}
     //
     //if( gMouse->IsDown(MouseButton::Left) ) {
-    //    fDir   = +(float(gMouse->GetX() - pLastPos.x) / 5.f);
-    //    fPitch = +(float(gMouse->GetY() - pLastPos.y) / 10.f);
-    //
+    //    fDir   = (float(gMouse->GetX() - pLastPos.x) / 100.f);
+    //    fPitch = (float(gMouse->GetY() - pLastPos.y) / 100.f);
+    //    
     //    pLastPos = DirectX::XMFLOAT2(gMouse->GetX(), gMouse->GetY());
     //}
 
-    fDir   = +(float(gMouse->GetX() - cfg.Width  * .5f) * fSensetivityX * fDeltaTime);
-    fPitch = +(float(gMouse->GetY() - cfg.Height * .5f) * fSensetivityY * fDeltaTime);
-    gMouse->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
+    //if( gMouse->IsPressed(Left) ) std::cout << "Press\n";
+    //if( gMouse->IsDown(Left) ) std::cout << "Hold\n";
+    //if( gMouse->IsReleased(Left) ) std::cout << "Release\n";
 
+    //fDir   = (float(gMouse->GetX() - cfg.Width  * .5f) * fSensetivityX * fDeltaTime);
+    //fPitch = (float(gMouse->GetY() - cfg.Height * .5f) * fSensetivityY * fDeltaTime);
+    //gMouse->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
+    
     cPlayer->TranslateLookAt(f3Move);
     cPlayer->Rotate(DirectX::XMFLOAT3(fPitch, fDir, 0.));
 }
@@ -266,6 +467,14 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::Load() {
+    // Temp Bug fix
+    gKeyboard->SetState(VK_W, false);
+    gKeyboard->SetState(VK_S, false);
+    gKeyboard->SetState(VK_UP, false);
+    gKeyboard->SetState(VK_DOWN, false);
+    gKeyboard->SetState(VK_LEFT, false);
+    gKeyboard->SetState(VK_RIGHT, false);
+
     // Create instances
     shTest = new Shader();
     shTerrain = new Shader();
@@ -296,7 +505,7 @@ void _DirectX::Load() {
     pCubemap->CreateFromFiles("../Textures/Cubemaps/Test/", false, DXGI_FORMAT_R8G8B8A8_UNORM);
 
     // Create depth buffer
-    bDepth->Create(1024, 1024, 32);
+    bDepth->Create(2048, 2048, 32);
     bDepth->SetName("Depth buffer");
 
     // Create default texture
@@ -344,7 +553,7 @@ void _DirectX::Load() {
     c2DScreen->BuildView();
 
     cfg2.fNear = .1f;
-    cfg2.fFar = 300.f;
+    cfg2.fFar = 10000.f;
     cfg2.FOV = 90.f;
     cfg2.fAspect = 1.f;
     cLight->SetParams(cfg2);
@@ -385,10 +594,10 @@ void _DirectX::Load() {
     mModel1->LoadModel("../Models/TestLevel1.obj");
 
     mModel2 = new Model("Test model #2");
-    mModel2->LoadModel("../Models/Dunes1.obj");
+    //mModel2->LoadModel("../Models/Dunes1.obj");
 
     mModel3 = new Model("Test model #3");
-    mModel3->LoadModel("../Models/cornellbox.obj");
+    //mModel3->LoadModel("../Models/cornellbox.obj");
 
     mScreenPlane = new Model("Screen plane model");
     //mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
@@ -403,19 +612,25 @@ void _DirectX::Load() {
 
     // Dunes
     mDunes = new ModelInstance();
-    mDunes->SetName("Dunes Instance");
+    /*mDunes->SetName("Dunes Instance");
     mDunes->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
     mDunes->SetShader(shTerrain);
     mDunes->SetModel(mModel2);
     mDunes->SetTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-    mDunes->SetBindBuffer(Shader::Domain);
+    mDunes->SetBindBuffer(Shader::Domain);*/
 
     // Cornell box
     mCornellBox = new ModelInstance();
-    mCornellBox->SetName("Dunes Instance");
+    /*mCornellBox->SetName("Cornell box Instance");
     mCornellBox->SetWorldMatrix(DirectX::XMMatrixScaling(1, 1, 1));
     mCornellBox->SetShader(shTest);
-    mCornellBox->SetModel(mModel3);
+    mCornellBox->SetModel(mModel3);*/
+
+    // Speaks for it's self
+#ifdef LOWPOLY_EXAMPLE
+    mTerrainMesh = new Mesh();
+    CreateLowpolyTerrain(mTerrainMesh, 10);
+#endif
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -468,11 +683,16 @@ void _DirectX::Unload() {
     shSkeletalAnimations->DeleteShaders();
     shVertexOnly->DeleteShaders();
 
-    // Release model
+    // Release models
     mModel1->Release();
     mModel2->Release();
     mModel3->Release();
     mScreenPlane->Release();
+
+    // Release meshes
+#ifdef LOWPOLY_EXAMPLE
+    mTerrainMesh->Release();
+#endif
 
     // Release buffers
     bDepth->Release();
@@ -601,7 +821,7 @@ int main() {
     gInput = gWindow->GetInputDevice();
     gKeyboard = gInput->GetKeyboard();
     gMouse = gInput->GetMouse();
-#if USE_GAMEPAD
+#if USE_GAMEPADS
     for( int i = 0; i < NUM_GAMEPAD; i++ ) gGamepad[i] = gInput->GetGamepad(i);
 #endif
 

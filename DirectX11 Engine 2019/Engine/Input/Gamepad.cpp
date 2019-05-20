@@ -1,4 +1,3 @@
-#if USE_GAMEPADS
 #include "Gamepad.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -97,6 +96,15 @@ void Gamepad::Vibrate(float left, float right) {
     XInputSetState(Index, &mVibState);
 }
 
+void Gamepad::Vibrate(float value, bool isRight) {
+    XINPUT_VIBRATION mVibState;
+    ZeroMemory(&mVibState, sizeof(XINPUT_VIBRATION));
+
+    if( !isRight ) mVibState.wLeftMotorSpeed = static_cast<int>(value * 65535.f); // Left
+    else           mVibState.wRightMotorSpeed = static_cast<int>(value * 65535.f); // Right
+    XInputSetState(Index, &mVibState);
+}
+
 bool Gamepad::IsButtonPressed(ButtonState button) {
     return ((mState.Gamepad.wButtons & XINPUT_GamepadButtons[button]) == XINPUT_GamepadButtons[button]);
 }
@@ -104,4 +112,3 @@ bool Gamepad::IsButtonPressed(ButtonState button) {
 bool Gamepad::IsButtonDown(ButtonState button) {
     return DownState[button];
 }
-#endif

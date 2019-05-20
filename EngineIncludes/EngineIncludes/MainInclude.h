@@ -2,6 +2,7 @@
 
 // Engine
 #include "Engine/Input/Input.h"
+#include "Engine/Input/Gamepad.h"
 #include "Engine/Window/Window.h"
 #include "Engine/DirectX/DirectX.h"
 #include "Engine/DirectX/Shader.h"
@@ -56,6 +57,6 @@ static Mouse* gMouse = 0;
 static Keyboard* gKeyboard = 0;
 
 #if USE_GAMEPADS
-static Gamepad* gGamepad[NUM_GAMEPAD] = 0;
+static Gamepad* gGamepad[NUM_GAMEPAD] = {};
 #endif
 
