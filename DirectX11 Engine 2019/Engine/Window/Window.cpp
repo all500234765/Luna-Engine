@@ -149,9 +149,6 @@ void Window::Loop() {
     while( true ) {
         // Reset states
         cfg.Resized = false;
-#if USE_GAMEPADS
-        for( int i = 0; i < NUM_GAMEPAD; i++ ) gInput->GetGamepad(i)->Refresh();
-#endif
 
         // Handle the windows messages.
         while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
@@ -183,6 +180,10 @@ void Window::Loop() {
         // Tick function
         // Collisions, AI, Input etc...
         gDirectX->Tick(fDeltaTime);
+
+#if USE_GAMEPADS
+        for( int i = 0; i < NUM_GAMEPAD; i++ ) gInput->GetGamepad(i)->Refresh();
+#endif
 
         // Otherwise do the frame processing.
         if( gDirectX->FrameFunction() ) { break; }
