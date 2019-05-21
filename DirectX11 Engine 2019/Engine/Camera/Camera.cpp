@@ -94,7 +94,7 @@ void Camera::Rotate(DirectX::XMFLOAT3 r) {
     pRot.z += r.z;
 }
 
-void Camera::SetWorldMatrix(DirectX::XMMATRIX w) {
+void Camera::SetWorldMatrix(const DirectX::XMMATRIX& w) {
     mWorld = w;
 }
 

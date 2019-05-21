@@ -22,6 +22,7 @@ struct PS {
     float2 Texcoord : TEXCOORD0;
     float4 WorldPos : TEXCOORD1;
     float4 LightPos : TEXCOORD2;
+    float3 InputPos : TEXCOORD3;
 };
 
 static float4x4 _LightMatrix = mul(mLightView, mLightProj);
@@ -35,5 +36,6 @@ PS main(VS In) {
         Out.Normal   = mul(mWorld, float4(In.Normal, 0.)).xyz;
         Out.WorldPos = WorldPos;
         Out.LightPos = mul(mLightProj, mul(mLightView, float4(WorldPos.xyz, 1.)));
+        Out.InputPos = In.Position.xyz;
     return Out;
 }

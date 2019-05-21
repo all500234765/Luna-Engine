@@ -39,7 +39,7 @@ int _DirectX::Create(DirectXConfig config) {
         //else               
         format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     }
-
+    
     // Create swapchain
     SecureZeroMemory(&scd, sizeof(scd));
     scd.BufferDesc.Width = config.Width;

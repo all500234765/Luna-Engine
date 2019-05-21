@@ -217,13 +217,13 @@ bool _DirectX::FrameFunction() {
     }
 
     // Render depth buffer
-    /*bDepth->Bind();
+    bDepth->Bind();
         
         gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
         mLevel1->Bind(cLight);
         shVertexOnly->Bind();
-        mLevel1->Render();*/
+        mLevel1->Render();
     
     // Render default
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
@@ -240,6 +240,10 @@ bool _DirectX::FrameFunction() {
         // Bind noise texture
         tBlueNoiseRG->Bind(Shader::Pixel, 2);
         sPoint->Bind(Shader::Pixel, 2);
+
+        // Bind cubemap
+        pCubemap->Bind(Shader::Pixel, 3);
+        sPoint->Bind(Shader::Pixel, 3);
 
         // Bind light buffer
         cLight->BindBuffer(Shader::Vertex, 1);
@@ -331,6 +335,7 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsDown(VK_A) ) f3Move.z = -fSpeed * fDeltaTime;
 
 #if USE_GAMEPADS
+    // Use gamepad if we can and it's connected
     if( gGamepad[0]->IsConnected() ) {
         // Move around
         if( !gGamepad[0]->IsDeadZoneL() ) {
@@ -343,8 +348,23 @@ void _DirectX::Tick(float fDeltaTime) {
             fDir   =  gGamepad[0]->RightX() * 100.f * fSensetivityX * fDeltaTime;
             fPitch = -gGamepad[0]->RightY() *  50.f * fSensetivityY * fDeltaTime;
         }
-    }
+    } //else
 #endif
+    {
+        // Use mouse
+        bool b = false;
+        if( abs(fDir) <= .1 ) {
+            fDir = (float(gMouse->GetX() - cfg.Width  * .5f) * fSensetivityX * fDeltaTime);
+            b = true;
+        }
+
+        if( abs(fPitch) <= .1 ) {
+            fPitch = (float(gMouse->GetY() - cfg.Height * .5f) * fSensetivityY * fDeltaTime);
+            b = true;
+        }
+
+        if( b ) gMouse->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
+    }
 
     if( gKeyboard->IsDown(VK_LEFT ) ) fDir = -fRotSpeed * fDeltaTime; // Right / Left 
     if( gKeyboard->IsDown(VK_RIGHT) ) fDir = +fRotSpeed * fDeltaTime;
@@ -354,26 +374,7 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsDown(VK_UP  ) ) fPitch = -fRotSpeed * fDeltaTime; // Look Up / Down
     if( gKeyboard->IsDown(VK_DOWN) ) fPitch = +fRotSpeed * fDeltaTime;
 
-    // Move view around
-    //if( gMouse->IsPressed(MouseButton::Left) ) {
-    //    pLastPos = DirectX::XMFLOAT2(gMouse->GetX(), gMouse->GetY());
-    //}
-    //
-    //if( gMouse->IsDown(MouseButton::Left) ) {
-    //    fDir   = (float(gMouse->GetX() - pLastPos.x) / 100.f);
-    //    fPitch = (float(gMouse->GetY() - pLastPos.y) / 100.f);
-    //    
-    //    pLastPos = DirectX::XMFLOAT2(gMouse->GetX(), gMouse->GetY());
-    //}
-
-    //if( gMouse->IsPressed(Left) ) std::cout << "Press\n";
-    //if( gMouse->IsDown(Left) ) std::cout << "Hold\n";
-    //if( gMouse->IsReleased(Left) ) std::cout << "Release\n";
-
-    //fDir   = (float(gMouse->GetX() - cfg.Width  * .5f) * fSensetivityX * fDeltaTime);
-    //fPitch = (float(gMouse->GetY() - cfg.Height * .5f) * fSensetivityY * fDeltaTime);
-    //gMouse->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
-    
+    // Look around
     cPlayer->TranslateLookAt(f3Move);
     cPlayer->Rotate(DirectX::XMFLOAT3(fPitch, fDir, 0.));
 }
@@ -585,7 +586,7 @@ void _DirectX::Load() {
 
     // Create model
     mModel1 = new Model("Test model #1");
-    mModel1->LoadModel("../Models/TestLevel1.obj");
+    mModel1->LoadModel<Vertex_PNT>("../Models/Teapot.obj");
 
     mModel2 = new Model("Test model #2");
     //mModel2->LoadModel("../Models/Dunes1.obj");
@@ -600,7 +601,7 @@ void _DirectX::Load() {
     // Test level
     mLevel1 = new ModelInstance();
     mLevel1->SetName("Level 1 Instance");
-    mLevel1->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
+    mLevel1->SetWorldMatrix(DirectX::XMMatrixScaling(2, 2, 2));
     mLevel1->SetShader(shTest);
     mLevel1->SetModel(mModel1);
 

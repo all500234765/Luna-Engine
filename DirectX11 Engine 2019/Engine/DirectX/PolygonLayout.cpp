@@ -20,7 +20,7 @@ bool PolygonLayout::End(Shader* shader) {
     D3D11_INPUT_ELEMENT_DESC *desc = (D3D11_INPUT_ELEMENT_DESC*)malloc(sizeof(D3D11_INPUT_ELEMENT_DESC) * numEls);
 
     // Gather elements
-    for( UINT i = 0; i < numEls; i++ ) desc[i] = descs[i];
+    for( size_t i = 0; i < numEls; i++ ) desc[i] = descs[i];
 
     // Create input layout
     auto blob = shader->GetBlob(Shader::Vertex);

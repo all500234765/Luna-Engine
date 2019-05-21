@@ -1,7 +1,7 @@
 #include "CubemapTexture.h"
 
-void CubemapTexture::CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMAT format) {
-    isLoaded = true;
+void CubemapTexture::CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMAT format, bool isHDR) {
+    isLoaded   = true;
     isDepthMap = bDepth;
 
     // 
@@ -19,7 +19,7 @@ void CubemapTexture::CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMA
     desc.MipLevels = 1;
     desc.BindFlags = flags;
     desc.Usage = D3D11_USAGE_IMMUTABLE; // GPU Read only
-    desc.MiscFlags = 0;
+    desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
     desc.CPUAccessFlags = 0;
     desc.SampleDesc.Count = 1;
     desc.SampleDesc.Quality = 0;
@@ -29,7 +29,7 @@ void CubemapTexture::CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMA
     // Load subresource data
     for( int i = 0; i < 6; i++ ) {
         // Load file
-        std::string fname = folder + sSideNames[i];
+        std::string fname = folder + sSideNames[i] + (isHDR ? ".hdr" : ".png");
         void* data = stbi_load(fname.c_str(), &Width, &Height, &channels, 0);
 
         // Set data
@@ -67,33 +67,38 @@ void CubemapTexture::CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMA
     D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
     ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
     pSRVDesc.Format = format;
-    pSRVDesc.Texture2DArray.MipLevels       = 1;
+    pSRVDesc.Texture2DArray.MipLevels       = desc.MipLevels;
     pSRVDesc.Texture2DArray.MostDetailedMip = 0;
-    pSRVDesc.Texture2DArray.ArraySize       = 1;
-    pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    pSRVDesc.Texture2DArray.ArraySize       = 6;
+    pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+    pSRVDesc.Texture2DArray.FirstArraySlice = 0;
 
-    // Create SRVs
-    for( int i = 0; i < 6; i++ ) {
-        pSRVDesc.Texture2DArray.FirstArraySlice = i;
-        
-        res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV[i]);
-        if( FAILED(res) ) {
-            std::cout << "Failed to create shader resource view!" << std::endl;
-            return;
-        }
+    // Create SRV
+    res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
+    if( FAILED(res) ) {
+        std::cout << "Failed to create shader resource view!" << std::endl;
+        return;
     }
 }
 
 void CubemapTexture::Bind(Shader::ShaderType type, UINT slot) {
-    
+    if( !pSRV ) { return; }
+    switch( type ) {
+        case Shader::Vertex  : gDirectX->gContext->VSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Pixel   : gDirectX->gContext->PSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Geometry: gDirectX->gContext->GSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Hull    : gDirectX->gContext->HSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Domain  : gDirectX->gContext->DSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Compute : gDirectX->gContext->CSSetShaderResources(slot, 1, &pSRV); break;
+    }
 }
 
 void CubemapTexture::Release() {
     if( pTexture ) pTexture->Release();
+    if( pSRV ) pSRV->Release();
+
+    if( isLoaded ) { return; }
     for( int i = 0; i < 6; i++ ) {
-        if( pSRV[i] ) pSRV[i]->Release();
-        
-        if( isLoaded ) { continue; }
         if( isDepthMap ) {
             if( pDSVs[i] ) pDSVs[i]->Release();
         } else {

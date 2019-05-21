@@ -1,5 +1,9 @@
 #include "ModelInstance.h"
 
+#include "Model.h"
+#include "Engine/DirectX/Shader.h"
+#include "Engine/Camera/Camera.h"
+
 void ModelInstance::SetModel(Model* model) {
     mModel = model;
 }
@@ -17,7 +21,7 @@ void ModelInstance::SetBindBuffer(Shader::ShaderType BB, UINT Slot) {
     BindBufferSlot = Slot;
 }
 
-void ModelInstance::SetWorldMatrix(DirectX::XMMATRIX mWorld) {
+void ModelInstance::SetWorldMatrix(const DirectX::XMMATRIX& mWorld) {
     World = mWorld;
 }
 

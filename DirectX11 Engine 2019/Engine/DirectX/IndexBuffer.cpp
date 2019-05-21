@@ -1,4 +1,5 @@
 #include "IndexBuffer.h"
+#include "Buffer.h"
 #include <d3d11.h>
 
 void IndexBuffer::CreateDefault(UINT Num, void* indices) {

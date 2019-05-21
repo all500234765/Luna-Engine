@@ -1,5 +1,5 @@
 #include "ConstantBuffer.h"
-
+#include "Buffer.h"
 #include <iostream>
 
 void ConstantBuffer::CreateDefault(UINT size) {

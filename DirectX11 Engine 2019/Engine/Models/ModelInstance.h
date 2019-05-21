@@ -21,7 +21,7 @@ public:
     // Optional
     void SetTopology(D3D11_PRIMITIVE_TOPOLOGY pTopology);
     void SetBindBuffer(Shader::ShaderType BB, UINT Slot=0);
-    void SetWorldMatrix(DirectX::XMMATRIX mWorld);
+    void SetWorldMatrix(const DirectX::XMMATRIX& mWorld);
 
     void Bind(Camera* cam);
     void Render();

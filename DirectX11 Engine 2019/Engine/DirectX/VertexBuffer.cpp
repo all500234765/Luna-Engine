@@ -1,4 +1,5 @@
 #include "VertexBuffer.h"
+#include "Buffer.h"
 #include <d3d11.h>
 
 void VertexBuffer::CreateDefault(UINT Num, UINT Stride, void* vertices) {
