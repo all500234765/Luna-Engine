@@ -18,5 +18,5 @@ void IndexBuffer::CreateDefault(UINT Num, void* indices) {
     data.SysMemSlicePitch = 0;
 
     // 
-    this->Create(desc, data, sizeof(unsigned long), 0);
+    __super::Create(desc, data, sizeof(unsigned long), 0);
 }

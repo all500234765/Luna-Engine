@@ -22,9 +22,11 @@ class Model {
 private:
     const char* sName; // Model name
     std::vector<Mesh*> MeshBuffer;
-    int num;
+    int num, mVertexSize;
 
 public:
+
+    Model(const char* name, int SizeOfVertex);
     Model(const char* name);
 
     void Render();
@@ -39,6 +41,8 @@ public:
 
 template<typename VertexT>
 void Model::LoadModel(std::string fname) {
+    if( mVertexSize == 0 ) mVertexSize = sizeof(VertexT);
+
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(fname, aiProcess_Triangulate);
 
@@ -85,10 +89,18 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
     // Process Vertices
     for( size_t i = 0; i < inMesh->mNumVertices; i++ ) {
         // Create new vertex
-        VertexT v;
+        VertexT v(inMesh, i);
 
         // Load new vertex
-        v.LoadVertex(inMesh, i);
+        //v.LoadVertex(inMesh, i);
+        //v.Position = DirectX::XMFLOAT3(inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z);
+        //v.Normal = DirectX::XMFLOAT3(inMesh->mNormals[i].x, inMesh->mNormals[i].y, inMesh->mNormals[i].z);
+        //
+        //if( inMesh->mTextureCoords[0] ) {
+        //    v.Texcoord = DirectX::XMFLOAT2(inMesh->mTextureCoords[0][i].x, inMesh->mTextureCoords[0][i].y);
+        //} else {
+        //    v.Texcoord = DirectX::XMFLOAT2(0, 0);
+        //}
 
         // Push new vertex
         vertices.push_back(v);
@@ -98,7 +110,6 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
     for( size_t i = 0; i < inMesh->mNumFaces; i++ ) {
         aiFace face = inMesh->mFaces[i];
         IndexNum += face.mNumIndices;
-        //std::cout << face.mNumIndices << std::endl; // 
         for( size_t j = 0; j < face.mNumIndices; j++ ) {
             indices.push_back(face.mIndices[j]);
         }
@@ -109,7 +120,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
 
     // Create buffers
     ib->CreateDefault(IndexNum, &indices[0]);
-    vb->CreateDefault(inMesh->mNumVertices, sizeof(VertexT), &vertices[0]);
+    vb->CreateDefault(inMesh->mNumVertices, mVertexSize, &vertices[0]);
 
     // Debug
     ib->SetName((std::string(sName) + std::string("'s Index Buffer")).c_str());

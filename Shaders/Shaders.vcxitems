@@ -30,6 +30,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shGUIPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shSkyboxPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTerrainPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -41,6 +44,9 @@
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shSimpleVS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shSkyboxVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTerrainVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>

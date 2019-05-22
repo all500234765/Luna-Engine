@@ -1,57 +1,55 @@
 #pragma once
 
-#include <DirectXMath.h>
-#include "Vendor/Assimp/Importer.hpp"
+#undef min
+#undef max
 
+#include "Vendor/Assimp/Importer.hpp"
+#include "Vendor/Assimp/scene.h"
+#include "Vendor/Assimp/postprocess.h"
+
+#include <DirectXMath.h>
 
 // Don't use this struct as Vertex type
 // Use Vertex_P instead
 struct Vertex {
     DirectX::XMFLOAT3 Position;
 
-    virtual void LoadVertex(const aiMesh& inMesh, UINT i) = 0;
+    Vertex();
+    Vertex(aiMesh* inMesh, size_t i);
+
+    //virtual Vertex LoadVertex(aiMesh* inMesh, size_t i);
 };
 
 struct Vertex_P: public Vertex {
-    void LoadVertex(const aiMesh& inMesh, UINT i) override {
-        this->Position = DirectX::XMFLOAT3(inMesh.mVertices[i].x, inMesh.mVertices[i].y, inMesh.mVertices[i].z);
-    };
+    //Vertex LoadVertex(aiMesh* inMesh, size_t i) override;
+
+    Vertex_P();
+    Vertex_P(aiMesh* inMesh, size_t i);
 };
 
 struct Vertex_PT: public Vertex {
     DirectX::XMFLOAT2 Texcoord;
 
-    void LoadVertex(const aiMesh& inMesh, UINT i) override {
-        this->Position = DirectX::XMFLOAT3(inMesh.mVertices[i].x, inMesh.mVertices[i].y, inMesh.mVertices[i].z);
-        if( inMesh.mTextureCoords[0] ) {
-            this->Texcoord = DirectX::XMFLOAT2(inMesh.mTextureCoords[0][i].x, inMesh.mTextureCoords[0][i].y);
-        } else {
-            this->Texcoord = DirectX::XMFLOAT2(0, 0);
-        }
-    };
+    Vertex_PT();
+    Vertex_PT(aiMesh* inMesh, size_t i);
+    //Vertex LoadVertex(aiMesh* inMesh, size_t i) override;
 };
 
 struct Vertex_PNT: public Vertex {
     DirectX::XMFLOAT3 Normal;
     DirectX::XMFLOAT2 Texcoord;
 
-    void LoadVertex(const aiMesh& inMesh, UINT i) override {
-        this->Position = DirectX::XMFLOAT3(inMesh.mVertices[i].x, inMesh.mVertices[i].y, inMesh.mVertices[i].z);
-        this->Normal = DirectX::XMFLOAT3(inMesh.mNormals[i].x, inMesh.mNormals[i].y, inMesh.mNormals[i].z);
-
-        if( inMesh.mTextureCoords[0] ) {
-            this->Texcoord = DirectX::XMFLOAT2(inMesh.mTextureCoords[0][i].x, inMesh.mTextureCoords[0][i].y);
-        } else {
-            this->Texcoord = DirectX::XMFLOAT2(0, 0);
-        }
-    };
+    Vertex_PNT();
+    Vertex_PNT(aiMesh* inMesh, size_t i);
+    //Vertex LoadVertex(aiMesh* inMesh, size_t i) override;
 };
 
 struct Vertex_PN: public Vertex {
     DirectX::XMFLOAT3 Normal;
 
-    void LoadVertex(const aiMesh& inMesh, UINT i) override {
-        this->Position = DirectX::XMFLOAT3(inMesh.mVertices[i].x, inMesh.mVertices[i].y, inMesh.mVertices[i].z);
-        this->Normal = DirectX::XMFLOAT3(inMesh.mNormals[i].x, inMesh.mNormals[i].y, inMesh.mNormals[i].z);
-    };
+    Vertex_PN();
+    Vertex_PN(aiMesh* inMesh, size_t i);
+    //Vertex LoadVertex(aiMesh* inMesh, size_t i) override;
 };
+
+//Vertex LoadVertex<VertexT>(aiMesh* inMesh, size_t i);

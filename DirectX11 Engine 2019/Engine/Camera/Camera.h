@@ -39,7 +39,7 @@ public:
     void TranslateLookAt(DirectX::XMFLOAT3 p);
     void Rotate(DirectX::XMFLOAT3 r);
 
-    void SetWorldMatrix(const DirectX::XMMATRIX& w);
+    void SetWorldMatrix(DirectX::XMMATRIX w);
     const ConstantBuffer& BuildConstantBuffer();
     void BindBuffer(Shader::ShaderType type, UINT slot);
 

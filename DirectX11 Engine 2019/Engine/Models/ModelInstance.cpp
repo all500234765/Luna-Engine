@@ -21,7 +21,7 @@ void ModelInstance::SetBindBuffer(Shader::ShaderType BB, UINT Slot) {
     BindBufferSlot = Slot;
 }
 
-void ModelInstance::SetWorldMatrix(const DirectX::XMMATRIX& mWorld) {
+void ModelInstance::SetWorldMatrix(DirectX::XMMATRIX mWorld) {
     World = mWorld;
 }
 

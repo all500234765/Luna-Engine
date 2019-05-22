@@ -6,9 +6,9 @@
 
 // Test instances
 Camera *cPlayer, *c2DScreen, *cLight;
-Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly;
+Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, *shSkybox;
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3;
-ModelInstance *mLevel1, *mDunes, *mCornellBox;
+ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox;
 
 Texture *tDefault;
 Texture *tBlueNoiseRG;
@@ -217,18 +217,21 @@ bool _DirectX::FrameFunction() {
     }
 
     // Render depth buffer
-    bDepth->Bind();
+    /*bDepth->Bind();
         
         gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
         mLevel1->Bind(cLight);
         shVertexOnly->Bind();
-        mLevel1->Render();
+        mLevel1->Render();*/
     
     // Render default
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
 
     mLevel1->Bind(cPlayer);
+
+        // Bind light buffer
+        cLight->BindBuffer(Shader::Vertex, 1);
         
         // Bind material
         mDefault->BindTextures(Shader::Pixel);
@@ -245,13 +248,18 @@ bool _DirectX::FrameFunction() {
         pCubemap->Bind(Shader::Pixel, 3);
         sPoint->Bind(Shader::Pixel, 3);
 
-        // Bind light buffer
-        cLight->BindBuffer(Shader::Vertex, 1);
-
         // Render level
         mLevel1->Render();
         //mTerrainMesh->Bind();
         //mTerrainMesh->Render();
+
+    // Render skybox
+    mSkybox->Bind(cPlayer);
+
+        pCubemap->Bind(Shader::Pixel);
+        sPoint->Bind(Shader::Pixel);
+
+        mSkybox->Render();
 
     /*switch( SceneID ) {
         case 0: // Test level
@@ -476,6 +484,7 @@ void _DirectX::Load() {
     shSkeletalAnimations = new Shader();
     shGUI = new Shader();
     shVertexOnly = new Shader();
+    shSkybox = new Shader();
 
     cPlayer = new Camera(DirectX::XMFLOAT3(0, 2, -2), DirectX::XMFLOAT3(0., 130., 0.));
     c2DScreen = new Camera();
@@ -577,22 +586,27 @@ void _DirectX::Load() {
     shVertexOnly->LoadFile("../CompiledShaders/shSimpleVS.cso", Shader::Vertex);
     shVertexOnly->SetNullShader(Shader::Pixel);
 
+    // Skybox
+    shSkybox->LoadFile("../CompiledShaders/shSkyboxVS.cso", Shader::Vertex);
+    shSkybox->LoadFile("../CompiledShaders/shSkyboxPS.cso", Shader::Pixel);
+
     // Clean shaders
     shTest->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
     shSkeletalAnimations->ReleaseBlobs();
     shGUI->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
+    shSkybox->ReleaseBlobs();
 
     // Create model
-    mModel1 = new Model("Test model #1");
+    mModel1 = new Model("Test model #1", sizeof(Vertex_PNT));
     mModel1->LoadModel<Vertex_PNT>("../Models/Teapot.obj");
 
     mModel2 = new Model("Test model #2");
     //mModel2->LoadModel("../Models/Dunes1.obj");
 
-    mModel3 = new Model("Test model #3");
-    //mModel3->LoadModel("../Models/cornellbox.obj");
+    mModel3 = new Model("Unit sphere", sizeof(Vertex_P));
+    mModel3->LoadModel<Vertex_P>("../Models/UVMappedUnitSphere.obj");
 
     mScreenPlane = new Model("Screen plane model");
     //mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
@@ -620,6 +634,12 @@ void _DirectX::Load() {
     mCornellBox->SetWorldMatrix(DirectX::XMMatrixScaling(1, 1, 1));
     mCornellBox->SetShader(shTest);
     mCornellBox->SetModel(mModel3);*/
+
+    // Skybox
+    mSkybox = new ModelInstance();
+    mSkybox->SetModel(mModel3);
+    mSkybox->SetShader(shSkybox);
+    mSkybox->SetWorldMatrix(DirectX::XMMatrixScaling(100, 100, 100));
 
     // Speaks for it's self
 #ifdef LOWPOLY_EXAMPLE
@@ -677,6 +697,7 @@ void _DirectX::Unload() {
     shGUI->DeleteShaders();
     shSkeletalAnimations->DeleteShaders();
     shVertexOnly->DeleteShaders();
+    shSkybox->DeleteShaders();
 
     // Release models
     mModel1->Release();

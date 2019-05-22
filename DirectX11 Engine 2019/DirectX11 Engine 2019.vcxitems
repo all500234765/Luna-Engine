@@ -74,6 +74,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Vertices.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />
   </ItemGroup>
 </Project>
