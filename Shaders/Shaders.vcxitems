@@ -20,6 +20,7 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shMarchTablesCS.hlsl">
       <ExcludedFromBuild>true</ExcludedFromBuild>
+      <ShaderType>Compute</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shTerrainDS.hlsl">
       <ShaderType>Domain</ShaderType>
@@ -34,6 +35,9 @@
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shSkyboxPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shSSLRPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTerrainPS.hlsl">
@@ -52,7 +56,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shPostProcessVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shSimpleVS.hlsl" />
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shSimpleVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shSkyboxVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>

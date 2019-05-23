@@ -71,12 +71,12 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
 }
 
 void Shader::DeleteShaders() {
-    if( ((Type & Vertex) == Vertex) && ((Linked & Vertex) == 0) ) { sVertex->Release(); }
-    if( ((Type & Pixel) == Pixel) && ((Linked & Pixel) == 0) ) { sPixel->Release(); }
-    if( ((Type & Geometry) == Geometry) && ((Linked & Geometry) == 0) ) { sGeometry->Release(); }
-    if( ((Type & Hull) == Hull) && ((Linked & Hull) == 0) ) { sHull->Release(); }
-    if( ((Type & Domain) == Domain) && ((Linked & Domain) == 0) ) { sDomain->Release(); }
-    if( ((Type & Compute) == Compute) && ((Linked & Compute) == 0) ) { sCompute->Release(); }
+    if( ((Type & Vertex  ) == Vertex  ) && ((Linked & Vertex  ) == 0) && sVertex   ) { sVertex->Release(); }
+    if( ((Type & Pixel   ) == Pixel   ) && ((Linked & Pixel   ) == 0) && sPixel    ) { sPixel->Release(); }
+    if( ((Type & Geometry) == Geometry) && ((Linked & Geometry) == 0) && sGeometry ) { sGeometry->Release(); }
+    if( ((Type & Hull    ) == Hull    ) && ((Linked & Hull    ) == 0) && sHull     ) { sHull->Release(); }
+    if( ((Type & Domain  ) == Domain  ) && ((Linked & Domain  ) == 0) && sDomain   ) { sDomain->Release(); }
+    if( ((Type & Compute ) == Compute ) && ((Linked & Compute ) == 0) && sCompute  ) { sCompute->Release(); }
 
     pl->Release();
 }

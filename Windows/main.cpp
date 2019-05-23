@@ -208,6 +208,7 @@ bool _DirectX::FrameFunction() {
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
 
     float Clear[4] = {.2f, .2f, .2f, 1.f}; // RGBA
+    float Clear0[4] = {0.f, 0.f, 0.f, 1.f}; // RGBA black
     gContext->ClearRenderTargetView(gRTV, Clear);
     gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
@@ -243,8 +244,8 @@ bool _DirectX::FrameFunction() {
     //gContext->OMSetRenderTargets(1, &gRTV, gDSV);
     bGBuffer->Bind();
     gContext->ClearRenderTargetView(bGBuffer->GetColor0()->pRTV, Clear);
-    gContext->ClearRenderTargetView(bGBuffer->GetColor1()->pRTV, Clear);
-    gContext->ClearRenderTargetView(bGBuffer->GetColor2()->pRTV, Clear);
+    gContext->ClearRenderTargetView(bGBuffer->GetColor1()->pRTV, Clear0);
+    gContext->ClearRenderTargetView(bGBuffer->GetColor2()->pRTV, Clear0);
     gContext->ClearDepthStencilView(bGBuffer->GetDepth()->pDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
     // Render scene
@@ -341,22 +342,78 @@ bool _DirectX::FrameFunction() {
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     gContext->RSSetState(gRSDefault);
 
-    // Render to screen
-    gContext->OMSetRenderTargets(1, &gRTV, nullptr);
-
-    sRenderBuffer* _Depth  = bGBuffer->GetDepth();
+    sRenderBuffer* _Depth = bGBuffer->GetDepth();
     sRenderBuffer* _Color0 = bGBuffer->GetColor0(); // Diffuse
-    
-    shPostProcess->Bind();
-    
-    //c2DScreen->SetWorldMatrix(DirectX::XMMatrixRotationX(10.f) * DirectX::XMMatrixTranslation(-1.f, -1.f, 0.f));
-    c2DScreen->BuildConstantBuffer();
+    sRenderBuffer* _Color1 = bGBuffer->GetColor1(); // Normal
+
+    // Screen-space local reflections
+    bSSLR->Bind(); // Render Target
+    shSSLR->Bind(); // Shader
+    gContext->ClearRenderTargetView(bSSLR->GetColor0()->pRTV, Clear0);
+
+    c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
+    c2DScreen->BuildConstantBuffer(); // Constant buffer
     c2DScreen->BindBuffer(Shader::Vertex, 0);
 
     gContext->PSSetShaderResources(0, 1, &_Color0->pSRV);
-    sPoint->Bind(Shader::Pixel);
+    gContext->PSSetShaderResources(1, 1, &_Color1->pSRV);
+    gContext->PSSetShaderResources(2, 1, &_Depth->pSRV);
+
+    sPoint->Bind(Shader::Pixel, 0);
+    sPoint->Bind(Shader::Pixel, 1);
+    sPoint->Bind(Shader::Pixel, 2);
 
     mScreenPlane->Render();
+
+    // Render to screen
+    sRenderBuffer* _SSLRBf = bSSLR->GetColor0();
+
+    gContext->OMSetRenderTargets(1, &gRTV, nullptr);
+    
+    shPostProcess->Bind();
+    
+    // Diffuse
+    gContext->PSSetShaderResources(0, 1, &_Color0->pSRV);
+    sPoint->Bind(Shader::Pixel);
+
+    // SSLR
+    //gContext->PSSetShaderResources(1, 1, &_SSLRBf->pSRV);
+    //sPoint->Bind(Shader::Pixel);
+
+    mScreenPlane->Render();
+
+    // Render debug GUI
+    // 3 is best number here
+    std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
+        _Color0->pSRV,
+        _Color1->pSRV,
+        _SSLRBf->pSRV
+    };
+
+    shGUI->Bind();
+    sPoint->Bind(Shader::Pixel);
+    int size = pDebugTextures.size();
+    float width = (cfg.Width / (float)size);
+    float height = width * .5f;
+
+    height /= cfg.Height; // Normalize
+    width  /= cfg.Width;
+    
+    //std::cout << width << " " << height << std::endl;
+
+    for( int i = 0; i < size; i++ ) {
+        // 
+        DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(.67f - width * i * 2.f, .67f, 0.f);
+        c2DScreen->SetWorldMatrix(DirectX::XMMatrixScaling(width, height, 1.f) * mOffset);
+        c2DScreen->BuildConstantBuffer();
+        c2DScreen->BindBuffer(Shader::Vertex, 0);
+
+        // Bind texture
+        gContext->PSSetShaderResources(0, 1, &pDebugTextures[(size - 1) - i]);
+
+        // Render plane
+        mScreenPlane->Render();
+    }
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -700,10 +757,6 @@ void _DirectX::Load() {
     shSkeletalAnimations->LoadFile("../CompiledShaders/shSkeletalAnimationsVS.cso", Shader::Vertex);
     shSkeletalAnimations->LoadFile("../CompiledShaders/shSkeletalAnimationsPS.cso", Shader::Pixel);
 
-    // GUI
-    shGUI->LoadFile("../CompiledShaders/shGUIVS.cso", Shader::Vertex);
-    shGUI->LoadFile("../CompiledShaders/shGUIPS.cso", Shader::Pixel);
-    
     // Vertex only shader
     shVertexOnly->LoadFile("../CompiledShaders/shSimpleVS.cso", Shader::Vertex);
     shVertexOnly->SetNullShader(Shader::Pixel);
@@ -723,6 +776,11 @@ void _DirectX::Load() {
     // SSLR
     shSSLR->AttachShader(shPostProcess, Shader::Vertex);
     shSSLR->LoadFile("../CompiledShaders/shSSLRPS.cso", Shader::Pixel);
+
+    // GUI
+    //shGUI->LoadFile("../CompiledShaders/shGUIVS.cso", Shader::Vertex);
+    shGUI->AttachShader(shPostProcess, Shader::Vertex);
+    shGUI->LoadFile("../CompiledShaders/shGUIPS.cso", Shader::Pixel);
 
     // Clean shaders
     shTest->ReleaseBlobs();

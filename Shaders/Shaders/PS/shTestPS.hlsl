@@ -33,15 +33,34 @@ float SampleShadow(float4 lpos) {
     return (projCoords.z < sDepth) ? 1. : 0.;
 }
 
-float4 main(PS In) : SV_Target0 {
+struct GBuffer {
+    half4 Diffuse  : SV_Target0;
+    half2 Normal   : SV_Target1;
+    half4 Specular : SV_Target2;
+};
+
+// https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
+// Spherical Coordinates
+#define kPI 3.1415926536f
+half4 EncodeNormal(half3 n) {
+    return half4(half2(atan2(n.y, n.x) / kPI, n.z) * .5f + .5f, 0.f, 0.f);
+}
+
+GBuffer main(PS In) {
     /*return float4((1. + In.LightPos.x / In.LightPos.z) * .5, 
                   (3. - In.LightPos.y / In.LightPos.z) * .5, 0., 1.);*/
     
-    float3 N = normalize(In.Normal);
-    float S = 1.; // SampleShadow(In.LightPos) * .2 + .8;
-    float4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord);
+    half3 N = normalize(In.Normal);
+    half S = 1.; // SampleShadow(In.LightPos) * .2 + .8;
+    half4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord);
     //Diff = pow(_CubemapTexture.Sample(_CubemapSampler, normalize(In.InputPos)), 1. / 2.2);
 
-    float L = clamp(dot(normalize(float3(10., 10., 0.)), N), .3f, 1.f);
-    return lerp(float4(.5, .6, .8, 1.), Diff, S) * float4(L.xxx, 1.);
+
+    half L = clamp(dot(normalize(half3(10., 10., 0.)), N), .3f, 1.f);
+    
+    GBuffer Out;
+        Out.Normal   = EncodeNormal(N);
+        Out.Diffuse  = lerp(half4(.5, .6, .8, 1.), Diff, S) * half4(L.xxx, 1.);
+        Out.Specular = half4(Diff.rgb * L, .5);
+    return Out;
 }

@@ -19,7 +19,7 @@ PS main(VS In, uint index : SV_VertexID) {
     In.Position.y++;
 
     PS Out;
-        Out.Position = float4(In.Position.xy, 1., 1.);
+        Out.Position = mul(mWorld, float4(In.Position.xy, 1., 1.));
         Out.Texcoord = float2(In.Texcoord.x, 1. - In.Texcoord.y);
     return Out;
 }

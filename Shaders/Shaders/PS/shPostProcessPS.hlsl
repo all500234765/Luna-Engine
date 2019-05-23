@@ -1,11 +1,13 @@
 Texture2D _Texture    : register(t0);
 SamplerState _Sampler : register(s0);
 
+Texture2D _SSLRTexture    : register(t1);
+SamplerState _SSLRSampler : register(s1);
+
 struct PS {
     float4 Position : SV_Position;
     float2 Texcoord : TEXCOORD0;
 };
-
 
 float3 _toneExposure(float3 vColor, float average) {
     float T = -pow(average, -1) * vColor;
