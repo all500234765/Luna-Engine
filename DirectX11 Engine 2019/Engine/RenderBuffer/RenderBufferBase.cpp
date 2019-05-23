@@ -4,20 +4,23 @@
 #include <vector>
 
 sRenderBuffer* RenderBufferBase::CreateRTV2D(int W, int H, DXGI_FORMAT format) {
-    ID3D11RenderTargetView *pRTV;
-    ID3D11Texture2D *pTexture;
-    ID3D11ShaderResourceView *pSRV;
+    ID3D11RenderTargetView *pRTV = 0;
+    ID3D11Texture2D *pTexture = 0;
+    ID3D11ShaderResourceView *pSRV = 0;
 
     // Create Texture 2D
     D3D11_TEXTURE2D_DESC pTexDesc;
     pTexDesc.ArraySize = 1;
     pTexDesc.MipLevels = 1;
     pTexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+    pTexDesc.Usage = D3D11_USAGE_DEFAULT;
     pTexDesc.CPUAccessFlags = 0;
     pTexDesc.MiscFlags = 0;
     pTexDesc.Format = format;
     pTexDesc.Width = W;
     pTexDesc.Height = H;
+    pTexDesc.SampleDesc.Count = 1;
+    pTexDesc.SampleDesc.Quality = 0;
 
     auto res = gDirectX->gDevice->CreateTexture2D(&pTexDesc, NULL, &pTexture);
     if( FAILED(res) ) {
@@ -40,6 +43,7 @@ sRenderBuffer* RenderBufferBase::CreateRTV2D(int W, int H, DXGI_FORMAT format) {
     pSRVDesc.Format = format;
     pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     pSRVDesc.Texture2D.MipLevels = 1;
+    pSRVDesc.Texture2D.MostDetailedMip = 0;
 
     res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
     if( FAILED(res) ) {
@@ -56,9 +60,9 @@ sRenderBuffer* RenderBufferBase::CreateRTV2D(int W, int H, DXGI_FORMAT format) {
 }
 
 sRenderBuffer* RenderBufferBase::CreateDSV2D(int W, int H, UINT bpp) {
-    ID3D11DepthStencilView *pDSV;
-    ID3D11Texture2D *pTexture;
-    ID3D11ShaderResourceView *pSRV;
+    ID3D11DepthStencilView *pDSV = 0;
+    ID3D11Texture2D *pTexture = 0;
+    ID3D11ShaderResourceView *pSRV = 0;
 
     DXGI_FORMAT formatTex, formatDSV, formatSRV;
     switch( bpp ) {

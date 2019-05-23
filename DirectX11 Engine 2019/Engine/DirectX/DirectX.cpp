@@ -151,6 +151,9 @@ int _DirectX::Create(DirectXConfig config) {
     // Create depth stencil state
     gDevice->CreateDepthStencilState(&pDSD, &pDSS_Default);
 
+    pDSD.DepthEnable = false;
+    gDevice->CreateDepthStencilState(&pDSD, &pDSS_Default_NoDepthWrite);
+
     // Create depth texture
     gDevice->CreateTexture2D(&pTex2DDesc, NULL, &gDSVTex);
 
@@ -187,9 +190,9 @@ int _DirectX::Create(DirectXConfig config) {
     rDesc.SlopeScaledDepthBias = 0.0f;
 
     D3D11_RASTERIZER_DESC rDesc2;
-    ZeroMemory(&rDesc, sizeof(D3D11_RASTERIZER_DESC));
+    ZeroMemory(&rDesc2, sizeof(D3D11_RASTERIZER_DESC));
     rDesc2.AntialiasedLineEnable = false;
-    rDesc2.CullMode = D3D11_CULL_BACK;
+    rDesc2.CullMode = D3D11_CULL_NONE;
     rDesc2.DepthBias = 0;
     rDesc2.DepthBiasClamp = 0.0f;
     rDesc2.DepthClipEnable = true;
@@ -211,7 +214,7 @@ int _DirectX::Create(DirectXConfig config) {
     ZeroMemory(&pDesc1, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
     pDesc1.Format                    = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
     pDesc1.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
-    pDesc1.Texture2D.MipLevels       = -1;
+    pDesc1.Texture2D.MipLevels       = 1;
     pDesc1.Texture2D.MostDetailedMip = 0;
 
     gDevice->CreateShaderResourceView(gDSVTex, &pDesc1, &gDSV_SRV);

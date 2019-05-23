@@ -13,4 +13,6 @@ public:
     void Release();
 
     ID3D11DepthStencilView *GetTarget();
+
+    sRenderBuffer* GetDepth();
 };

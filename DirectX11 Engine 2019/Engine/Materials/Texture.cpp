@@ -110,7 +110,7 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
     pSRVDesc.Texture2D.MipLevels = pDesc.MipLevels;
     pSRVDesc.Texture2D.MostDetailedMip = 0;
     pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        
+    
     res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
     if( FAILED(res) ) {
         std::cout << "Failed to create shader resource view!" << std::endl;

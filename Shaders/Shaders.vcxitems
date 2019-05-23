@@ -30,6 +30,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shGUIPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shPostProcessPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shSkyboxPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -40,7 +43,13 @@
       <ShaderType>Pixel</ShaderType>
       <FileType>Document</FileType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shGUIVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shPostProcessVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shSimpleVS.hlsl" />
@@ -51,6 +60,9 @@
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTestVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>

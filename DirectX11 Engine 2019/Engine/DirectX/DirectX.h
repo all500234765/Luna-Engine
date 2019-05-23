@@ -50,10 +50,8 @@ private:
     ID3D11Texture2D *gDSVTex;
 
     // States
-    ID3D11DepthStencilState *pDSS_Default;
-
-    ID3D11RasterizerState *gRSDefault;
-    ID3D11RasterizerState *gRSDefaultWriteframe;
+    ID3D11DepthStencilState *pDSS_Default, *pDSS_Default_NoDepthWrite;
+    ID3D11RasterizerState *gRSDefault, *gRSDefaultWriteframe;
 
     // CFG
     DirectXConfig cfg;

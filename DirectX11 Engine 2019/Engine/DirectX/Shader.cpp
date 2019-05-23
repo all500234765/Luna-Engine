@@ -15,12 +15,12 @@ Shader::Shader() {
 void Shader::SetNullShader(ShaderType type) {
     // Create shader
     switch( type ) {
-        case Vertex  : sVertex   = 0; break;
-        case Pixel   : sPixel    = 0; break;
+        case Vertex: sVertex = 0; break;
+        case Pixel: sPixel = 0; break;
         case Geometry: sGeometry = 0; break;
-        case Hull    : sHull     = 0; break;
-        case Domain  : sDomain   = 0; break;
-        case Compute : sCompute  = 0; break;
+        case Hull: sHull = 0; break;
+        case Domain: sDomain = 0; break;
+        case Compute: sCompute = 0; break;
     }
 
     // Shader was compiled natively
@@ -31,7 +31,7 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
     // Create shader
     HRESULT hr;
     ID3DBlob *ShaderBuffer; ShaderBuffer = 0;
-    
+
     // Read blob
     hr = D3DReadFileToBlob(std::wstring(fname.begin(), fname.end()).c_str(), &ShaderBuffer);
     if( FAILED(hr) ) {
@@ -41,12 +41,12 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
 
     // Create shader
     switch( type ) {
-        case Vertex  : hr = gDirectX->gDevice->CreateVertexShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sVertex);     break;
-        case Pixel   : hr = gDirectX->gDevice->CreatePixelShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sPixel);       break;
+        case Vertex: hr = gDirectX->gDevice->CreateVertexShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sVertex);     break;
+        case Pixel: hr = gDirectX->gDevice->CreatePixelShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sPixel);       break;
         case Geometry: hr = gDirectX->gDevice->CreateGeometryShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sGeometry); break;
-        case Hull    : hr = gDirectX->gDevice->CreateHullShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sHull);         break;
-        case Domain  : hr = gDirectX->gDevice->CreateDomainShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sDomain);     break;
-        case Compute : hr = gDirectX->gDevice->CreateComputeShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sCompute);   break;
+        case Hull: hr = gDirectX->gDevice->CreateHullShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sHull);         break;
+        case Domain: hr = gDirectX->gDevice->CreateDomainShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sDomain);     break;
+        case Compute: hr = gDirectX->gDevice->CreateComputeShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sCompute);   break;
     }
 
     if( FAILED(hr) ) {
@@ -71,12 +71,12 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
 }
 
 void Shader::DeleteShaders() {
-    if( ((Type & Vertex  ) == Vertex  ) && ((Linked & Vertex  ) == Vertex  ) ) { sVertex->Release(); }
-    if( ((Type & Pixel   ) == Pixel   ) && ((Linked & Pixel   ) == Pixel   ) ) { sPixel->Release(); }
-    if( ((Type & Geometry) == Geometry) && ((Linked & Geometry) == Geometry) ) { sGeometry->Release(); }
-    if( ((Type & Hull    ) == Hull    ) && ((Linked & Hull    ) == Hull    ) ) { sHull->Release(); }
-    if( ((Type & Domain  ) == Domain  ) && ((Linked & Domain  ) == Domain  ) ) { sDomain->Release(); }
-    if( ((Type & Compute ) == Compute ) && ((Linked & Compute ) == Compute ) ) { sCompute->Release(); }
+    if( ((Type & Vertex) == Vertex) && ((Linked & Vertex) == 0) ) { sVertex->Release(); }
+    if( ((Type & Pixel) == Pixel) && ((Linked & Pixel) == 0) ) { sPixel->Release(); }
+    if( ((Type & Geometry) == Geometry) && ((Linked & Geometry) == 0) ) { sGeometry->Release(); }
+    if( ((Type & Hull) == Hull) && ((Linked & Hull) == 0) ) { sHull->Release(); }
+    if( ((Type & Domain) == Domain) && ((Linked & Domain) == 0) ) { sDomain->Release(); }
+    if( ((Type & Compute) == Compute) && ((Linked & Compute) == 0) ) { sCompute->Release(); }
 
     pl->Release();
 }
@@ -95,6 +95,26 @@ void Shader::ReleaseBlobs() {
 
 ID3DBlob* Shader::GetBlob(ShaderType type) {
     return bShader[(int)log2((int)type)];
+}
+
+void Shader::AttachShader(Shader* origin, ShaderType type) {
+    // If already loaded compiled shader
+    if( (Type & type) == type ) {
+        std::cout << "Can't attach shader type of " << type << ", since it's already loaded." << std::endl;
+        return;
+    }
+
+    switch( type ) {
+        case Vertex  : sVertex   = origin->sVertex  ; break;
+        case Pixel   : sPixel    = origin->sPixel   ; break;
+        case Geometry: sGeometry = origin->sGeometry; break;
+        case Hull    : sHull     = origin->sHull    ; break;
+        case Domain  : sDomain   = origin->sDomain  ; break;
+        case Compute : sCompute  = origin->sCompute ; break;
+    }
+
+    Linked |= type;
+    Type |= type;
 }
 
 void Shader::Bind() {
@@ -153,7 +173,8 @@ HRESULT Shader::CreateInputLayoutDescFromVertexShaderSignature(ID3D11InputLayout
         elementDesc.InstanceDataStepRate = 0;
 
         // Skip some auto-generated semantics
-        if( elementDesc.SemanticName == "SV_InstanceID" ) { continue; }
+        if( elementDesc.SemanticName == "SV_InstanceID"
+         || elementDesc.SemanticName == "SV_VertexID" ) { continue; }
         //std::cout << elementDesc.SemanticName << std::endl;
 
         // determine DXGI format

@@ -2,8 +2,9 @@
 
 #include <string>
 
+#include "Vendor/STB/stbi_image.h"
+#include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/DirectXChild.h"
-#include "Engine/Materials/Texture.h"
 
 static const std::string sSideNames[6] = {
     "Right",
@@ -30,9 +31,8 @@ private:
         ID3D11DepthStencilView *pDSVs[6]; // Not avalilable when loaded, nor when isDepthMap == false
     };
 public:
-    void CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMAT format, bool isHDR=false);
+    void CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMAT format);
 
     void Bind(Shader::ShaderType type, UINT slot=0);
-
     void Release();
 };

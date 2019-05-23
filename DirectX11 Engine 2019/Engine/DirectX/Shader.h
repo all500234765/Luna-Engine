@@ -52,6 +52,8 @@ public:
     void ReleaseBlobs();
     ID3DBlob* GetBlob(ShaderType type);
 
+    void AttachShader(Shader *origin, ShaderType type);
+
     // You can load and compile one shader and link it against anothers
     //ID3D11VertexShader* GetVertex();
     //ID3D11PixelShader* GetPixel();

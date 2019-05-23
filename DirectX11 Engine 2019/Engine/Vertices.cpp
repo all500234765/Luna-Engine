@@ -1,20 +1,5 @@
 #include "Vertices.h"
 
-Vertex::Vertex() {
-}
-
-Vertex_P::Vertex_P() {
-}
-
-Vertex_PT::Vertex_PT() {
-}
-
-Vertex_PNT::Vertex_PNT() {
-}
-
-Vertex_PN::Vertex_PN() {
-}
-
 Vertex::Vertex(aiMesh* inMesh, size_t i) {
     Position = DirectX::XMFLOAT3(inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z);
 }

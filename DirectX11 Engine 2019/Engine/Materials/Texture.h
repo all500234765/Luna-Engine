@@ -11,8 +11,8 @@ class Texture: public DirectXChild {
 private:
     int w, h, channels;
     UINT flags;
-    ID3D11Texture2D *pTexture;
-    ID3D11ShaderResourceView *pSRV;
+    ID3D11Texture2D *pTexture = 0;
+    ID3D11ShaderResourceView *pSRV = 0;
 
 public:
     Texture();

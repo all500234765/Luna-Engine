@@ -6,20 +6,26 @@
 
 // Test instances
 Camera *cPlayer, *c2DScreen, *cLight;
-Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, *shSkybox;
+Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
+       *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR;
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3;
 ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox;
 
-Texture *tDefault;
-Texture *tBlueNoiseRG;
+Texture *tDefault, *tBlueNoiseRG, *tClearPixel;
 DiffuseMap *mDefaultDiffuse;
 Sampler *sPoint;
 
 Material *mDefault;
 
 RenderBufferDepth2D *bDepth;
+RenderBufferColor3Depth *bGBuffer;
+RenderBufferColor1 *bSSLR;
 
 CubemapTexture *pCubemap;
+
+Query *pQuery;
+
+ID3D11BlendState *pBlendState0;
 
 // Not yet done
 //#define LOWPOLY_EXAMPLE
@@ -189,6 +195,8 @@ GFSDK_SSAO_Parameters Params;
 GFSDK_SSAO_Output_D3D11 Output;
 #endif
 
+float fAspect = 1024.f / 540.f;
+bool bIsWireframe = false;
 int SceneID = 0;
 
 // Define Frame Function
@@ -218,49 +226,99 @@ bool _DirectX::FrameFunction() {
 
     // Render depth buffer
     /*bDepth->Bind();
-        
-        gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
-
-        mLevel1->Bind(cLight);
-        shVertexOnly->Bind();
-        mLevel1->Render();*/
     
-    // Render default
-    gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+    gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
+    mLevel1->Bind(cLight);
+    shVertexOnly->Bind();
+    mLevel1->Render();*/
+    
+    if( bIsWireframe ) {
+        gContext->RSSetState(gRSDefaultWriteframe);
+    } else {
+        gContext->RSSetState(gRSDefault);
+    }
+
+    // Render to default buffers
+    //gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+    bGBuffer->Bind();
+    gContext->ClearRenderTargetView(bGBuffer->GetColor0()->pRTV, Clear);
+    gContext->ClearRenderTargetView(bGBuffer->GetColor1()->pRTV, Clear);
+    gContext->ClearRenderTargetView(bGBuffer->GetColor2()->pRTV, Clear);
+    gContext->ClearDepthStencilView(bGBuffer->GetDepth()->pDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+
+    // Render scene
     mLevel1->Bind(cPlayer);
 
-        // Bind light buffer
-        cLight->BindBuffer(Shader::Vertex, 1);
+    // Bind light buffer
+    cLight->BindBuffer(Shader::Vertex, 1);
         
-        // Bind material
-        mDefault->BindTextures(Shader::Pixel);
+    // Bind material
+    mDefault->BindTextures(Shader::Pixel);
 
-        // Bind depth buffer
-        bDepth->BindResources(Shader::Pixel, 1);
-        sPoint->Bind(Shader::Pixel, 1);
+    // Bind depth buffer
+    bDepth->BindResources(Shader::Pixel, 1);
+    sPoint->Bind(Shader::Pixel, 1);
 
-        // Bind noise texture
-        tBlueNoiseRG->Bind(Shader::Pixel, 2);
-        sPoint->Bind(Shader::Pixel, 2);
+    // Bind noise texture
+    tBlueNoiseRG->Bind(Shader::Pixel, 2);
+    sPoint->Bind(Shader::Pixel, 2);
 
-        // Bind cubemap
-        pCubemap->Bind(Shader::Pixel, 3);
-        sPoint->Bind(Shader::Pixel, 3);
+    // Bind cubemap
+    pCubemap->Bind(Shader::Pixel, 3);
+    sPoint->Bind(Shader::Pixel, 3);
 
-        // Render level
-        mLevel1->Render();
-        //mTerrainMesh->Bind();
-        //mTerrainMesh->Render();
+    // Render level
+    mLevel1->Render();
+    //mTerrainMesh->Bind();
+    //mTerrainMesh->Render();
+
+#pragma region Occlusion query
+    // Begin occlusion query
+    //pQuery->Begin();
+
+    // 
+    //gContext->OMSetBlendState(pBlendState0, NULL, 1);
+
+    // Render quad at sun's position
+    //DirectX::XMVECTOR SunWorldPos = {90.f, 5.f, 0.f};
+    //
+    //auto mWorld = DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(-90.f)) * 
+    //              DirectX::XMMatrixTranslationFromVector(SunWorldPos);
+    //cPlayer->SetWorldMatrix(mWorld);
+    //cPlayer->BuildConstantBuffer();
+    
+    //shTexturedQuad->Bind();
+    //cPlayer->BindBuffer(Shader::Vertex, 0);
+
+    // We don't wan't to render quad to the screen
+    // So unbind texture
+    ////tClearPixel->Bind(Shader::Pixel);
+    //sPoint->Bind(Shader::Pixel);
+
+    //mScreenPlane->Render();
+
+    // End occlusion query test
+    //UINT64 QueryValue = (UINT64)pQuery->End();
+    //float proc = fmin(1.f, (float)QueryValue / (8100 * fAspect / (1024. / 540.))); // Light flare brightness
+    // TODO: Add distance to sun
+
+    // Disable depth test
+    //gContext->OMSetBlendState(NULL, NULL, 1);
+    //gContext->OMSetDepthStencilState(pDSS_Default_NoDepthWrite, 1);
+#pragma endregion
 
     // Render skybox
     mSkybox->Bind(cPlayer);
 
-        pCubemap->Bind(Shader::Pixel);
-        sPoint->Bind(Shader::Pixel);
+    pCubemap->Bind(Shader::Pixel);
+    sPoint->Bind(Shader::Pixel);
 
-        mSkybox->Render();
+    mSkybox->Render();
 
+    // Enable depth test
+    gContext->OMSetDepthStencilState(pDSS_Default, 1);
+    
     /*switch( SceneID ) {
         case 0: // Test level
             mLevel1->Bind(cPlayer);
@@ -279,8 +337,26 @@ bool _DirectX::FrameFunction() {
             break;
     }*/
 
-    // Set default topology
+    // Set defaults
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    gContext->RSSetState(gRSDefault);
+
+    // Render to screen
+    gContext->OMSetRenderTargets(1, &gRTV, nullptr);
+
+    sRenderBuffer* _Depth  = bGBuffer->GetDepth();
+    sRenderBuffer* _Color0 = bGBuffer->GetColor0(); // Diffuse
+    
+    shPostProcess->Bind();
+    
+    //c2DScreen->SetWorldMatrix(DirectX::XMMatrixRotationX(10.f) * DirectX::XMMatrixTranslation(-1.f, -1.f, 0.f));
+    c2DScreen->BuildConstantBuffer();
+    c2DScreen->BindBuffer(Shader::Vertex, 0);
+
+    gContext->PSSetShaderResources(0, 1, &_Color0->pSRV);
+    sPoint->Bind(Shader::Pixel);
+
+    mScreenPlane->Render();
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -301,8 +377,6 @@ bool _DirectX::FrameFunction() {
     return false;
 }
 
-static bool bIsWireframe = false;
-
 void _DirectX::Tick(float fDeltaTime) {
     // Set focust handle for mouse
     //gMouse->SetFocus(GetFocus());
@@ -321,12 +395,6 @@ void _DirectX::Tick(float fDeltaTime) {
     // Toggle wireframe mode
     if( gKeyboard->IsPressed(VK_F1) ) {
         bIsWireframe ^= true;
-
-        if( bIsWireframe ) {
-            gContext->RSSetState(gRSDefaultWriteframe);
-        } else {
-            gContext->RSSetState(gRSDefault);
-        }
     }
 
     // Update camera
@@ -454,6 +522,9 @@ void _DirectX::Resize() {
     cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
     cPlayer->BuildProj();
 
+    // Save aspect
+    fAspect = cfg2.fAspect;
+
     cfg2 = c2DScreen->GetParams();
     cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
     c2DScreen->BuildProj();
@@ -485,6 +556,9 @@ void _DirectX::Load() {
     shGUI = new Shader();
     shVertexOnly = new Shader();
     shSkybox = new Shader();
+    shTexturedQuad = new Shader();
+    shPostProcess = new Shader();
+    shSSLR = new Shader();
 
     cPlayer = new Camera(DirectX::XMFLOAT3(0, 2, -2), DirectX::XMFLOAT3(0., 130., 0.));
     c2DScreen = new Camera();
@@ -492,18 +566,60 @@ void _DirectX::Load() {
 
     tDefault = new Texture();
     tBlueNoiseRG = new Texture();
+    tClearPixel = new Texture();
+
     sPoint = new Sampler();
+
     mDefaultDiffuse = new DiffuseMap();
+
     mDefault = new Material();
 
     bDepth = new RenderBufferDepth2D();
+    bGBuffer = new RenderBufferColor3Depth();
+    bSSLR = new RenderBufferColor1();
 
     pCubemap = new CubemapTexture();
+
+    pQuery = new Query();
 
     // Ansel support
 #if USE_ANSEL
     AnselEnable(cPlayer->GetViewMatrix());
 #endif
+
+    const WindowConfig& cfg = gWindow->GetCFG();
+
+    // Screen-Space Local Reflections buffer
+    bSSLR->SetSize(1024, 540);
+    bSSLR->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
+
+    // Geometry Buffer
+    bGBuffer->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
+    bGBuffer->CreateDepth(32);
+    bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
+    bGBuffer->CreateColor1(DXGI_FORMAT_R16G16_FLOAT);       // Normal
+    bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
+    
+    // Create blend state with no color write
+    D3D11_BLEND_DESC pDesc_;
+    pDesc_.RenderTarget[0].BlendEnable = true;
+    pDesc_.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    pDesc_.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+    pDesc_.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    pDesc_.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+
+    pDesc_.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+    pDesc_.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+
+    pDesc_.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    pDesc_.AlphaToCoverageEnable = false;
+    pDesc_.IndependentBlendEnable = false;
+
+    gDevice->CreateBlendState(&pDesc_, &pBlendState0);
+
+    // Create occlusion query
+    pQuery->Create(D3D11_QUERY_OCCLUSION);
 
     // Create cubemap
     pCubemap->CreateFromFiles("../Textures/Cubemaps/Test/", false, DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -516,6 +632,11 @@ void _DirectX::Load() {
     tDefault->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
     tDefault->SetName("Default tile texture");
     //gContext->GenerateMips(tDefault->GetSRV());
+
+    // Load more textures
+    tBlueNoiseRG->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
+
+    //tClearPixel->Load("../Textures/ClearPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
 
     // Create point sampler
     D3D11_SAMPLER_DESC pDesc;
@@ -535,20 +656,20 @@ void _DirectX::Load() {
     mDefault->SetSampler(sPoint);
     mDefault->SetName("Default material");
 
-    // Load blue noise texture
-    tBlueNoiseRG->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
-    
-    // Setup camera
-    const WindowConfig& cfg = gWindow->GetCFG();
+    // Setup cameras
     CameraConfig cfg2;
     cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
     cfg2.FOV = 100.f;
     cfg2.fNear = .1f;
-    cfg2.fFar = 300.f;
+    cfg2.fFar = 10000.f;
     cPlayer->SetParams(cfg2);
     cPlayer->BuildProj();
     cPlayer->BuildView();
 
+    // Save aspect for further use
+    fAspect = cfg2.fAspect;
+
+    // 
     cfg2.FOV = 90.f;
     cfg2.fNear = .1f;
     cfg2.fFar = 1.f;
@@ -556,6 +677,7 @@ void _DirectX::Load() {
     c2DScreen->BuildProj();
     c2DScreen->BuildView();
 
+    // 
     cfg2.fNear = .1f;
     cfg2.fFar = 10000.f;
     cfg2.FOV = 90.f;
@@ -590,6 +712,18 @@ void _DirectX::Load() {
     shSkybox->LoadFile("../CompiledShaders/shSkyboxVS.cso", Shader::Vertex);
     shSkybox->LoadFile("../CompiledShaders/shSkyboxPS.cso", Shader::Pixel);
 
+    // Simple textured quad
+    shTexturedQuad->LoadFile("../CompiledShaders/shTexturedQuadVS.cso", Shader::Vertex);
+    shTexturedQuad->LoadFile("../CompiledShaders/shTexturedQuadPS.cso", Shader::Pixel);
+
+    // Post process
+    shPostProcess->LoadFile("../CompiledShaders/shPostProcessVS.cso", Shader::Vertex);
+    shPostProcess->LoadFile("../CompiledShaders/shPostProcessPS.cso", Shader::Pixel);
+
+    // SSLR
+    shSSLR->AttachShader(shPostProcess, Shader::Vertex);
+    shSSLR->LoadFile("../CompiledShaders/shSSLRPS.cso", Shader::Pixel);
+
     // Clean shaders
     shTest->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
@@ -597,25 +731,28 @@ void _DirectX::Load() {
     shGUI->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
     shSkybox->ReleaseBlobs();
+    shTexturedQuad->ReleaseBlobs();
+    shPostProcess->ReleaseBlobs();
+    shSSLR->ReleaseBlobs();
 
     // Create model
-    mModel1 = new Model("Test model #1", sizeof(Vertex_PNT));
+    mModel1 = new Model("Test model #1");
     mModel1->LoadModel<Vertex_PNT>("../Models/Teapot.obj");
 
     mModel2 = new Model("Test model #2");
     //mModel2->LoadModel("../Models/Dunes1.obj");
 
-    mModel3 = new Model("Unit sphere", sizeof(Vertex_P));
+    mModel3 = new Model("Unit sphere");
     mModel3->LoadModel<Vertex_P>("../Models/UVMappedUnitSphere.obj");
 
     mScreenPlane = new Model("Screen plane model");
-    //mScreenPlane->LoadModel("../Models/ScreenPlane.obj");
+    mScreenPlane->LoadModel<Vertex_PT>("../Models/ScreenPlane.obj");
 
     // Create model instances
     // Test level
     mLevel1 = new ModelInstance();
     mLevel1->SetName("Level 1 Instance");
-    mLevel1->SetWorldMatrix(DirectX::XMMatrixScaling(2, 2, 2));
+    mLevel1->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
     mLevel1->SetShader(shTest);
     mLevel1->SetModel(mModel1);
 
@@ -682,6 +819,9 @@ void _DirectX::Unload() {
     pAOContext->Release();
 #endif
 
+    // Release queries
+    pQuery->Release();
+
     // Release cubemaps
     pCubemap->Release();
 
@@ -690,6 +830,8 @@ void _DirectX::Unload() {
 
     // Release textures
     tBlueNoiseRG->Release();
+    tClearPixel->Release();
+    //tDefault->Release(); // Material will delete it
 
     // Release shaders
     shTest->DeleteShaders();
@@ -698,6 +840,9 @@ void _DirectX::Unload() {
     shSkeletalAnimations->DeleteShaders();
     shVertexOnly->DeleteShaders();
     shSkybox->DeleteShaders();
+    shTexturedQuad->DeleteShaders();
+    shPostProcess->DeleteShaders();
+    shSSLR->DeleteShaders();
 
     // Release models
     mModel1->Release();
@@ -712,6 +857,7 @@ void _DirectX::Unload() {
 
     // Release buffers
     bDepth->Release();
+    bGBuffer->Release();
 }
 
 #if USE_ANSEL
@@ -829,7 +975,7 @@ int main() {
     winCFG.Height = 540;
     winCFG.Title = L"Luna Engine";
     winCFG.Icon = L"Engine/Assets/Engine.ico";
-    
+
     // Create window
     gWindow->Create(&winCFG);
 
