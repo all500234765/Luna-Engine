@@ -50,8 +50,17 @@ float4 main(PS In): SV_Target0 {
     // 
     float4 Diff = _Texture.Sample(_Sampler, In.Texcoord);
 
+    if( Diff.a < .5f ) { discard; }
+
+    // Chromatic Abberation
+    float hdrLeft  = _Texture.Sample(_Sampler, In.Texcoord, int2(-2, -2)).b;
+    float hdrRight = _Texture.Sample(_Sampler, In.Texcoord, int2(+2, +2)).r;
+
+    Diff.rgb = float3(0., 0., hdrLeft) + float3(hdrRight, 0., 0.) + float3(0., Diff.g, 0.);
+
     // Tonemapping
-    Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
+    //Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
+    Diff.rgb = (Diff.rgb / (Diff.rgb + 1.f)) * 1.5f;
 
     // 
     return Diff;

@@ -196,7 +196,7 @@ GFSDK_SSAO_Output_D3D11 Output;
 #endif
 
 float fAspect = 1024.f / 540.f;
-bool bIsWireframe = false;
+bool bIsWireframe = false, bDebugGUI = false;
 int SceneID = 0;
 
 // Define Frame Function
@@ -383,36 +383,38 @@ bool _DirectX::FrameFunction() {
     mScreenPlane->Render();
 
     // Render debug GUI
-    // 3 is best number here
-    std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
-        _Color0->pSRV,
-        _Color1->pSRV,
-        _SSLRBf->pSRV
-    };
+    if( bDebugGUI ) {
+        // 3 is best number here
+        std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
+            _Color0->pSRV,
+            _Color1->pSRV,
+            _SSLRBf->pSRV
+        };
 
-    shGUI->Bind();
-    sPoint->Bind(Shader::Pixel);
-    int size = pDebugTextures.size();
-    float width = (cfg.Width / (float)size);
-    float height = width * .5f;
+        shGUI->Bind();
+        sPoint->Bind(Shader::Pixel);
+        int size = pDebugTextures.size();
+        float width = (cfg.Width / (float)size);
+        float height = width * .5f;
 
-    height /= cfg.Height; // Normalize
-    width  /= cfg.Width;
-    
-    //std::cout << width << " " << height << std::endl;
+        height /= cfg.Height; // Normalize
+        width /= cfg.Width;
 
-    for( int i = 0; i < size; i++ ) {
-        // 
-        DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(.67f - width * i * 2.f, .67f, 0.f);
-        c2DScreen->SetWorldMatrix(DirectX::XMMatrixScaling(width, height, 1.f) * mOffset);
-        c2DScreen->BuildConstantBuffer();
-        c2DScreen->BindBuffer(Shader::Vertex, 0);
+        //std::cout << width << " " << height << std::endl;
 
-        // Bind texture
-        gContext->PSSetShaderResources(0, 1, &pDebugTextures[(size - 1) - i]);
+        for( int i = 0; i < size; i++ ) {
+            // 
+            DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(.67f - width * i * 2.f, .67f, 0.f);
+            c2DScreen->SetWorldMatrix(DirectX::XMMatrixScaling(width, height, 1.f) * mOffset);
+            c2DScreen->BuildConstantBuffer();
+            c2DScreen->BindBuffer(Shader::Vertex, 0);
 
-        // Render plane
-        mScreenPlane->Render();
+            // Bind texture
+            gContext->PSSetShaderResources(0, 1, &pDebugTextures[(size - 1) - i]);
+
+            // Render plane
+            mScreenPlane->Render();
+        }
     }
 
     // HBAO+
@@ -449,10 +451,9 @@ void _DirectX::Tick(float fDeltaTime) {
         cLight->BuildConstantBuffer();
     }
 
-    // Toggle wireframe mode
-    if( gKeyboard->IsPressed(VK_F1) ) {
-        bIsWireframe ^= true;
-    }
+    // Toggle debug
+    bIsWireframe ^= gKeyboard->IsPressed(VK_F1); // Toggle wireframe mode
+    bDebugGUI ^= gKeyboard->IsPressed(VK_F3);    // Toggle debug gui mode
 
     // Update camera
     const float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
@@ -834,7 +835,7 @@ void _DirectX::Load() {
     mSkybox = new ModelInstance();
     mSkybox->SetModel(mModel3);
     mSkybox->SetShader(shSkybox);
-    mSkybox->SetWorldMatrix(DirectX::XMMatrixScaling(100, 100, 100));
+    mSkybox->SetWorldMatrix(DirectX::XMMatrixScaling(1000, 1000, 1000));
 
     // Speaks for it's self
 #ifdef LOWPOLY_EXAMPLE
