@@ -88,10 +88,21 @@ void Camera::TranslateLookAt(DirectX::XMFLOAT3 p) {
     pPos.z += q.z;
 }
 
+void Camera::TranslateLookAtAbs(DirectX::XMFLOAT3 p) {
+    DirectX::XMFLOAT3 dp = {p.x - pPos.x, p.y - pPos.y, p.z - pPos.z};
+    TranslateLookAtAbs(dp);
+}
+
 void Camera::Rotate(DirectX::XMFLOAT3 r) {
     pRot.x += r.x;
     pRot.y += r.y;
     pRot.z += r.z;
+}
+
+void Camera::RotateAbs(DirectX::XMFLOAT3 r) {
+    pRot.x = r.x;
+    pRot.y = r.y;
+    pRot.z = r.z;
 }
 
 void Camera::SetWorldMatrix(DirectX::XMMATRIX w) {
@@ -101,11 +112,12 @@ void Camera::SetWorldMatrix(DirectX::XMMATRIX w) {
 const ConstantBuffer& Camera::BuildConstantBuffer() {
     // Map buffer
     BufferMatrix* ptr = (BufferMatrix*)cb->Map();
-
+    
     // Transpose the matrices to prepare them for the shader.
     ptr->mWorld = /*DirectX::XMMatrixTranspose*/(mWorld);
     ptr->mView  = /*DirectX::XMMatrixTranspose*/(mView);
     ptr->mProj  = /*DirectX::XMMatrixTranspose*/(mProj);
+    ptr->vPosition = {pPos.x, pPos.y, pPos.z, 1.};
 
     // Unmap
     cb->Unmap();
@@ -118,6 +130,10 @@ void Camera::BindBuffer(Shader::ShaderType type, UINT slot) {
 
 DirectX::XMFLOAT3 Camera::GetPosition() {
     return pPos;
+}
+
+DirectX::XMFLOAT3 Camera::GetRotation() {
+    return pRot;
 }
 
 void Camera::SetViewMatrix(DirectX::XMMATRIX view) {

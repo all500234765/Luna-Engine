@@ -73,9 +73,16 @@ int _DirectX::Create(DirectXConfig config) {
     }
 
     // Create device and swapchain
-    res = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, DeviceFlags, pFeatureLevels, 1, D3D11_SDK_VERSION,
-                                        &scd, &gSwapchain, &gDevice, &level, &gContext);
+    res = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, DeviceFlags, pFeatureLevels, 
+                                        1, D3D11_SDK_VERSION, &scd, &gSwapchain, &gDevice, &level, &gContext);
     if( FAILED(res) ) { return 1; }
+
+    // Check MSAA levels
+    /*UINT maxQuality;
+    for( int i = 1; i < 16; i *= 2 ) {
+        gDevice->CheckMultisampleQualityLevels(scd.BufferDesc.Format, i, &maxQuality);
+        std::cout << maxQuality << std::endl;
+    }*/
 
 #ifdef _DEBUG
     gDevice->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&gDebug));
@@ -94,7 +101,7 @@ int _DirectX::Create(DirectXConfig config) {
     // Create RTV
     D3D11_RENDER_TARGET_VIEW_DESC pDesc;
     pDesc.Format = scd.BufferDesc.Format;
-    pDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    pDesc.ViewDimension = (D3D11_RTV_DIMENSION)(D3D11_RTV_DIMENSION_TEXTURE2D + 2 * cfg.MSAA);
     pDesc.Texture2D.MipSlice = 0;
 
     res = gDevice->CreateRenderTargetView(BackBufferColor, NULL, &gRTV);
@@ -114,8 +121,8 @@ int _DirectX::Create(DirectXConfig config) {
     pTex2DDesc.MipLevels = 1;
     pTex2DDesc.ArraySize = 1;
     pTex2DDesc.Format = DXGI_FORMAT_R24G8_TYPELESS; // 
-    pTex2DDesc.SampleDesc.Count = 1;
-    pTex2DDesc.SampleDesc.Quality = 0;
+    pTex2DDesc.SampleDesc.Count = scd.SampleDesc.Count;
+    pTex2DDesc.SampleDesc.Quality = scd.SampleDesc.Quality;
     pTex2DDesc.Usage = D3D11_USAGE_DEFAULT;
     pTex2DDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE; // 
     pTex2DDesc.CPUAccessFlags = 0;
@@ -145,7 +152,7 @@ int _DirectX::Create(DirectXConfig config) {
     // D3D11_DEPTH_STENCIL_VIEW_DESC
     pDesc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // Select format for DSV texture
     pDesc2.Texture2D.MipSlice = 0;
-    pDesc2.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    pDesc2.ViewDimension = (D3D11_DSV_DIMENSION)(D3D11_DSV_DIMENSION_TEXTURE2D + 2 * cfg.MSAA);
     pDesc2.Flags = 0;
 
     // Create depth stencil state
@@ -185,7 +192,7 @@ int _DirectX::Create(DirectXConfig config) {
     rDesc.DepthClipEnable = true;
     rDesc.FillMode = D3D11_FILL_SOLID;
     rDesc.FrontCounterClockwise = false;
-    rDesc.MultisampleEnable = false;
+    rDesc.MultisampleEnable = cfg.MSAA;
     rDesc.ScissorEnable = false;
     rDesc.SlopeScaledDepthBias = 0.0f;
 
@@ -198,7 +205,7 @@ int _DirectX::Create(DirectXConfig config) {
     rDesc2.DepthClipEnable = true;
     rDesc2.FillMode = D3D11_FILL_WIREFRAME;
     rDesc2.FrontCounterClockwise = false;
-    rDesc2.MultisampleEnable = false;
+    rDesc2.MultisampleEnable = cfg.MSAA;
     rDesc2.ScissorEnable = false;
     rDesc2.SlopeScaledDepthBias = 0.0f;
     
@@ -213,7 +220,7 @@ int _DirectX::Create(DirectXConfig config) {
     D3D11_SHADER_RESOURCE_VIEW_DESC pDesc1;
     ZeroMemory(&pDesc1, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
     pDesc1.Format                    = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-    pDesc1.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+    pDesc1.ViewDimension             = (D3D11_SRV_DIMENSION)(D3D11_SRV_DIMENSION_TEXTURE2D + 2 * cfg.MSAA);
     pDesc1.Texture2D.MipLevels       = 1;
     pDesc1.Texture2D.MostDetailedMip = 0;
 
@@ -257,8 +264,8 @@ int _DirectX::Create(DirectXConfig config) {
     return 0;
 }
 
-void _DirectX::ShowError(int id) {
-    if( id == 0 ) { return; }
+bool _DirectX::ShowError(int id) {
+    if( id == 0 ) { return false; }
     const wchar_t *error;
 
     switch( id ) {
@@ -271,6 +278,7 @@ void _DirectX::ShowError(int id) {
 
     MessageBox(NULL, error, L"DirectX Initialization failed", MB_OK);
 
+    return true;
 }
 
 DirectXConfig* _DirectX::GetConfig() {

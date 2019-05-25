@@ -32,3 +32,19 @@ Vertex_PN::Vertex_PN(aiMesh* inMesh, size_t i) {
 Vertex_P::Vertex_P(aiMesh* inMesh, size_t i) {
     Position = DirectX::XMFLOAT3(inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z);
 }
+
+Vertex_PNTC::Vertex_PNTC(aiMesh* inMesh, size_t i) {
+    Position = DirectX::XMFLOAT3(inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z);
+    
+    if( inMesh->mColors[0] ) {
+        Color = DirectX::XMFLOAT3(inMesh->mColors[0][i].r, inMesh->mColors[0][i].g, inMesh->mColors[0][i].b);
+    } else {
+        Color = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
+    }
+
+    if( inMesh->mTextureCoords[0] ) {
+        Texcoord = DirectX::XMFLOAT2(inMesh->mTextureCoords[0][i].x, inMesh->mTextureCoords[0][i].y);
+    } else {
+        Texcoord = DirectX::XMFLOAT2(0, 0);
+    }
+}

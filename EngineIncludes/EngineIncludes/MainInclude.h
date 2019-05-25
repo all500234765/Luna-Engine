@@ -30,6 +30,12 @@
 
 //#include "Engine/External/Ansel.h"
 
+// Audio engine using XAudio2
+#include "Audio/AudioDevice.h"
+#include "Audio/AudioDeviceChild.h"
+#include "Audio/Sound.h"
+#include "Audio/SoundEffect.h"
+
 // Ansel support
 #if USE_ANSEL
 #include "Vendor/Ansel/AnselSDK.h"
@@ -54,11 +60,12 @@
 
 
 // Global game instances
-static _DirectX* gDirectX = 0;
-static Window* gWindow = 0;
-static Input* gInput = 0;
-static Mouse* gMouse = 0;
-static Keyboard* gKeyboard = 0;
+static _DirectX    *gDirectX     = 0;
+static Window      *gWindow      = 0;
+static Input       *gInput       = 0;
+static Mouse       *gMouse       = 0;
+static Keyboard    *gKeyboard    = 0;
+static AudioDevice *gAudioDevice = 0;
 
 #if USE_GAMEPADS
 static Gamepad* gGamepad[NUM_GAMEPAD] = {};

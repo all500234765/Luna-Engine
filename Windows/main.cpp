@@ -8,8 +8,8 @@
 Camera *cPlayer, *c2DScreen, *cLight;
 Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
        *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR;
-Model *mModel1, *mModel2, *mScreenPlane, *mModel3;
-ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox;
+Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip;
+ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 
 Texture *tDefault, *tBlueNoiseRG, *tClearPixel;
 DiffuseMap *mDefaultDiffuse;
@@ -25,7 +25,9 @@ CubemapTexture *pCubemap;
 
 Query *pQuery;
 
-ID3D11BlendState *pBlendState0;
+ID3D11BlendState *pBlendState0; // TODO: Use BlendState class
+
+SoundEffect *sfxShotSingle, *sfxGunReload;
 
 // Not yet done
 //#define LOWPOLY_EXAMPLE
@@ -190,7 +192,7 @@ void CreateLowpolyTerrain(Mesh* mesh, int size) {
 GFSDK_SSAO_CustomHeap CustomHeap;
 GFSDK_SSAO_Context_D3D11* pAOContext;
 
-GFSDK_SSAO_InputData_D3D11 Input;
+GFSDK_SSAO_InputData_D3D11 _Input;
 GFSDK_SSAO_Parameters Params;
 GFSDK_SSAO_Output_D3D11 Output;
 #endif
@@ -226,13 +228,13 @@ bool _DirectX::FrameFunction() {
     }
 
     // Render depth buffer
-    /*bDepth->Bind();
+    bDepth->Bind();
     
     gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
     mLevel1->Bind(cLight);
     shVertexOnly->Bind();
-    mLevel1->Render();*/
+    mLevel1->Render();
     
     if( bIsWireframe ) {
         gContext->RSSetState(gRSDefaultWriteframe);
@@ -249,11 +251,10 @@ bool _DirectX::FrameFunction() {
     gContext->ClearDepthStencilView(bGBuffer->GetDepth()->pDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
     // Render scene
-    mLevel1->Bind(cPlayer);
 
     // Bind light buffer
     cLight->BindBuffer(Shader::Vertex, 1);
-        
+    
     // Bind material
     mDefault->BindTextures(Shader::Pixel);
 
@@ -270,9 +271,14 @@ bool _DirectX::FrameFunction() {
     sPoint->Bind(Shader::Pixel, 3);
 
     // Render level
-    mLevel1->Render();
+    //mLevel1->Bind(cPlayer);
+    //mLevel1->Render();
+
     //mTerrainMesh->Bind();
     //mTerrainMesh->Render();
+    
+    miSpaceShip->Bind(cPlayer);
+    miSpaceShip->Render();
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -345,6 +351,7 @@ bool _DirectX::FrameFunction() {
     sRenderBuffer* _Depth = bGBuffer->GetDepth();
     sRenderBuffer* _Color0 = bGBuffer->GetColor0(); // Diffuse
     sRenderBuffer* _Color1 = bGBuffer->GetColor1(); // Normal
+    sRenderBuffer* _Color2 = bGBuffer->GetColor2(); // Specular
 
     // Screen-space local reflections
     bSSLR->Bind(); // Render Target
@@ -382,13 +389,24 @@ bool _DirectX::FrameFunction() {
 
     mScreenPlane->Render();
 
+    // HBAO+
+#if USE_HBAO_PLUS
+    DirectX::XMFLOAT4X4 mProjDest;
+    DirectX::XMStoreFloat4x4(&mProjDest, cPlayer->GetProjMatrix());
+    _Input.DepthData.ProjectionMatrix.Data = GFSDK_SSAO_Float4x4(&mProjDest(0, 0));
+
+    GFSDK_SSAO_Status status = GFSDK_SSAO_OK;
+    status = pAOContext->RenderAO(gContext, _Input, Params, Output);
+    assert(status == GFSDK_SSAO_OK);
+#endif
+
     // Render debug GUI
     if( bDebugGUI ) {
         // 3 is best number here
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
             _Color0->pSRV,
             _Color1->pSRV,
-            _SSLRBf->pSRV
+            _Color2->pSRV
         };
 
         shGUI->Bind();
@@ -417,17 +435,6 @@ bool _DirectX::FrameFunction() {
         }
     }
 
-    // HBAO+
-#if USE_HBAO_PLUS
-    DirectX::XMFLOAT4X4 mProjDest;
-    DirectX::XMStoreFloat4x4(&mProjDest, cPlayer->GetProjMatrix());
-    Input.DepthData.ProjectionMatrix.Data = GFSDK_SSAO_Float4x4(&mProjDest(0, 0));
-
-    GFSDK_SSAO_Status status = GFSDK_SSAO_OK;
-    status = pAOContext->RenderAO(gContext, Input, Params, Output);
-    assert(status == GFSDK_SSAO_OK);
-#endif
-
     // 2D Rendering
     ComposeUI();
 
@@ -436,15 +443,8 @@ bool _DirectX::FrameFunction() {
     return false;
 }
 
+float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
-    // Set focust handle for mouse
-    //gMouse->SetFocus(GetFocus());
-
-    // Select scenes
-    //if( gKeyboard->IsPressed(VK_0) ) { SceneID = 0; }
-    //if( gKeyboard->IsPressed(VK_1) ) { SceneID = 1; }
-    //if( gKeyboard->IsPressed(VK_2) ) { SceneID = 2; }
-
     // Set light's view matrix to math main camera's one
     if( gKeyboard->IsPressed(VK_SPACE) ) {
         cLight->SetViewMatrix(cPlayer->GetViewMatrix());
@@ -459,7 +459,6 @@ void _DirectX::Tick(float fDeltaTime) {
     const float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
     DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
 
-    float fDir = 0.f, fPitch = 0.f;             // 
     static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
 
     // Camera
@@ -467,6 +466,8 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsDown(VK_S) ) f3Move.x = -fSpeed * fDeltaTime;
     if( gKeyboard->IsDown(VK_D) ) f3Move.z = +fSpeed * fDeltaTime;  // Strafe
     if( gKeyboard->IsDown(VK_A) ) f3Move.z = -fSpeed * fDeltaTime;
+
+    float dx = 0.f, dy = 0.f;
 
 #if USE_GAMEPADS
     // Use gamepad if we can and it's connected
@@ -479,38 +480,54 @@ void _DirectX::Tick(float fDeltaTime) {
 
         // Look around
         if( !gGamepad[0]->IsDeadZoneR() ) {
-            fDir   =  gGamepad[0]->RightX() * 100.f * fSensetivityX * fDeltaTime;
-            fPitch = -gGamepad[0]->RightY() *  50.f * fSensetivityY * fDeltaTime;
+            dx = gGamepad[0]->RightX() * 100.f * fSensetivityX * fDeltaTime;
+            dy = gGamepad[0]->RightY() *  50.f * fSensetivityY * fDeltaTime;
+
+            fDir   += dx;
+            fPitch -= dy;
         }
     } //else
 #endif
     {
         // Use mouse
         bool b = false;
-        if( abs(fDir) <= .1 ) {
-            fDir = (float(gMouse->GetX() - cfg.Width  * .5f) * fSensetivityX * fDeltaTime);
+        if( abs(dx) <= .1 ) {
+            fDir += (float(gMouse->GetX() - cfg.Width  * .5f) * fSensetivityX * fDeltaTime);
             b = true;
         }
 
-        if( abs(fPitch) <= .1 ) {
-            fPitch = (float(gMouse->GetY() - cfg.Height * .5f) * fSensetivityY * fDeltaTime);
+        if( abs(dy) <= .1 ) {
+            fPitch += (float(gMouse->GetY() - cfg.Height * .5f) * fSensetivityY * fDeltaTime);
             b = true;
         }
 
         if( b ) gMouse->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
     }
 
-    if( gKeyboard->IsDown(VK_LEFT ) ) fDir = -fRotSpeed * fDeltaTime; // Right / Left 
-    if( gKeyboard->IsDown(VK_RIGHT) ) fDir = +fRotSpeed * fDeltaTime;
+    if( gKeyboard->IsDown(VK_LEFT ) ) fDir -= fRotSpeed * fDeltaTime; // Right / Left 
+    if( gKeyboard->IsDown(VK_RIGHT) ) fDir += fRotSpeed * fDeltaTime;
 
     // I got used to KSP and other avia/space sims
     // So i flipped them
-    if( gKeyboard->IsDown(VK_UP  ) ) fPitch = -fRotSpeed * fDeltaTime; // Look Up / Down
-    if( gKeyboard->IsDown(VK_DOWN) ) fPitch = +fRotSpeed * fDeltaTime;
+    if( gKeyboard->IsDown(VK_UP  ) ) fPitch -= fRotSpeed * fDeltaTime; // Look Up / Down
+    if( gKeyboard->IsDown(VK_DOWN) ) fPitch += fRotSpeed * fDeltaTime;
+
+    if( gMouse->IsPressed(MouseButton::Left) ) {
+        sfxShotSingle->Play();
+        std::cout << "Left\n";
+    }
+
+    if( gKeyboard->IsPressed(VK_R) ) {
+        sfxGunReload->Play();
+        std::cout << "Reload\n";
+    }
+
+    // Limit pitch
+    fPitch = std::min(std::max(fPitch, -84.f), 84.f);
 
     // Look around
     cPlayer->TranslateLookAt(f3Move);
-    cPlayer->Rotate(DirectX::XMFLOAT3(fPitch, fDir, 0.));
+    cPlayer->RotateAbs(DirectX::XMFLOAT3(fPitch, fDir, 0.));
 }
 
 void _DirectX::ComposeUI() {
@@ -618,9 +635,9 @@ void _DirectX::Load() {
     shPostProcess = new Shader();
     shSSLR = new Shader();
 
-    cPlayer = new Camera(DirectX::XMFLOAT3(0, 2, -2), DirectX::XMFLOAT3(0., 130., 0.));
+    cPlayer = new Camera(DirectX::XMFLOAT3(50, 2, -2), DirectX::XMFLOAT3(0., 0.f, 0.));
     c2DScreen = new Camera();
-    cLight = new Camera(DirectX::XMFLOAT3(-10.f, 10.f, -10.f), DirectX::XMFLOAT3(45.f, 130.f, 0.f));
+    cLight = new Camera(DirectX::XMFLOAT3(-10.f, 10.f, -10.f), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
 
     tDefault = new Texture();
     tBlueNoiseRG = new Texture();
@@ -639,6 +656,14 @@ void _DirectX::Load() {
     pCubemap = new CubemapTexture();
 
     pQuery = new Query();
+
+    sfxShotSingle = new SoundEffect("../Sounds/SingleEnergyShot.wav");
+    sfxShotSingle->Create();
+    sfxShotSingle->SetVolume(.2f);
+
+    sfxGunReload = new SoundEffect("../Sounds/EnergyReload.wav");
+    sfxGunReload->Create();
+    sfxGunReload->SetVolume(.2f);
 
     // Ansel support
 #if USE_ANSEL
@@ -663,14 +688,12 @@ void _DirectX::Load() {
     pDesc_.RenderTarget[0].BlendEnable = true;
     pDesc_.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
     pDesc_.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-
     pDesc_.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
     pDesc_.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-
     pDesc_.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
     pDesc_.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
-
     pDesc_.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
     pDesc_.AlphaToCoverageEnable = false;
     pDesc_.IndependentBlendEnable = false;
 
@@ -690,6 +713,9 @@ void _DirectX::Load() {
     tDefault->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
     tDefault->SetName("Default tile texture");
     //gContext->GenerateMips(tDefault->GetSRV());
+
+    // Set default texture
+    Model::SetDefaultTexture(tDefault);
 
     // Load more textures
     tBlueNoiseRG->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
@@ -797,15 +823,22 @@ void _DirectX::Load() {
     // Create model
     mModel1 = new Model("Test model #1");
     mModel1->LoadModel<Vertex_PNT>("../Models/Teapot.obj");
+    mModel1->EnableDefaultTexture();
 
     mModel2 = new Model("Test model #2");
     //mModel2->LoadModel("../Models/Dunes1.obj");
 
     mModel3 = new Model("Unit sphere");
     mModel3->LoadModel<Vertex_P>("../Models/UVMappedUnitSphere.obj");
+    mModel3->DisableDefaultTexture();
 
     mScreenPlane = new Model("Screen plane model");
     mScreenPlane->LoadModel<Vertex_PT>("../Models/ScreenPlane.obj");
+    mScreenPlane->DisableDefaultTexture();
+
+    mSpaceShip = new Model("Space ship model");
+    mSpaceShip->LoadModel<Vertex_PNT>("../Models/Space Ship Guns1.obj");
+    mSpaceShip->EnableDefaultTexture();
 
     // Create model instances
     // Test level
@@ -837,6 +870,14 @@ void _DirectX::Load() {
     mSkybox->SetShader(shSkybox);
     mSkybox->SetWorldMatrix(DirectX::XMMatrixScaling(1000, 1000, 1000));
 
+    // Space ship
+    miSpaceShip = new ModelInstance();
+    miSpaceShip->SetModel(mSpaceShip);
+    miSpaceShip->SetShader(shTest);
+    miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *
+                                DirectX::XMMatrixScaling(10.f, 10.f, 10.f) * 
+                                DirectX::XMMatrixTranslation(50.f, 10.f, 0.f));
+    
     // Speaks for it's self
 #ifdef LOWPOLY_EXAMPLE
     mTerrainMesh = new Mesh();
@@ -852,10 +893,10 @@ void _DirectX::Load() {
     status = GFSDK_SSAO_CreateContext_D3D11(gDevice, &pAOContext, &CustomHeap);
     assert(status == GFSDK_SSAO_OK); // HBAO+ requires feature level 11_0 or above
 
-    Input.DepthData.DepthTextureType = GFSDK_SSAO_HARDWARE_DEPTHS;
-    Input.DepthData.pFullResDepthTextureSRV = gDSV_SRV;
-    Input.DepthData.ProjectionMatrix.Layout = GFSDK_SSAO_ROW_MAJOR_ORDER;
-    Input.DepthData.MetersToViewSpaceUnits = 1.;
+    _Input.DepthData.DepthTextureType = GFSDK_SSAO_HARDWARE_DEPTHS;
+    _Input.DepthData.pFullResDepthTextureSRV = bGBuffer->GetDepth()->pSRV;
+    _Input.DepthData.ProjectionMatrix.Layout = GFSDK_SSAO_ROW_MAJOR_ORDER;
+    _Input.DepthData.MetersToViewSpaceUnits = 1.;
 
     Params.Radius = 2.f;
     Params.Bias = 0.1f;
@@ -877,6 +918,10 @@ void _DirectX::Unload() {
 #if USE_HBAO_PLUS
     pAOContext->Release();
 #endif
+
+    // Release SFX
+    sfxShotSingle->Release();
+    sfxGunReload->Release();
 
     // Release queries
     pQuery->Release();
@@ -1025,6 +1070,7 @@ int main() {
     // Create global engine objects
     gWindow = new Window();
     gDirectX = new _DirectX();
+    gAudioDevice = new AudioDevice();
     
     // Window config
     WindowConfig winCFG;
@@ -1046,6 +1092,13 @@ int main() {
     for( int i = 0; i < NUM_GAMEPAD; i++ ) gGamepad[i] = gInput->GetGamepad(i);
 #endif
 
+    // Audio device config
+    AudioDeviceConfig adCFG;
+    adCFG.Flags = 0;
+
+    // Create audio device
+    gAudioDevice->Create(&adCFG);
+
     // DirectX config
     DirectXConfig dxCFG;
     dxCFG.BufferCount = 2;
@@ -1057,13 +1110,15 @@ int main() {
     dxCFG.Windowed = winCFG.Windowed;
     dxCFG.Ansel = USE_ANSEL;
 
-    // TODO: MSAA Support
+    // <strike>TODO: MSAA Support</strike>
+    // TODO: Remove MSAA from here
+    // TODO: Add TAA support
     dxCFG.MSAA = false;
     dxCFG.MSAA_Samples = 1;
     dxCFG.MSAA_Quality = 0;
 
     // Create device and swap chain
-    gDirectX->ShowError(gDirectX->Create(dxCFG));
+    if( gDirectX->ShowError(gDirectX->Create(dxCFG)) ) { return 1; }
 
     //std::cout << "Ansel avaliable: " << ansel::isAnselAvailable() << std::endl;
 
@@ -1073,9 +1128,13 @@ int main() {
 
     gWindow->SetFrameFunction(gFrameFunction); // Ref to function
     gWindow->SetDirectX(gDirectX);             // Ref to global object
+    //gWindow->SetAudioDevice(0, gAudioDevice);  // Ref to global audio device[0]
 
     // Set directx object
     DirectXChild::SetDirectX(gDirectX);
+
+    // Set audio object
+    AudioDeviceChild::SetAudioDevice(gAudioDevice);
 
     // Load game data
     gDirectX->Load();
@@ -1086,4 +1145,5 @@ int main() {
     // Unload game
     gWindow->Destroy();
     gDirectX->Unload();
+    gAudioDevice->Release();
 }

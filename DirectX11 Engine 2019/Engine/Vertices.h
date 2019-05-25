@@ -38,6 +38,15 @@ struct Vertex_PNT: public Vertex {
     Vertex_PNT(aiMesh* inMesh, size_t i);
 };
 
+struct Vertex_PNTC: public Vertex {
+    DirectX::XMFLOAT3 Normal;
+    DirectX::XMFLOAT2 Texcoord;
+    DirectX::XMFLOAT3 Color;
+
+    Vertex_PNTC() {};
+    Vertex_PNTC(aiMesh* inMesh, size_t i);
+};
+
 struct Vertex_PN: public Vertex {
     DirectX::XMFLOAT3 Normal;
 

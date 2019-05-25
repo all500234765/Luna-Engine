@@ -17,6 +17,7 @@ struct PS {
     float4 WorldPos : TEXCOORD1;
     float4 LightPos : TEXCOORD2;
     float3 InputPos : TEXCOORD3;
+    float3 ViewDir  : TEXCOORD4;
 };
 
 float SampleShadow(float4 lpos) {
@@ -42,8 +43,8 @@ struct GBuffer {
 // https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
 // Spherical Coordinates
 #define kPI 3.1415926536f
-half4 EncodeNormal(half3 n) {
-    return half4(half2(atan2(n.y, n.x) / kPI, n.z) * .5f + .5f, 0.f, 0.f);
+half2 EncodeNormal(half3 n) {
+    return half2(atan2(n.y, n.x) / kPI, n.z) * .5f + .5f;
 }
 
 GBuffer main(PS In) {
@@ -53,14 +54,25 @@ GBuffer main(PS In) {
     half3 N = normalize(In.Normal);
     half S = 1.; // SampleShadow(In.LightPos) * .2 + .8;
     half4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord);
+
     //Diff = pow(_CubemapTexture.Sample(_CubemapSampler, normalize(In.InputPos)), 1. / 2.2);
 
+    const half3 _LightPos = half3(100.f, 10.f, 0.f);
+    const half3 _LightColor = half3(.7f, .9f, .8f);
 
-    half L = clamp(dot(normalize(half3(10., 10., 0.)), N), .3f, 1.f);
+    // Phong
+    half3 lDir = normalize(_LightPos - In.WorldPos.xyz);
+    half3 vDir = normalize(In.ViewDir);
+    half3 hDir = normalize(lDir + vDir);
+
+    half L = clamp(dot(N, lDir), .3f, 1.f);           // Light intensity
+    half spec = pow(max(dot(N, hDir), 0.f), 32.f); // Light specular lightning
     
+    half3 SpecularColor = spec * _LightColor;
+
     GBuffer Out;
         Out.Normal   = EncodeNormal(N);
-        Out.Diffuse  = lerp(half4(.5, .6, .8, 1.), Diff, S) * half4(L.xxx, 1.);
-        Out.Specular = half4(Diff.rgb * L, .5);
+        Out.Diffuse  = lerp(half4(.5, .6, .8, 1.), Diff, S) * half4(L.xxx, 1.) + half4(SpecularColor, 0.);
+        Out.Specular = half4(Diff.rgb * SpecularColor, spec);
     return Out;
 }

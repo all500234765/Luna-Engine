@@ -56,7 +56,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\x64\assimp-vc140-mt.dll" />
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\color4.inl" />
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\material.inl" />
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\matrix3x3.inl" />
@@ -67,5 +66,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stb_vorbis.h" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Audio\AudioDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Audio\Sound.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Audio\SoundEffect.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Audio\AudioDevice.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Audio\AudioDeviceChild.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Audio\AudioDeviceChild.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Audio\Sound.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Audio\SoundEffect.cpp" />
+  </ItemGroup>
+</Project>

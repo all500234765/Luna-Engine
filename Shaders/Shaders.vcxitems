@@ -72,4 +72,7 @@
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\PS\fxaa.hlsli" />
+  </ItemGroup>
 </Project>

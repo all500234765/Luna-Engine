@@ -76,9 +76,11 @@
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\quaternion.inl" />
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector2.inl" />
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector3.inl" />
-    <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\x64\assimp-vc140-mt.dll" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stb_vorbis.h">
+      <FileType>CppCode</FileType>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -39,6 +39,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor1.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor2Depth.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor3Depth.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CustomTexture.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2D.h" />
@@ -81,6 +82,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor3Depth.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferDepth2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferDepth2D.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2DArray.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.cpp" />

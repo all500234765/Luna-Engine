@@ -4,8 +4,8 @@ SamplerState _Sampler : register(s0);
 Texture2D<half2> _NormalTexture : register(t1);
 SamplerState _NormalSampler     : register(s1);
 
-Texture2D<float> _DepthTexture : register(t2);
-SamplerState _DepthSampler     : register(s2);
+Texture2D<float4> _DepthTexture : register(t2);
+SamplerState _DepthSampler      : register(s2);
 
 struct PS {
     float4 Position : SV_Position;
@@ -15,7 +15,7 @@ struct PS {
 // https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
 // Spherical Coordinates
 #define kPI 3.1415926536f
-half3 decode(half2 enc) {
+half3 NormalDecode(half2 enc) {
     half2 scth, ang = enc * 2.f - 1.f;
     sincos(ang.x * kPI, scth.x, scth.y);
 

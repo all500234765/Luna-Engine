@@ -92,7 +92,7 @@ public:
     
     // Setup DirectX
     int Create(DirectXConfig config);
-    void ShowError(int id);
+    bool ShowError(int id);
 
     DirectXConfig* GetConfig();
 

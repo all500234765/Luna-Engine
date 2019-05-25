@@ -20,6 +20,7 @@ private:
         DirectX::XMMATRIX mWorld;
         DirectX::XMMATRIX mView;
         DirectX::XMMATRIX mProj;
+        DirectX::XMVECTOR vPosition;
     };
 
 public:
@@ -37,13 +38,17 @@ public:
 
     void Translate(DirectX::XMFLOAT3 p);
     void TranslateLookAt(DirectX::XMFLOAT3 p);
+    void TranslateLookAtAbs(DirectX::XMFLOAT3 p);
+
     void Rotate(DirectX::XMFLOAT3 r);
+    void RotateAbs(DirectX::XMFLOAT3 r);
 
     void SetWorldMatrix(DirectX::XMMATRIX w);
     const ConstantBuffer& BuildConstantBuffer();
     void BindBuffer(Shader::ShaderType type, UINT slot);
 
     DirectX::XMFLOAT3 GetPosition();
+    DirectX::XMFLOAT3 GetRotation();
 
     void SetViewMatrix(DirectX::XMMATRIX view);
     DirectX::XMMATRIX GetViewMatrix();
