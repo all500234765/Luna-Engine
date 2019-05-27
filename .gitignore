@@ -302,5 +302,9 @@ Vendor/Vendor/Ansel/
 # Some compilation dirs
 Intermediate/
 
+# (un)Paid resources
+Build/Sounds/Paid/
+Build/Music/Paid/
+
 >>>>>>> origin/master
 # End of https://www.gitignore.io/api/c++,images,windows,visualstudio
