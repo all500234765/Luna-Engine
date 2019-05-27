@@ -27,6 +27,7 @@
 #include "Engine/Textures/CubemapTexture.h"
 #include "Engine/Textures/CustomTexture.h"
 #include "Engine/DirectX/Query.h"
+#include "Engine/States/BlendState.h"
 
 //#include "Engine/External/Ansel.h"
 

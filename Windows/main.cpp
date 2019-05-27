@@ -25,7 +25,7 @@ CubemapTexture *pCubemap;
 
 Query *pQuery;
 
-ID3D11BlendState *pBlendState0; // TODO: Use BlendState class
+BlendState *pBlendState0; // TODO: Use BlendState class
 
 SoundEffect *sfxShotSingle, *sfxGunReload;
 
@@ -512,6 +512,7 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsDown(VK_UP  ) ) fPitch -= fRotSpeed * fDeltaTime; // Look Up / Down
     if( gKeyboard->IsDown(VK_DOWN) ) fPitch += fRotSpeed * fDeltaTime;
 
+    // Sound check
     if( gMouse->IsPressed(MouseButton::Left) ) {
         sfxShotSingle->Play();
         std::cout << "Left\n";
@@ -684,6 +685,8 @@ void _DirectX::Load() {
     bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
     
     // Create blend state with no color write
+    pBlendState0 = new BlendState();
+
     D3D11_BLEND_DESC pDesc_;
     pDesc_.RenderTarget[0].BlendEnable = true;
     pDesc_.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
@@ -697,7 +700,7 @@ void _DirectX::Load() {
     pDesc_.AlphaToCoverageEnable = false;
     pDesc_.IndependentBlendEnable = false;
 
-    gDevice->CreateBlendState(&pDesc_, &pBlendState0);
+    pBlendState0->Create(pDesc_, {1.f, 1.f, 1.f, 1.f});
 
     // Create occlusion query
     pQuery->Create(D3D11_QUERY_OCCLUSION);

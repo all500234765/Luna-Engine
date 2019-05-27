@@ -72,7 +72,41 @@ static const float fxaaSubpix = 0.75;
 static const float fxaaEdgeThreshold = 0.166;
 static const float fxaaEdgeThresholdMin = 0.0833;
 
+static const float threshold = .9; // .9
+
+#define fsqrt(x) sqrt(dot(x, x)) //dot(length(x), length(x))
+
 half4 main(PS In): SV_Target0 {
+    // Sobel operator
+    const int2 texAddrOffsets[8] = {
+            int2(-1, -1),
+            int2(0, -1),
+            int2(1, -1),
+            int2(-1,  0),
+            int2(1,  0),
+            int2(-1,  1),
+            int2(0,  1),
+            int2(1,  1),
+    };
+    
+    float lum[8];
+    int i;
+    float3 LuminanceConv = float3(.2125f, .7154f, .0721f);
+    float2 fxaaFrame;
+    _Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
+    float D;
+
+    for( i = 0; i < 8; i++ ) {
+        float3 Color = _Texture.Load(int3(int2(In.Texcoord * fxaaFrame) + texAddrOffsets[i], 0));
+        lum[i] = (dot(Color, LuminanceConv)) * threshold;
+    }
+
+    float x = lum[0] + 2 * lum[3] + lum[5] - lum[2] - 2 * lum[4] - lum[7];
+    float y = lum[0] + 2 * lum[1] + lum[2] - lum[5] - 2 * lum[6] - lum[7];
+
+    D = 1.; //(1. - Color2Depth(_Depth.Sample(_DepthSamp, In.Texcoord))) / 1.;
+    float edge = D * sqrt(x * x + y * y);
+
     // 
     half4 Diff = _Texture.Sample(_Sampler, In.Texcoord);
 
@@ -88,17 +122,13 @@ half4 main(PS In): SV_Target0 {
     //Diff.rgb = half3(hdrRight, Diff.g, hdrLeft);
 
     // FXAA
-    float2 fxaaFrame;
-    _Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
-
     FxaaTex tex = {_Sampler, _Texture};
     Diff = FxaaPixelShader(In.Texcoord, 0, tex, tex, tex, 1 / fxaaFrame, 0, 0, 0, 
                            fxaaSubpix, fxaaEdgeThreshold, fxaaEdgeThresholdMin, 0, 0, 0, 0);
 
     // Tonemapping
     //Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
-    Diff.rgb = (Diff.rgb / (Diff.rgb + 1.f)) * 2.f;
-
+    Diff.rgb = (1. - edge) * (Diff.rgb / (Diff.rgb + 1.f)) * 2.f;
 
     // 
     return Diff;
