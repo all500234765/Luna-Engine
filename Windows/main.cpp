@@ -28,6 +28,7 @@ Query *pQuery;
 BlendState *pBlendState0; // TODO: Use BlendState class
 
 SoundEffect *sfxShotSingle, *sfxGunReload;
+Music* mscMainTheme;
 
 // Not yet done
 //#define LOWPOLY_EXAMPLE
@@ -666,6 +667,10 @@ void _DirectX::Load() {
     sfxGunReload->Create();
     sfxGunReload->SetVolume(.2f);
 
+    mscMainTheme = new Music("../Music/EnergyReload.wav");
+    mscMainTheme->Create();
+    mscMainTheme->SetVolume(.2f);
+
     // Ansel support
 #if USE_ANSEL
     AnselEnable(cPlayer->GetViewMatrix());
@@ -927,6 +932,7 @@ void _DirectX::Unload() {
     // Release SFX
     sfxShotSingle->Release();
     sfxGunReload->Release();
+    mscMainTheme->Release();
 
     // Release queries
     pQuery->Release();

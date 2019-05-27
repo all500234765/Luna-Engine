@@ -36,6 +36,7 @@
 #include "Audio/AudioDeviceChild.h"
 #include "Audio/Sound.h"
 #include "Audio/SoundEffect.h"
+#include "Audio/Music.h"
 
 // Ansel support
 #if USE_ANSEL

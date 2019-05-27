@@ -5,12 +5,14 @@ Sound::Sound() {
 }
 
 void Sound::Release() {
-    pVoice->DestroyVoice();
+    Stop();
+    if( pVoice ) pVoice->DestroyVoice();
 }
 
 HRESULT Sound::Play() {
     if( !gAudioDevice         ) return E_FAIL;
     if( !gAudioDevice->gAudio ) return E_FAIL;
+    if( !pVoice ) return E_FAIL;
 
     HRESULT hr;
     if( FAILED(hr = pVoice->SubmitSourceBuffer(&pBuff)) ) return hr;
@@ -20,6 +22,7 @@ HRESULT Sound::Play() {
 }
 
 HRESULT Sound::Play(DWORD delay) {
+    if( !pVoice ) return E_FAIL;
     if( delay > 0 ) {
         std::thread([=] {
             Sleep(delay);
@@ -143,15 +146,17 @@ HRESULT Sound::OpenFile(const TCHAR* fname) {
 }
 
 void Sound::Stop() {
-    pVoice->Stop();
+    if( pVoice ) pVoice->Stop();
 }
 
 void Sound::SetVolume(float val) {
-    pVoice->SetVolume(val);
+    if( pVoice ) pVoice->SetVolume(val);
 }
 
 float Sound::GetVolume() {
-    float val; pVoice->GetVolume(&val);
+    float val;
+    if( pVoice ) pVoice->GetVolume(&val);
+    else         return 0.f;
     return val;
 }
 
@@ -171,7 +176,6 @@ HRESULT Sound::Create() {
 
     HRESULT hr;
     if( FAILED(hr = gAudioDevice->gAudio->CreateSourceVoice(&pVoice, &wfx)) ) return hr;
-
+    
     return S_OK;
 }
-

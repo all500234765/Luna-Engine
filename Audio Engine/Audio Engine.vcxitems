@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Audio\AudioDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Audio\Music.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Audio\Sound.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Audio\SoundEffect.h" />
   </ItemGroup>
@@ -22,6 +23,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Audio\AudioDevice.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Audio\AudioDeviceChild.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Audio\AudioDeviceChild.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Audio\Music.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Audio\Sound.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Audio\SoundEffect.cpp" />
   </ItemGroup>
