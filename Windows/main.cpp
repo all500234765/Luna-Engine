@@ -913,7 +913,9 @@ void _DirectX::Load() {
 #endif
 
     // Debug report if we can
+#ifdef _DEBUG
     if( gDirectX->gDebug ) gDirectX->gDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+#endif
 }
 
 void _DirectX::Unload() {
