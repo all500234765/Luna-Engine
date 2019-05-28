@@ -27,7 +27,7 @@ Query *pQuery;
 
 BlendState *pBlendState0; // TODO: Use BlendState class
 
-SoundEffect *sfxShotSingle, *sfxGunReload;
+SoundEffect *sfxShotSingle, *sfxGunReload, *sfxWalk1, *sfxWalk2;
 Music* mscMainTheme;
 
 // Not yet done
@@ -201,6 +201,7 @@ GFSDK_SSAO_Output_D3D11 Output;
 float fAspect = 1024.f / 540.f;
 bool bIsWireframe = false, bDebugGUI = false;
 int SceneID = 0;
+int sfxWalkIndex;
 
 // Define Frame Function
 bool _DirectX::FrameFunction() {
@@ -505,6 +506,17 @@ void _DirectX::Tick(float fDeltaTime) {
         if( b ) gMouse->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
     }
 
+    // Walk SFX
+    /*if( abs(f3Move.x) > 0.f ) {
+        sfxWalkIndex = (sfxWalkIndex + 1) % 100;
+
+        if( sfxWalkIndex == 50 ) {
+            sfxWalk1->PlayNQ();
+        } else if( sfxWalkIndex == 0 ) {
+            sfxWalk2->PlayNQ();
+        }
+    }*/
+
     if( gKeyboard->IsDown(VK_LEFT ) ) fDir -= fRotSpeed * fDeltaTime; // Right / Left 
     if( gKeyboard->IsDown(VK_RIGHT) ) fDir += fRotSpeed * fDeltaTime;
 
@@ -515,12 +527,12 @@ void _DirectX::Tick(float fDeltaTime) {
 
     // Sound check
     if( gMouse->IsPressed(MouseButton::Left) ) {
-        sfxShotSingle->Play();
+        sfxShotSingle->PlayNQ();
         std::cout << "Left\n";
     }
 
     if( gKeyboard->IsPressed(VK_R) ) {
-        sfxGunReload->Play();
+        sfxGunReload->PlayNQ();
         std::cout << "Reload\n";
     }
 
@@ -671,6 +683,14 @@ void _DirectX::Load() {
     mscMainTheme->Create();
     mscMainTheme->SetVolume(.2f);
 
+    sfxWalk1 = new SoundEffect("../Sounds/Paid/Walk1.wav");
+    sfxWalk1->Create();
+    sfxWalk1->SetVolume(.2f);
+
+    sfxWalk2 = new SoundEffect("../Sounds/Paid/Walk2.wav");
+    sfxWalk2->Create();
+    sfxWalk2->SetVolume(.2f);
+
     // Ansel support
 #if USE_ANSEL
     AnselEnable(cPlayer->GetViewMatrix());
@@ -779,43 +799,43 @@ void _DirectX::Load() {
     cLight->BuildView();
 
     // Load shader
-    shTest->LoadFile("../CompiledShaders/shTestVS.cso", Shader::Vertex);
-    shTest->LoadFile("../CompiledShaders/shTestPS.cso", Shader::Pixel);
+    shTest->LoadFile("shTestVS.cso", Shader::Vertex);
+    shTest->LoadFile("shTestPS.cso", Shader::Pixel);
 
     // Don't forget to bind MatrixBuffer to Domain shader instead of Vertex
-    shTerrain->LoadFile("../CompiledShaders/shTerrainVS.cso", Shader::Vertex);
-    shTerrain->LoadFile("../CompiledShaders/shTerrainHS.cso", Shader::Hull);
-    shTerrain->LoadFile("../CompiledShaders/shTerrainDS.cso", Shader::Domain);
-    shTerrain->LoadFile("../CompiledShaders/shTerrainPS.cso", Shader::Pixel);
+    shTerrain->LoadFile("shTerrainVS.cso", Shader::Vertex);
+    shTerrain->LoadFile("shTerrainHS.cso", Shader::Hull);
+    shTerrain->LoadFile("shTerrainDS.cso", Shader::Domain);
+    shTerrain->LoadFile("shTerrainPS.cso", Shader::Pixel);
 
     // Skeletal animations
-    shSkeletalAnimations->LoadFile("../CompiledShaders/shSkeletalAnimationsVS.cso", Shader::Vertex);
-    shSkeletalAnimations->LoadFile("../CompiledShaders/shSkeletalAnimationsPS.cso", Shader::Pixel);
+    shSkeletalAnimations->LoadFile("shSkeletalAnimationsVS.cso", Shader::Vertex);
+    shSkeletalAnimations->LoadFile("shSkeletalAnimationsPS.cso", Shader::Pixel);
 
     // Vertex only shader
-    shVertexOnly->LoadFile("../CompiledShaders/shSimpleVS.cso", Shader::Vertex);
+    shVertexOnly->LoadFile("shSimpleVS.cso", Shader::Vertex);
     shVertexOnly->SetNullShader(Shader::Pixel);
 
     // Skybox
-    shSkybox->LoadFile("../CompiledShaders/shSkyboxVS.cso", Shader::Vertex);
-    shSkybox->LoadFile("../CompiledShaders/shSkyboxPS.cso", Shader::Pixel);
+    shSkybox->LoadFile("shSkyboxVS.cso", Shader::Vertex);
+    shSkybox->LoadFile("shSkyboxPS.cso", Shader::Pixel);
 
     // Simple textured quad
-    shTexturedQuad->LoadFile("../CompiledShaders/shTexturedQuadVS.cso", Shader::Vertex);
-    shTexturedQuad->LoadFile("../CompiledShaders/shTexturedQuadPS.cso", Shader::Pixel);
+    shTexturedQuad->LoadFile("shTexturedQuadVS.cso", Shader::Vertex);
+    shTexturedQuad->LoadFile("shTexturedQuadPS.cso", Shader::Pixel);
 
     // Post process
-    shPostProcess->LoadFile("../CompiledShaders/shPostProcessVS.cso", Shader::Vertex);
-    shPostProcess->LoadFile("../CompiledShaders/shPostProcessPS.cso", Shader::Pixel);
+    shPostProcess->LoadFile("shPostProcessVS.cso", Shader::Vertex);
+    shPostProcess->LoadFile("shPostProcessPS.cso", Shader::Pixel);
 
     // SSLR
     shSSLR->AttachShader(shPostProcess, Shader::Vertex);
-    shSSLR->LoadFile("../CompiledShaders/shSSLRPS.cso", Shader::Pixel);
+    shSSLR->LoadFile("shSSLRPS.cso", Shader::Pixel);
 
     // GUI
     //shGUI->LoadFile("../CompiledShaders/shGUIVS.cso", Shader::Vertex);
     shGUI->AttachShader(shPostProcess, Shader::Vertex);
-    shGUI->LoadFile("../CompiledShaders/shGUIPS.cso", Shader::Pixel);
+    shGUI->LoadFile("shGUIPS.cso", Shader::Pixel);
 
     // Clean shaders
     shTest->ReleaseBlobs();

@@ -26,5 +26,9 @@ public:
 
     HRESULT Play();
     HRESULT Play(DWORD delay);
+    HRESULT PlayNQ();
+    HRESULT PlayNQ(DWORD delay);
     void Stop();
+
+    bool isPlaying();
 };

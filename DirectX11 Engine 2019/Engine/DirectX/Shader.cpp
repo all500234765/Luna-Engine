@@ -1,6 +1,8 @@
 #include "Shader.h"
 #include "PolygonLayout.h"
 
+#include "EngineDirectories.h"
+
 #include <d3d11.h>
 #include <D3Dcompiler.h>
 #include <string>
@@ -31,6 +33,8 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
     // Create shader
     HRESULT hr;
     ID3DBlob *ShaderBuffer; ShaderBuffer = 0;
+
+    fname = SHADER_DIRECTORY + fname;
 
     // Read blob
     hr = D3DReadFileToBlob(std::wstring(fname.begin(), fname.end()).c_str(), &ShaderBuffer);

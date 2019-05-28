@@ -78,29 +78,29 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\Build\Bin\</OutDir>
-    <IntDir>..\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</OutDir>
+    <IntDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Intermediate\</IntDir>
     <TargetName>$(ProjectName)_$(PlatformShortName)</TargetName>
     <IncludePath>$(SolutionDir)Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\Build\Bin\</OutDir>
-    <IntDir>..\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</OutDir>
+    <IntDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Intermediate\</IntDir>
     <TargetName>$(ProjectName)_$(PlatformShortName)</TargetName>
     <IncludePath>$(SolutionDir)Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\Build\Bin\</OutDir>
-    <IntDir>..\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</OutDir>
+    <IntDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Intermediate\</IntDir>
     <TargetName>$(ProjectName)_$(PlatformShortName)</TargetName>
     <IncludePath>$(SolutionDir)Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\Build\Bin\</OutDir>
-    <IntDir>..\Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</OutDir>
+    <IntDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Intermediate\</IntDir>
     <TargetName>$(ProjectName)_$(PlatformShortName)</TargetName>
     <IncludePath>$(SolutionDir)Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
@@ -121,7 +121,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Vendor\Vendor\</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
-      <ObjectFileOutput>../Build/CompiledShaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
       <AdditionalOptions>/Gfp %(AdditionalOptions)</AdditionalOptions>
     </FxCompile>
@@ -143,7 +143,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Vendor\Vendor\</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
-      <ObjectFileOutput>../Build/CompiledShaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
       <AdditionalOptions>/Gfp %(AdditionalOptions)</AdditionalOptions>
     </FxCompile>
@@ -169,7 +169,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Vendor\Vendor\</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
-      <ObjectFileOutput>../Build/CompiledShaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
   </ItemDefinitionGroup>
@@ -194,7 +194,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)Vendor\Vendor\</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
-      <ObjectFileOutput>../Build/CompiledShaders/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
   </ItemDefinitionGroup>

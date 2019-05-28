@@ -9,6 +9,16 @@ void Sound::Release() {
     if( pVoice ) pVoice->DestroyVoice();
 }
 
+HRESULT Sound::PlayNQ(DWORD delay) {
+    if( isPlaying() ) return E_FAIL;
+    return Play(delay);
+}
+
+HRESULT Sound::PlayNQ() {
+    if( isPlaying() ) return E_FAIL;
+    return Play();
+}
+
 HRESULT Sound::Play() {
     if( !gAudioDevice         ) return E_FAIL;
     if( !gAudioDevice->gAudio ) return E_FAIL;
@@ -147,6 +157,15 @@ HRESULT Sound::OpenFile(const TCHAR* fname) {
 
 void Sound::Stop() {
     if( pVoice ) pVoice->Stop();
+}
+
+bool Sound::isPlaying() {
+    if( !pVoice ) return false;
+
+    XAUDIO2_VOICE_STATE pState;
+    pVoice->GetState(&pState);
+    
+    return (pState.BuffersQueued > 0);
 }
 
 void Sound::SetVolume(float val) {

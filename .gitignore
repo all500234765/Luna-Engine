@@ -300,11 +300,16 @@ Vendor/Vendor/HBAOPlus/
 Vendor/Vendor/Ansel/
 
 # Some compilation dirs
-Intermediate/
+Compiled/Windows_Build/Intermediate/
 
 # (un)Paid resources
-Build/Sounds/Paid/
-Build/Music/Paid/
+Compiled/Windows_Build/Sounds/Paid/
+Compiled/Windows_Build/Music/Paid/
+Compiled/Windows_Build/Textures/Paid/
+
+# Projects
+Compiled/Pixel Stars 2_Build/
+Pixel Stars 2/
 
 >>>>>>> origin/master
 # End of https://www.gitignore.io/api/c++,images,windows,visualstudio
