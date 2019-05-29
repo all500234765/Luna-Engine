@@ -17,7 +17,7 @@ int _DirectX::Create(DirectXConfig config) {
     // Temp variables
     D3D_FEATURE_LEVEL level;
     HRESULT res;
-    D3D_FEATURE_LEVEL pFeatureLevels[] = {D3D_FEATURE_LEVEL_11_0};
+    D3D_FEATURE_LEVEL pFeatureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
 
     DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
     if( config.UseHDR ) {

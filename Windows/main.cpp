@@ -8,7 +8,7 @@
 Camera *cPlayer, *c2DScreen, *cLight;
 Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
        *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR;
-Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip;
+Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1;
 ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 
 Texture *tDefault, *tBlueNoiseRG, *tClearPixel;
@@ -236,7 +236,9 @@ bool _DirectX::FrameFunction() {
 
     mLevel1->Bind(cLight);
     shVertexOnly->Bind();
-    mLevel1->Render();
+    //mLevel1->Render();
+
+    mShadowTest1->Render();
     
     if( bIsWireframe ) {
         gContext->RSSetState(gRSDefaultWriteframe);
@@ -280,7 +282,9 @@ bool _DirectX::FrameFunction() {
     //mTerrainMesh->Render();
     
     miSpaceShip->Bind(cPlayer);
-    miSpaceShip->Render();
+    //miSpaceShip->Render();
+
+    mShadowTest1->Render();
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -327,30 +331,13 @@ bool _DirectX::FrameFunction() {
 
     // Enable depth test
     gContext->OMSetDepthStencilState(pDSS_Default, 1);
-    
-    /*switch( SceneID ) {
-        case 0: // Test level
-            mLevel1->Bind(cPlayer);
-            mDefault->BindTextures(Shader::Pixel);
-            mLevel1->Render();
-            break;
-
-        case 1: // Dunes
-            mDunes->Bind(cPlayer);
-            mDunes->Render();
-            break;
-
-        case 2: // Cornell box
-            mCornellBox->Bind(cPlayer);
-            mCornellBox->Render();
-            break;
-    }*/
 
     // Set defaults
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     gContext->RSSetState(gRSDefault);
 
-    sRenderBuffer* _Depth = bGBuffer->GetDepth();
+    sRenderBuffer* _Depth2 = bDepth->GetDepth(); // Shadow map
+    sRenderBuffer* _Depth  = bGBuffer->GetDepth();
     sRenderBuffer* _Color0 = bGBuffer->GetColor0(); // Diffuse
     sRenderBuffer* _Color1 = bGBuffer->GetColor1(); // Normal
     sRenderBuffer* _Color2 = bGBuffer->GetColor2(); // Specular
@@ -868,6 +855,10 @@ void _DirectX::Load() {
     mSpaceShip->LoadModel<Vertex_PNT>("../Models/Space Ship Guns1.obj");
     mSpaceShip->EnableDefaultTexture();
 
+    mShadowTest1 = new Model("Shadow test model");
+    mShadowTest1->LoadModel<Vertex_PNT>("../Models/TestLevel2.obj");
+    mShadowTest1->EnableDefaultTexture();
+
     // Create model instances
     // Test level
     mLevel1 = new ModelInstance();
@@ -984,6 +975,7 @@ void _DirectX::Unload() {
     mModel2->Release();
     mModel3->Release();
     mScreenPlane->Release();
+    mShadowTest1->Release();
 
     // Release meshes
 #ifdef LOWPOLY_EXAMPLE
