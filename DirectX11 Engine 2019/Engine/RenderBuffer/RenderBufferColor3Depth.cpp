@@ -43,6 +43,14 @@ void RenderBufferColor3Depth::Release() {
     sDepth->Release();
 }
 
+void RenderBufferColor3Depth::Resize(int w, int h) {
+    SetSize(w, h);
+    sColor0->Resize(gDirectX->gDevice, w, h);
+    sColor1->Resize(gDirectX->gDevice, w, h);
+    sColor2->Resize(gDirectX->gDevice, w, h);
+    sDepth->Resize(gDirectX->gDevice, w, h);
+}
+
 sRenderBuffer* RenderBufferColor3Depth::GetColor0() {
     return sColor0;
 }

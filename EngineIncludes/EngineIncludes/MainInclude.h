@@ -1,6 +1,6 @@
 #pragma once
 
-// Engine
+// Core Engine
 #include "Engine/Input/Input.h"
 #include "Engine/Input/Gamepad.h"
 #include "Engine/Window/Window.h"
@@ -11,24 +11,37 @@
 #include "Engine/DirectX/IndexBuffer.h"
 #include "Engine/DirectX/VertexBuffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/DirectX/Query.h"
+
+// Models
 #include "Engine/Models/Mesh.h"
 #include "Engine/Models/Model.h"
 #include "Engine/Models/ModelInstance.h"
+
+// Cameras, lights
 #include "Engine/Camera/Camera.h"
+
+// Materials
 #include "Engine/Materials/Sampler.h"
 #include "Engine/Materials/Texture.h"
 #include "Engine/Materials/Material.h"
+
+// Render Buffers
 #include "Engine/RenderBuffer/RenderBufferBase.h"
 #include "Engine/RenderBuffer/RenderBufferDepth2D.h"
 #include "Engine/RenderBuffer/RenderBufferColor1.h"
 #include "Engine/RenderBuffer/RenderBufferColor1Depth.h"
 #include "Engine/RenderBuffer/RenderBufferColor2Depth.h"
 #include "Engine/RenderBuffer/RenderBufferColor3Depth.h"
+
+// Textures
 #include "Engine/Textures/CubemapTexture.h"
 #include "Engine/Textures/CustomTexture.h"
-#include "Engine/DirectX/Query.h"
+
+// States
 #include "Engine/States/BlendState.h"
 
+// External
 //#include "Engine/External/Ansel.h"
 
 // Audio engine using XAudio2
@@ -60,6 +73,18 @@
 #endif
 #endif
 
+// ImGUI
+#if _DEBUG_BUILD
+#include "Vendor/ImGUI/imgui.h"
+#include "Vendor/ImGUI/imgui_impl_win32.h"
+#include "Vendor/ImGUI/imgui_impl_dx11.h"
+
+#ifdef _WIN64
+#pragma comment(lib, "FreeType/win64/freetype.lib")
+#else
+#pragma comment(lib, "FreeType/win32/freetype.lib")
+#endif
+#endif
 
 // Global game instances
 static _DirectX    *gDirectX     = 0;

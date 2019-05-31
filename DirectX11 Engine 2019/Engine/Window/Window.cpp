@@ -84,13 +84,15 @@ void Window::Create(WindowConfig* config) {
     else                     flags |= WS_OVERLAPPEDWINDOW;
 
     // Adjust window size and position
+    config->CurrentHeight2 = config->CurrentHeight;
+
     //RECT rect = {posX, posY, posX + config->CurrentWidth, posY + config->CurrentHeight};
     //AdjustWindowRectEx(&rect, flags, false, WS_EX_APPWINDOW);
-
+    
     //posX = rect.left;
     //posY = rect.top;
-    //config->CurrentWidth  = rect.right  - posX;
-    //config->CurrentHeight = rect.bottom - posY;
+    //config->CurrentWidth   = rect.right  - posX;
+    //config->CurrentHeight  = rect.bottom - posY;
 
     // Create the window with the screen settings and get the handle to it.
     m_hwnd = CreateWindowEx(WS_EX_APPWINDOW, config->Title, config->Title, flags,
@@ -250,7 +252,18 @@ LRESULT CALLBACK InputWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lp
     return DefWindowProc(hwnd, umessage, wparam, lparam);
 }
 
+// ImGUI
+#if _DEBUG_BUILD
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam);
+#endif
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
+#if _DEBUG_BUILD
+    if( ImGui_ImplWin32_WndProcHandler(hwnd, umessage, wparam, lparam) ) {
+        return true;
+    }
+#endif
+
     MINMAXINFO* info = (MINMAXINFO*)(lparam);
 
     switch( umessage ) {

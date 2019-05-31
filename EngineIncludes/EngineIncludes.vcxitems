@@ -14,7 +14,7 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)EngineDirectories.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)EngineIncludes\EngineDirectories.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)EngineIncludes\MainInclude.h" />
   </ItemGroup>
 </Project>

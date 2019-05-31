@@ -54,6 +54,65 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Ansel\AnselSDK.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\HBAOPlus\GFSDK_SSAO.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imconfig.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_internal.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imstb_rectpack.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imstb_textedit.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imstb_truetype.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\misc\cpp\imgui_stdlib.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\ft2build.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\freetype.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftadvanc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftbbox.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftbdf.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftbitmap.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftbzip2.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftcache.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftchapters.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftcid.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftcolor.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftdriver.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\fterrdef.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\fterrors.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftfntfmt.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftgasp.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftglyph.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftgxval.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftgzip.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftimage.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftincrem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftlcdfil.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftlist.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftlzw.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftmac.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftmm.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftmodapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftmoderr.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftotval.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftoutln.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftparams.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftpfr.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftrender.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftsizes.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftsnames.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftstroke.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftsynth.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftsystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\fttrigon.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\fttypes.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ftwinfnt.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\t1tables.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\ttnameid.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\tttables.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\tttags.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\config\ftconfig.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\config\ftheader.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\config\ftmodule.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\config\ftoption.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\config\ftstdlib.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_dx11.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_win32.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\color4.inl" />
@@ -67,5 +126,11 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stb_vorbis.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_draw.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_widgets.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\misc\cpp\imgui_stdlib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_dx11.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_win32.cpp" />
   </ItemGroup>
 </Project>

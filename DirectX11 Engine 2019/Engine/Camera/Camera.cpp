@@ -90,7 +90,7 @@ void Camera::TranslateLookAt(DirectX::XMFLOAT3 p) {
 
 void Camera::TranslateLookAtAbs(DirectX::XMFLOAT3 p) {
     DirectX::XMFLOAT3 dp = {p.x - pPos.x, p.y - pPos.y, p.z - pPos.z};
-    TranslateLookAtAbs(dp);
+    TranslateLookAt(dp);
 }
 
 void Camera::Rotate(DirectX::XMFLOAT3 r) {

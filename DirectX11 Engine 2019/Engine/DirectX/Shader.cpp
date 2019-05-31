@@ -1,7 +1,7 @@
 #include "Shader.h"
 #include "PolygonLayout.h"
 
-#include "EngineDirectories.h"
+#include "EngineIncludes/EngineDirectories.h"
 
 #include <d3d11.h>
 #include <D3Dcompiler.h>
@@ -45,12 +45,12 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
 
     // Create shader
     switch( type ) {
-        case Vertex: hr = gDirectX->gDevice->CreateVertexShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sVertex);     break;
-        case Pixel: hr = gDirectX->gDevice->CreatePixelShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sPixel);       break;
+        case Vertex  : hr = gDirectX->gDevice->CreateVertexShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sVertex);     break;
+        case Pixel   : hr = gDirectX->gDevice->CreatePixelShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sPixel);       break;
         case Geometry: hr = gDirectX->gDevice->CreateGeometryShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sGeometry); break;
-        case Hull: hr = gDirectX->gDevice->CreateHullShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sHull);         break;
-        case Domain: hr = gDirectX->gDevice->CreateDomainShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sDomain);     break;
-        case Compute: hr = gDirectX->gDevice->CreateComputeShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sCompute);   break;
+        case Hull    : hr = gDirectX->gDevice->CreateHullShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sHull);         break;
+        case Domain  : hr = gDirectX->gDevice->CreateDomainShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sDomain);     break;
+        case Compute : hr = gDirectX->gDevice->CreateComputeShader(ShaderBuffer->GetBufferPointer(), ShaderBuffer->GetBufferSize(), NULL, &sCompute);   break;
     }
 
     if( FAILED(hr) ) {

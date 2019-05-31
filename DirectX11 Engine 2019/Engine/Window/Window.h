@@ -19,6 +19,7 @@ struct WindowConfig {
     bool Windowed;
 
     int CurrentWidth, CurrentHeight;
+    int CurrentHeight2; // Window height w/o top bar
     bool Resized; // Modification implemented
 };
 

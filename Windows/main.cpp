@@ -199,7 +199,7 @@ GFSDK_SSAO_Output_D3D11 Output;
 #endif
 
 float fAspect = 1024.f / 540.f;
-bool bIsWireframe = false, bDebugGUI = false;
+bool bIsWireframe = false, bDebugGUI = false, bLookMouse = true;
 int SceneID = 0;
 int sfxWalkIndex;
 
@@ -236,9 +236,9 @@ bool _DirectX::FrameFunction() {
 
     mLevel1->Bind(cLight);
     shVertexOnly->Bind();
-    //mLevel1->Render();
+    mLevel1->Render();
 
-    mShadowTest1->Render();
+    //mShadowTest1->Render();
     
     if( bIsWireframe ) {
         gContext->RSSetState(gRSDefaultWriteframe);
@@ -282,9 +282,9 @@ bool _DirectX::FrameFunction() {
     //mTerrainMesh->Render();
     
     miSpaceShip->Bind(cPlayer);
-    //miSpaceShip->Render();
+    miSpaceShip->Render();
 
-    mShadowTest1->Render();
+    //mShadowTest1->Render();
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -432,8 +432,11 @@ bool _DirectX::FrameFunction() {
     return false;
 }
 
+float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
 float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
+    const WindowConfig& winCFG = gWindow->GetCFG();
+
     // Set light's view matrix to math main camera's one
     if( gKeyboard->IsPressed(VK_SPACE) ) {
         cLight->SetViewMatrix(cPlayer->GetViewMatrix());
@@ -443,9 +446,9 @@ void _DirectX::Tick(float fDeltaTime) {
     // Toggle debug
     bIsWireframe ^= gKeyboard->IsPressed(VK_F1); // Toggle wireframe mode
     bDebugGUI ^= gKeyboard->IsPressed(VK_F3);    // Toggle debug gui mode
+    bLookMouse ^= gKeyboard->IsPressed(VK_F2);   // Toggle release mouse
 
     // Update camera
-    const float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
     DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
 
     static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
@@ -477,20 +480,23 @@ void _DirectX::Tick(float fDeltaTime) {
         }
     } //else
 #endif
+
+    if( !bLookMouse ) { return; }
+    
     {
         // Use mouse
         bool b = false;
         if( abs(dx) <= .1 ) {
-            fDir += (float(gMouse->GetX() - cfg.Width  * .5f) * fSensetivityX * fDeltaTime);
+            fDir += (float(gMouse->GetX() - winCFG.CurrentWidth * .5f) * fSensetivityX * fDeltaTime);
             b = true;
         }
 
         if( abs(dy) <= .1 ) {
-            fPitch += (float(gMouse->GetY() - cfg.Height * .5f) * fSensetivityY * fDeltaTime);
+            fPitch += (float(gMouse->GetY() - winCFG.CurrentHeight2 * .5f) * fSensetivityY * fDeltaTime);
             b = true;
         }
 
-        if( b ) gMouse->SetAt(int(cfg.Width  * .5f), int(cfg.Height * .5f));
+        if( b ) gMouse->SetAt(int(winCFG.CurrentWidth  * .5f), int(winCFG.CurrentHeight2 * .5f));
     }
 
     // Walk SFX
@@ -522,7 +528,7 @@ void _DirectX::Tick(float fDeltaTime) {
         sfxGunReload->PlayNQ();
         std::cout << "Reload\n";
     }
-
+    
     // Limit pitch
     fPitch = std::min(std::max(fPitch, -84.f), 84.f);
 
@@ -532,6 +538,41 @@ void _DirectX::Tick(float fDeltaTime) {
 }
 
 void _DirectX::ComposeUI() {
+#if _DEBUG_BUILD
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+
+    ImGui::NewFrame();
+
+    // Create debug window
+    ImGui::Begin("Debug");
+    
+    ImGui::Button("Test button");
+
+    // Console
+    static std::string buf;
+    if( buf.size() == 0 ) {
+        buf.resize(50, ' ');
+    }
+
+    ImGui::InputText("", (char*)buf.data(), buf.size());
+    ImGui::SameLine();
+    if( ImGui::Button("Submit") ) {
+        std::cout << buf << std::endl;
+        // gDebugObject->ConsoleParse(buf);
+    }
+
+    bIsWireframe ^= ImGui::Button("Wireframe");
+    bDebugGUI    ^= ImGui::Button("Debug buffers");
+
+
+
+    ImGui::End();
+    ImGui::Render();
+
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+#endif
+
     //shGUI->Bind();
 
 
@@ -566,10 +607,11 @@ void _DirectX::Resize() {
     // Release targets
     gContext->OMSetRenderTargets(0, 0, 0);
     gRTV->Release();
+    bGBuffer->Resize(cfg.CurrentWidth, cfg.CurrentHeight2);
 
     // Resize swapchain
     scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
-    scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
+    scd.BufferDesc.Height = (UINT)cfg.CurrentHeight2;
 
     gSwapchain->ResizeTarget(&scd.BufferDesc);
 
@@ -1145,6 +1187,16 @@ int main() {
 
     //std::cout << "Ansel avaliable: " << ansel::isAnselAvailable() << std::endl;
 
+    // Include ImGUI
+#if _DEBUG_BUILD
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui_ImplWin32_Init(gWindow->GetHWND());
+    ImGui_ImplDX11_Init(gDirectX->gDevice, gDirectX->gContext);
+    ImGui::StyleColorsDark();
+#endif
+
     // Set frame function
     bool(_DirectX::*gFrameFunction)(void);
     gFrameFunction = &_DirectX::FrameFunction;
@@ -1166,6 +1218,11 @@ int main() {
     gWindow->Loop();
 
     // Unload game
+#if _DEBUG_BUILD
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+#endif
+
     gWindow->Destroy();
     gDirectX->Unload();
     gAudioDevice->Release();

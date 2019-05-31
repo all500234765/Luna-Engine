@@ -2,6 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)EngineIncludes\MainInclude.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)EngineDirectories.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)EngineIncludes\EngineDirectories.h" />
   </ItemGroup>
 </Project>

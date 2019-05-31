@@ -16,6 +16,8 @@ public:
     void Bind();
     void Release();
 
+    void Resize(int w, int h);
+
     sRenderBuffer* GetColor0();
     sRenderBuffer* GetColor1();
     sRenderBuffer* GetColor2();
