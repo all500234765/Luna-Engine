@@ -27,6 +27,7 @@ struct DirectXConfig {
     int BufferCount;
     int Width, Height;
     bool Windowed, UseHDR;
+    bool DeferredContext;
     int RefreshRate;
     HWND m_hwnd;
     bool Ansel;
@@ -41,6 +42,7 @@ class _DirectX {
 private:
     // Main
     IDXGISwapChain *gSwapchain;
+    ID3D11CommandList* pCommandList = NULL;
 
     // RTVs
     ID3D11RenderTargetView *gRTV;
@@ -65,7 +67,7 @@ public:
     // Globals
     // 3D Rendering
     ID3D11Device *gDevice;
-    ID3D11DeviceContext *gContext;
+    ID3D11DeviceContext *gContext, *gContextImm;
 
 #ifdef _DEBUG
     ID3D11Debug *gDebug;
@@ -91,10 +93,10 @@ public:
     _DirectX();
     
     // Setup DirectX
-    int Create(DirectXConfig config);
+    int Create(const DirectXConfig& config);
     bool ShowError(int id);
 
-    DirectXConfig* GetConfig();
+    const DirectXConfig& GetConfig();
 
     // 
     bool FrameFunction();

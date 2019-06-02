@@ -13,31 +13,39 @@ cbuffer LightMatrixBuffer : register(b1) {
 };
 
 struct VS {
-    float3 Position : POSITION0;
-    float3 Normal   : NORMAL0;
-    float2 Texcoord : TEXCOORD0;
+    float3 Position  : POSITION0;
+    float3 Normal    : NORMAL0;
+    float2 Texcoord  : TEXCOORD0;
+    float3 Tangent   : TANGENT0;
+    float3 BiTangent : BINORMAL0;
 };
 
 struct PS {
-    float4 Position : SV_Position;
-    float3 Normal   : NORMAL0;
-    float2 Texcoord : TEXCOORD0;
-    float4 WorldPos : TEXCOORD1;
-    float4 LightPos : TEXCOORD2;
-    float3 InputPos : TEXCOORD3;
-    float3 ViewDir  : TEXCOORD4;
+    float4   Position : SV_Position;
+    float3x3 WorldTBN : TEXCOORD0;
+    float2   Texcoord : TEXCOORD3;
+    float3   WorldPos : TEXCOORD4;
+    float4   LightPos : TEXCOORD5;
+    float3   InputPos : TEXCOORD6;
+    float3   ViewDir  : TEXCOORD7;
 };
 
 PS main(VS In) {
-    float4 WorldPos = mul(mWorld, float4(In.Position, 1.f));
-    
+    float4 WorldPos = mul(mWorld, float4(In.Position , 1.f));
+    float3 WorldNor = mul(mWorld, float4(In.Normal   , 0.f)).xyz;
+    float3 WorldTan = mul(mWorld, float4(In.Tangent  , 0.f)).xyz;
+    float3 WorldBiT = mul(mWorld, float4(In.BiTangent, 0.f)).xyz;
+
+    // Tangent, BiTangent, Normal matrix
+    float3x3 TBN = float3x3(WorldTan, WorldBiT, WorldNor);
+
     PS Out;
         Out.Position = mul(mProj, mul(mView, WorldPos));
-        Out.Normal   = mul(mWorld, float4(In.Normal, 0.f)).xyz;
+        Out.WorldTBN = TBN;
         Out.LightPos = mul(mLightProj, mul(mLightView, float4(WorldPos.xyz, 1.)));
-        Out.ViewDir  = (vPosition.xyz - WorldPos.xyz);
+        Out.ViewDir  = mul(TBN, vPosition.xyz - WorldPos.xyz);
         Out.Texcoord = In.Texcoord;
-        Out.WorldPos = WorldPos;
+        Out.WorldPos = mul(TBN, WorldPos.xyz);
         Out.InputPos = In.Position.xyz;
     return Out;
 }

@@ -10,7 +10,7 @@
 _DirectX::_DirectX() {
 }
 
-int _DirectX::Create(DirectXConfig config) {
+int _DirectX::Create(const DirectXConfig& config) {
     // Save config
     cfg = config;
 
@@ -226,6 +226,17 @@ int _DirectX::Create(DirectXConfig config) {
 
     gDevice->CreateShaderResourceView(gDSVTex, &pDesc1, &gDSV_SRV);
 
+    // Create deferred context
+    if( config.DeferredContext ) {
+        gContextImm = 0;
+        gDevice->CreateDeferredContext(0, &gContextImm);
+
+        // Swap deferred with imm. context
+        auto t = gContextImm;
+        gContextImm = gContext;
+        gContext = t;
+    }
+
     // Setup 2D rendering
     /*HRESULT hr = S_OK;
 
@@ -281,6 +292,6 @@ bool _DirectX::ShowError(int id) {
     return true;
 }
 
-DirectXConfig* _DirectX::GetConfig() {
-    return &cfg;
+const DirectXConfig& _DirectX::GetConfig() {
+    return cfg;
 }

@@ -12,8 +12,8 @@
 #include "Vendor/Assimp/scene.h"
 #include "Vendor/Assimp/postprocess.h"
 
-#include <string>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "Engine/Models/Mesh.h"
@@ -21,14 +21,27 @@
 
 class Model {
 protected:
-    static Texture* gDefaultTexture;
+    static Texture *gDefaultTexture, *gDefaultTextureOpacity, *gDefaultTextureSpecular;
 
 private:
+    typedef enum {
+        Diffuse, Normal, Bump, Opacity, Specular
+
+    } eTextureType;
+
+    struct tTuple {
+        aiString str;
+        eTextureType type;
+
+        tTuple(aiString s, eTextureType t): str(s), type(t) {};
+    };
+
     const char* sName; // Model name
     std::vector<Mesh*> MeshBuffer;
-    std::vector<aiString> FilenameBuffer;
-    std::vector<Texture*> DiffuseTextureBuffer;
-    std::vector<int> DiffuseMapIndex;
+    std::vector<tTuple*> FilenameBuffer;
+    std::vector<aiString> FNB_Diffuse, FNB_Normal, FNB_Opacity, FNB_Specular;
+    std::vector<Texture*> DiffuseTextureBuffer, NormalTextureBuffer, OpacityTextureBuffer, SpecularTextureBuffer;
+    std::vector<int> DiffuseMapIndex, NormalMapIndex, OpacityMapIndex, SpecularMapIndex;
     int num, mVertexSize;
     bool bUseDefaultTexture = true;
 
@@ -37,6 +50,8 @@ public:
     Model(const char* name);
 
     static void SetDefaultTexture(Texture* def);
+    static void SetDefaultTextureOpacity(Texture* def);
+    static void SetDefaultTextureSpecular(Texture* def);
 
     void Render();
     void Render(UINT num);
@@ -56,10 +71,11 @@ void Model::LoadModel(std::string fname) {
     if( mVertexSize == 0 ) mVertexSize = sizeof(VertexT);
 
     Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(fname, aiProcess_Triangulate);
+    const aiScene *scene = importer.ReadFile(fname, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
 
     if( !scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode ) {
         std::cout << "Can't load model! (" << fname << ")" << std::endl;
+        return;
     }
 
     // Process scene
@@ -67,19 +83,65 @@ void Model::LoadModel(std::string fname) {
 
     // Load textures
     stbi_set_flip_vertically_on_load(true);
-    int i = 0;
-    for( aiString f : FilenameBuffer ) {
-        // Load diffuse texture
+    int i = 0, j = 0, k = 0, l = 0;
+    for( tTuple* f : FilenameBuffer ) {
+        // Load texture
         Texture *tex = new Texture();
-            tex->Load(("../Models/" + std::string(f.C_Str())).c_str(), DXGI_FORMAT_R8G8B8A8_UNORM);
-        DiffuseTextureBuffer.push_back(tex);
+        tex->Load(("../Models/" + std::string(f->str.C_Str())).c_str(), DXGI_FORMAT_R8G8B8A8_UNORM);
 
-        // Use default texture
-        if( tex->GetWidth() == 0 ) {
-            DiffuseMapIndex.at(i) = -1;
+        switch( f->type ) {
+            case eTextureType::Diffuse:
+                DiffuseTextureBuffer.push_back(tex);
+
+                // Use default texture
+                if( tex->GetWidth() == 0 ) {
+                    DiffuseMapIndex.at(i) = -1;
+                } else {
+                    std::cout << "Diffuse(" << f->str.C_Str() << ")" << std::endl;
+                }
+
+                i++;
+                break;
+
+            case eTextureType::Normal:
+                NormalTextureBuffer.push_back(tex);
+
+                // Use default texture
+                if( tex->GetWidth() == 0 ) {
+                    NormalMapIndex.at(j) = -1;
+                } else {
+                    std::cout << "Normal(" << f->str.C_Str() << ")" << std::endl;
+                }
+
+                j++;
+                break;
+
+            case eTextureType::Opacity:
+                OpacityTextureBuffer.push_back(tex);
+
+                // Use default texture
+                if( tex->GetWidth() == 0 ) {
+                    OpacityMapIndex.at(k) = -1;
+                } else {
+                    std::cout << "Opacity(" << f->str.C_Str() << ")" << std::endl;
+                }
+
+                k++;
+                break;
+
+            case eTextureType::Specular:
+                SpecularTextureBuffer.push_back(tex);
+
+                // Use default texture
+                if( tex->GetWidth() == 0 ) {
+                    SpecularMapIndex.at(l) = -1;
+                } else {
+                    std::cout << "Specular(" << f->str.C_Str() << ")" << std::endl;
+                }
+
+                l++;
+                break;
         }
-
-        i++;
     }
 
     stbi_set_flip_vertically_on_load(false);
@@ -143,22 +205,77 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
     // Load texture maps
     if( inMesh->mMaterialIndex >= 0 ) {
         aiMaterial *mat = scene->mMaterials[inMesh->mMaterialIndex];
+        aiString tFname;
 
         // Load diffuse textures
-        aiString tFname;
+        tFname = " ";
         mat->GetTexture(aiTextureType_DIFFUSE, 0, &tFname);
-        
-        if( tFname.C_Str() == "" ) {
+        if( tFname.C_Str() == "" || tFname.C_Str() == " " || tFname.length == 0 || tFname.length == 1 ) {
             DiffuseMapIndex.push_back(-1);
         } else {
-            auto index = std::find(FilenameBuffer.begin(), FilenameBuffer.end(), tFname);
+            auto index = std::find(FNB_Diffuse.begin(), FNB_Diffuse.end(), tFname);
 
-            if( index == FilenameBuffer.end() ) {
+            if( index == FNB_Diffuse.end() ) {
                 // This texture wasn't loaded prev.
-                DiffuseMapIndex.push_back(FilenameBuffer.size());
-                FilenameBuffer.push_back(tFname);
+                DiffuseMapIndex.push_back(FNB_Diffuse.size());
+                FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Diffuse));
+                FNB_Diffuse.push_back(tFname);
             } else {
-                DiffuseMapIndex.push_back(std::distance(FilenameBuffer.begin(), index));
+                DiffuseMapIndex.push_back(std::distance(FNB_Diffuse.begin(), index));
+            }
+        }
+
+        // Load normal textures
+        tFname = " ";
+        mat->GetTexture(aiTextureType_HEIGHT, 0, &tFname);
+        if( tFname.C_Str() == "" || tFname.C_Str() == " " || tFname.length == 0 || tFname.length == 1 ) {
+            NormalMapIndex.push_back(-1);
+        } else {
+            auto index = std::find(FNB_Normal.begin(), FNB_Normal.end(), tFname);
+
+            if( index == FNB_Normal.end() ) {
+                // This texture wasn't loaded prev.
+                NormalMapIndex.push_back(FNB_Normal.size());
+                FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Normal));
+                FNB_Normal.push_back(tFname);
+            } else {
+                NormalMapIndex.push_back(std::distance(FNB_Normal.begin(), index));
+            }
+        }
+
+        // Load opacity textures
+        tFname = " ";
+        mat->GetTexture(aiTextureType_OPACITY, 0, &tFname);
+        if( tFname.C_Str() == "" || tFname.C_Str() == " " || tFname.length == 0 || tFname.length == 1 ) {
+            OpacityMapIndex.push_back(-1);
+        } else {
+            auto index = std::find(FNB_Opacity.begin(), FNB_Opacity.end(), tFname);
+
+            if( index == FNB_Opacity.end() ) {
+                // This texture wasn't loaded prev.
+                OpacityMapIndex.push_back(FNB_Opacity.size());
+                FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Opacity));
+                FNB_Opacity.push_back(tFname);
+            } else {
+                OpacityMapIndex.push_back(std::distance(FNB_Opacity.begin(), index));
+            }
+        }
+        
+        // Load specular textures
+        tFname = " ";
+        mat->GetTexture(aiTextureType_SPECULAR, 0, &tFname);
+        if( tFname.C_Str() == "" || tFname.C_Str() == " " || tFname.length == 0 || tFname.length == 1 ) {
+            SpecularMapIndex.push_back(-1);
+        } else {
+            auto index = std::find(FNB_Specular.begin(), FNB_Specular.end(), tFname);
+
+            if( index == FNB_Specular.end() ) {
+                // This texture wasn't loaded prev.
+                SpecularMapIndex.push_back(FNB_Specular.size());
+                FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Specular));
+                FNB_Specular.push_back(tFname);
+            } else {
+                SpecularMapIndex.push_back(std::distance(FNB_Specular.begin(), index));
             }
         }
     }

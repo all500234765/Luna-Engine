@@ -4,8 +4,8 @@
 #include <iostream>
 #include <string>
 
-AudioDeviceCreation AudioDevice::Create(const AudioDeviceConfig* config, XAUDIO2_PROCESSOR processor) {
-    cfg = *config; // Store config for further use
+AudioDeviceCreation AudioDevice::Create(const AudioDeviceConfig& config, XAUDIO2_PROCESSOR processor) {
+    cfg = config; // Store config for further use
 
     // Create device
     XAudio2Create(&gAudio, cfg.Flags, processor);

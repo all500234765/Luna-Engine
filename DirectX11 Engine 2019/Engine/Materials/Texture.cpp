@@ -77,19 +77,21 @@ void Texture::Load(std::string fname, DXGI_FORMAT format) {
 }
 
 void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
+    bool bGenMips = true;
+
     // Create texture
     D3D11_TEXTURE2D_DESC pDesc;
     pDesc.Width = w;
     pDesc.Height = h;
-    pDesc.MipLevels = 1;
+    pDesc.MipLevels = bGenMips ? 0 : 1;
     pDesc.ArraySize = 1;
     pDesc.Format = format;
     pDesc.SampleDesc.Count = 1;
     pDesc.SampleDesc.Quality = 0;
     pDesc.Usage = D3D11_USAGE_DEFAULT;
-    pDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    pDesc.BindFlags = (bGenMips ? D3D11_BIND_RENDER_TARGET : 0) | D3D11_BIND_SHADER_RESOURCE;
     pDesc.CPUAccessFlags = 0;
-    pDesc.MiscFlags = D3D11_RESOURCE_MISC_FLAG::D3D11_RESOURCE_MISC_GENERATE_MIPS;
+    pDesc.MiscFlags = bGenMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
     
     D3D11_SUBRESOURCE_DATA pData;
     pData.pSysMem = data;
@@ -97,7 +99,7 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
     pData.SysMemSlicePitch = 0;
 
     // Create texture
-    auto res = gDirectX->gDevice->CreateTexture2D(&pDesc, &pData, &pTexture);
+    auto res = gDirectX->gDevice->CreateTexture2D(&pDesc, bGenMips ? nullptr : (&pData), &pTexture);
     if( FAILED(res) ) {
         std::cout << "Failed to create texture!" << std::endl;
         return;
@@ -107,7 +109,7 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
     D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
     ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
     pSRVDesc.Format = format;
-    pSRVDesc.Texture2D.MipLevels = pDesc.MipLevels;
+    pSRVDesc.Texture2D.MipLevels = -1;
     pSRVDesc.Texture2D.MostDetailedMip = 0;
     pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     
@@ -115,6 +117,29 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
     if( FAILED(res) ) {
         std::cout << "Failed to create shader resource view!" << std::endl;
         return;
+    }
+
+    // Put initial sub resource data to texture if we
+    // Auto-Generating mip maps
+    if( bGenMips ) {
+        ID3D11Texture2D *pStaging = 0;
+        CD3D11_TEXTURE2D_DESC pStagingDesc(format, w, h, 1, 1, 0, D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ, 1, 0, 0);
+
+        res = gDirectX->gDevice->CreateTexture2D(&pStagingDesc, &pData, &pStaging);
+        if( FAILED(res) ) {
+            std::cout << "Failed to create staging texture!" << std::endl;
+            return;
+        }
+
+        // 
+        gDirectX->gContext->CopySubresourceRegion(pTexture, 0, 0, 0, 0, pStaging, 0, nullptr);
+        pStaging->Release();
+
+        // 
+        gDirectX->gContext->UpdateSubresource(pTexture, 0, nullptr, data, pData.SysMemPitch, 0);
+
+        // Generate mips for texture
+        gDirectX->gContext->GenerateMips(pSRV);
     }
 }
 

@@ -22,9 +22,19 @@ void Model::SetDefaultTexture(Texture* def) {
     gDefaultTexture = def;
 }
 
-Texture* Model::gDefaultTexture = 0;
+void Model::SetDefaultTextureOpacity(Texture* def) {
+    gDefaultTextureOpacity = def;
+}
 
-void Model::Render() {
+void Model::SetDefaultTextureSpecular(Texture* def) {
+    gDefaultTextureSpecular = def;
+}
+
+Texture* Model::gDefaultTexture = 0;
+Texture* Model::gDefaultTextureOpacity = 0;
+Texture* Model::gDefaultTextureSpecular = 0;
+
+void Model::Render(/*bool bBindTextures*/) {
     int i = 0;
     for( Mesh* mesh : MeshBuffer ) {
         // Bind mesh settings
@@ -32,12 +42,42 @@ void Model::Render() {
 
         // Bind textures
         int index = DiffuseMapIndex[i];
-        if( DiffuseTextureBuffer.size() > 0 && index < DiffuseTextureBuffer.size() ) {
+        if( index > -1 && DiffuseTextureBuffer.size() > 0 && index < DiffuseTextureBuffer.size() ) {
             DiffuseTextureBuffer[index]->Bind(Shader::Pixel, 0);
         } else {
             // Bind default texture
             if( gDefaultTexture && bUseDefaultTexture ) {
                 gDefaultTexture->Bind(Shader::Pixel, 0);
+            }
+        }
+
+        index = NormalMapIndex[i];
+        if( index > -1 && NormalTextureBuffer.size() > 0 && index < NormalTextureBuffer.size() ) {
+            NormalTextureBuffer[index]->Bind(Shader::Pixel, 1);
+        } else {
+            // Bind default texture
+            if( gDefaultTexture && bUseDefaultTexture ) {
+                gDefaultTexture->Bind(Shader::Pixel, 1);
+            }
+        }
+
+        index = OpacityMapIndex[i];
+        if( index > -1 && OpacityTextureBuffer.size() > 0 && index < OpacityTextureBuffer.size() ) {
+            OpacityTextureBuffer[index]->Bind(Shader::Pixel, 2);
+        } else {
+            // Bind default texture
+            if( gDefaultTextureOpacity && bUseDefaultTexture ) {
+                gDefaultTextureOpacity->Bind(Shader::Pixel, 2);
+            }
+        }
+
+        index = SpecularMapIndex[i];
+        if( index > -1 && SpecularTextureBuffer.size() > 0 && index < SpecularTextureBuffer.size() ) {
+            SpecularTextureBuffer[index]->Bind(Shader::Pixel, 3);
+        } else {
+            // Bind default texture
+            if( gDefaultTextureSpecular && bUseDefaultTexture ) {
+                gDefaultTextureSpecular->Bind(Shader::Pixel, 3);
             }
         }
         
@@ -56,9 +96,12 @@ void Model::Render(UINT num) {
 }
 
 void Model::Release() {
-    for( int i = 0; i < num; i++ ) {
-        MeshBuffer[i]->Release();
-    }
+    for( auto m : MeshBuffer ) m->Release();
+
+    for( auto t : DiffuseTextureBuffer  ) t->Release();
+    for( auto t : NormalTextureBuffer   ) t->Release();
+    for( auto t : OpacityTextureBuffer  ) t->Release();
+    for( auto t : SpecularTextureBuffer ) t->Release();
 }
 
 //template<typename VertexT=Vertex_PNT> void  LoadModel(std::string fname);

@@ -54,7 +54,7 @@ public:
     IXAudio2 *gAudio = 0;
     IXAudio2MasteringVoice *gMasteringVoice = 0;
 
-    AudioDeviceCreation Create(const AudioDeviceConfig* config, XAUDIO2_PROCESSOR processor=XAUDIO2_DEFAULT_PROCESSOR);
+    AudioDeviceCreation Create(const AudioDeviceConfig& config, XAUDIO2_PROCESSOR processor=XAUDIO2_DEFAULT_PROCESSOR);
     void Release();
     
     void SetMasterVolume(float value);

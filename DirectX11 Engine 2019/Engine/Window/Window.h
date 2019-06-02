@@ -17,6 +17,7 @@ struct WindowConfig {
     // Can be modified
     bool Borderless;
     bool Windowed;
+    bool ShowConsole;
 
     int CurrentWidth, CurrentHeight;
     int CurrentHeight2; // Window height w/o top bar
@@ -36,7 +37,7 @@ private:
     HICON hIcon;
 
 public:
-    void Create(WindowConfig* config);
+    void Create(const WindowConfig& config);
     void Loop();
     void SetFrameFunction(bool(_DirectX::*ff)());
     void SetDirectX(_DirectX* inst);

@@ -44,7 +44,8 @@ public:
     void RotateAbs(DirectX::XMFLOAT3 r);
 
     void SetWorldMatrix(DirectX::XMMATRIX w);
-    const ConstantBuffer& BuildConstantBuffer();
+    const ConstantBuffer& BuildConstantBuffer(float wparam=1.f);
+    const ConstantBuffer& BuildConstantBuffer(DirectX::XMVECTOR wparam);
     void BindBuffer(Shader::ShaderType type, UINT slot);
 
     DirectX::XMFLOAT3 GetPosition();

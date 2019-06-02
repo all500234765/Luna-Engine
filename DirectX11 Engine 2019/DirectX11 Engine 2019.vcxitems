@@ -21,6 +21,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\PolygonLayout.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\Query.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\Shader.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\ShaderTrace.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Default.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Input\Gamepad.h">
@@ -61,6 +62,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\PolygonLayout.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Query.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Shader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\ShaderTrace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\Gamepad.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\GamepadNew.h" />

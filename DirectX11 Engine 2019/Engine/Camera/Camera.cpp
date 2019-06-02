@@ -109,15 +109,28 @@ void Camera::SetWorldMatrix(DirectX::XMMATRIX w) {
     mWorld = w;
 }
 
-const ConstantBuffer& Camera::BuildConstantBuffer() {
+const ConstantBuffer& Camera::BuildConstantBuffer(float wparam) {
     // Map buffer
     BufferMatrix* ptr = (BufferMatrix*)cb->Map();
     
-    // Transpose the matrices to prepare them for the shader.
-    ptr->mWorld = /*DirectX::XMMatrixTranspose*/(mWorld);
-    ptr->mView  = /*DirectX::XMMatrixTranspose*/(mView);
-    ptr->mProj  = /*DirectX::XMMatrixTranspose*/(mProj);
-    ptr->vPosition = {pPos.x, pPos.y, pPos.z, 1.};
+    ptr->mWorld = mWorld;
+    ptr->mView  = mView;
+    ptr->mProj  = mProj;
+    ptr->vPosition = {pPos.x, pPos.y, pPos.z, wparam};
+
+    // Unmap
+    cb->Unmap();
+    return *cb;
+}
+
+const ConstantBuffer& Camera::BuildConstantBuffer(DirectX::XMVECTOR wparam) {
+    // Map buffer
+    BufferMatrix* ptr = (BufferMatrix*)cb->Map();
+    
+    ptr->mWorld = mWorld;
+    ptr->mView  = mView;
+    ptr->mProj  = mProj;
+    ptr->vPosition = wparam;
 
     // Unmap
     cb->Unmap();

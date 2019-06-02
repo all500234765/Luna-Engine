@@ -53,3 +53,13 @@ struct Vertex_PN: public Vertex {
     Vertex_PN() {};
     Vertex_PN(aiMesh* inMesh, size_t i);
 };
+
+struct Vertex_PNT_TgBn: public Vertex {
+    DirectX::XMFLOAT3 Normal;
+    DirectX::XMFLOAT2 Texcoord;
+    DirectX::XMFLOAT3 Tangent;
+    DirectX::XMFLOAT3 BiTangent;
+
+    Vertex_PNT_TgBn() {};
+    Vertex_PNT_TgBn(aiMesh* inMesh, size_t i);
+};

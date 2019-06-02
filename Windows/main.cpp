@@ -7,19 +7,20 @@
 // Test instances
 Camera *cPlayer, *c2DScreen, *cLight;
 Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
-       *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR;
-Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1;
+       *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR, *shDeferred, 
+       *shDeferredFinal;
+Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
 ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 
-Texture *tDefault, *tBlueNoiseRG, *tClearPixel;
+Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault;
 DiffuseMap *mDefaultDiffuse;
-Sampler *sPoint;
+Sampler *sPoint, *sMipLinear;
 
 Material *mDefault;
 
 RenderBufferDepth2D *bDepth;
 RenderBufferColor3Depth *bGBuffer;
-RenderBufferColor1 *bSSLR;
+RenderBufferColor1 *bSSLR, *bDeferred;
 
 CubemapTexture *pCubemap;
 
@@ -29,6 +30,23 @@ BlendState *pBlendState0; // TODO: Use BlendState class
 
 SoundEffect *sfxShotSingle, *sfxGunReload, *sfxWalk1, *sfxWalk2;
 Music* mscMainTheme;
+
+ConstantBuffer *cbDeferredGlobalInst, *cbDeferredLightInst;
+
+// Deferred light system needs those
+struct cbDeferredLight {
+    DirectX::XMFLOAT3 _LightDiffuse;
+    float             PADDING1;
+    DirectX::XMFLOAT2 _LightData; // Range, intensity
+    DirectX::XMFLOAT2 PADDING2;
+};
+
+struct cbDeferredGlobal {
+    DirectX::XMFLOAT2 _TanAspect; // dtan(fov * .5) * aspect, - dtan(fov / 2)
+    DirectX::XMFLOAT2 _Texel;     // 1 / texture width, 1 / texture height
+    DirectX::XMFLOAT4 _Far;       // x - Far, yzw - PADDING0
+    DirectX::XMMATRIX _mInvView;  // Inverse matrix of view
+};
 
 // Not yet done
 //#define LOWPOLY_EXAMPLE
@@ -230,13 +248,13 @@ bool _DirectX::FrameFunction() {
     }
 
     // Render depth buffer
-    bDepth->Bind();
+    /*bDepth->Bind();
     
     gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
     mLevel1->Bind(cLight);
     shVertexOnly->Bind();
-    mLevel1->Render();
+    mLevel1->Render();*/
 
     //mShadowTest1->Render();
     
@@ -259,20 +277,30 @@ bool _DirectX::FrameFunction() {
     // Bind light buffer
     cLight->BindBuffer(Shader::Vertex, 1);
     
-    // Bind material
-    mDefault->BindTextures(Shader::Pixel);
+    // Bind default material
+    mDefault->BindTextures(Shader::Pixel, 0);
+    sMipLinear->Bind(Shader::Pixel, 0);
+
+    mDefault->BindTextures(Shader::Pixel, 1);
+    sMipLinear->Bind(Shader::Pixel, 1);
+
+    mDefault->BindTextures(Shader::Pixel, 2);
+    sMipLinear->Bind(Shader::Pixel, 2);
+
+    mDefault->BindTextures(Shader::Pixel, 3);
+    sMipLinear->Bind(Shader::Pixel, 3);
 
     // Bind depth buffer
-    bDepth->BindResources(Shader::Pixel, 1);
-    sPoint->Bind(Shader::Pixel, 1);
+    bDepth->BindResources(Shader::Pixel, 4);
+    sPoint->Bind(Shader::Pixel, 4);
 
     // Bind noise texture
-    tBlueNoiseRG->Bind(Shader::Pixel, 2);
-    sPoint->Bind(Shader::Pixel, 2);
+    tBlueNoiseRG->Bind(Shader::Pixel, 5);
+    sPoint->Bind(Shader::Pixel, 5);
 
     // Bind cubemap
-    pCubemap->Bind(Shader::Pixel, 3);
-    sPoint->Bind(Shader::Pixel, 3);
+    pCubemap->Bind(Shader::Pixel, 6);
+    sPoint->Bind(Shader::Pixel, 6);
 
     // Render level
     //mLevel1->Bind(cPlayer);
@@ -325,7 +353,7 @@ bool _DirectX::FrameFunction() {
     mSkybox->Bind(cPlayer);
 
     pCubemap->Bind(Shader::Pixel);
-    sPoint->Bind(Shader::Pixel);
+    sMipLinear->Bind(Shader::Pixel);
 
     mSkybox->Render();
 
@@ -341,11 +369,45 @@ bool _DirectX::FrameFunction() {
     sRenderBuffer* _Color0 = bGBuffer->GetColor0(); // Diffuse
     sRenderBuffer* _Color1 = bGBuffer->GetColor1(); // Normal
     sRenderBuffer* _Color2 = bGBuffer->GetColor2(); // Specular
+    sRenderBuffer* _ColorD = bDeferred->GetColor0(); // Diffuse deferred
+    sRenderBuffer* _SSLRBf = bSSLR->GetColor0(); // SSLR
+
+#pragma region Deferred rendering pass 1
+    bDeferred->Bind();                                      // Set Render Target
+    shDeferred->Bind();                                     // Set Shader
+    gContext->ClearRenderTargetView(_ColorD->pRTV, Clear0); // Clear Render Target
+
+    // Build & Bind Constant buffer
+    DirectX::XMFLOAT4 LightPos = { 1.62895, 5.54253, 2.93616/*60.4084, 22.6733, 2.3704*/, 20 };
+    cPlayer->SetWorldMatrix(
+        //DirectX::XMMatrixScaling(LightPos.w, LightPos.w, LightPos.w) *
+        DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z));
+    cPlayer->BuildConstantBuffer({ LightPos.x, LightPos.y, LightPos.z, LightPos.w });
+    cPlayer->BindBuffer(Shader::Vertex, 0);
+
+    // Update inverse matrix
+    cbDeferredGlobal* data = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
+    data->_mInvView = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
+
+    cbDeferredGlobalInst->Unmap();
+
+    // Bind buffers
+    cbDeferredGlobalInst->Bind(Shader::Pixel, 0);
+    cbDeferredLightInst->Bind(Shader::Pixel, 1);
+
+    gContext->PSSetShaderResources(0, 1, &_Color1->pSRV);
+    gContext->PSSetShaderResources(1, 1, &_Depth->pSRV);
+
+    sPoint->Bind(Shader::Pixel, 0);
+    sPoint->Bind(Shader::Pixel, 1);
+
+    mUnitSphereUV->Render();
+#pragma endregion
 
     // Screen-space local reflections
-    bSSLR->Bind(); // Render Target
+    /*bSSLR->Bind(); // Render Target
     shSSLR->Bind(); // Shader
-    gContext->ClearRenderTargetView(bSSLR->GetColor0()->pRTV, Clear0);
+    gContext->ClearRenderTargetView(_SSLRBf->pRTV, Clear0);
 
     c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
     c2DScreen->BuildConstantBuffer(); // Constant buffer
@@ -359,14 +421,20 @@ bool _DirectX::FrameFunction() {
     sPoint->Bind(Shader::Pixel, 1);
     sPoint->Bind(Shader::Pixel, 2);
 
-    mScreenPlane->Render();
+    mScreenPlane->Render();*/
 
-    // Render to screen
-    sRenderBuffer* _SSLRBf = bSSLR->GetColor0();
+#pragma region Deferred final pass
 
+#pragma endregion
+
+#pragma region Render to screen, Final Post Process Pass
     gContext->OMSetRenderTargets(1, &gRTV, nullptr);
     
     shPostProcess->Bind();
+
+    c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
+    c2DScreen->BuildConstantBuffer(); // Constant buffer
+    c2DScreen->BindBuffer(Shader::Vertex, 0);
     
     // Diffuse
     gContext->PSSetShaderResources(0, 1, &_Color0->pSRV);
@@ -377,6 +445,7 @@ bool _DirectX::FrameFunction() {
     //sPoint->Bind(Shader::Pixel);
 
     mScreenPlane->Render();
+#pragma endregion
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -395,7 +464,7 @@ bool _DirectX::FrameFunction() {
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
             _Color0->pSRV,
             _Color1->pSRV,
-            _Color2->pSRV
+            _ColorD->pSRV
         };
 
         shGUI->Bind();
@@ -426,6 +495,12 @@ bool _DirectX::FrameFunction() {
 
     // 2D Rendering
     ComposeUI();
+
+    // TODO: MT support
+    if( cfg.DeferredContext ) {
+        gContext->FinishCommandList(false, &pCommandList);
+        gContext->ExecuteCommandList(pCommandList, true);
+    }
 
     // End of frame
     gSwapchain->Present(1, 0);
@@ -458,7 +533,12 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsDown(VK_S) ) f3Move.x = -fSpeed * fDeltaTime;
     if( gKeyboard->IsDown(VK_D) ) f3Move.z = +fSpeed * fDeltaTime;  // Strafe
     if( gKeyboard->IsDown(VK_A) ) f3Move.z = -fSpeed * fDeltaTime;
+    if( gKeyboard->IsPressed(VK_SPACE) ) {
+        auto p = cPlayer->GetPosition();
+        std::cout << p.x << ", " << p.y << ", " << p.z << std::endl;
+    }
 
+    if( !bLookMouse ) { return; }
     float dx = 0.f, dy = 0.f;
 
 #if USE_GAMEPADS
@@ -480,8 +560,6 @@ void _DirectX::Tick(float fDeltaTime) {
         }
     } //else
 #endif
-
-    if( !bLookMouse ) { return; }
     
     {
         // Use mouse
@@ -496,7 +574,7 @@ void _DirectX::Tick(float fDeltaTime) {
             b = true;
         }
 
-        if( b ) gMouse->SetAt(int(winCFG.CurrentWidth  * .5f), int(winCFG.CurrentHeight2 * .5f));
+        if( b ) gMouse->SetAt(int(winCFG.CurrentWidth * .5f), int(winCFG.CurrentHeight2 * .5f));
     }
 
     // Walk SFX
@@ -677,16 +755,21 @@ void _DirectX::Load() {
     shTexturedQuad = new Shader();
     shPostProcess = new Shader();
     shSSLR = new Shader();
+    shDeferred = new Shader();
+    shDeferredFinal = new Shader();
 
-    cPlayer = new Camera(DirectX::XMFLOAT3(50, 2, -2), DirectX::XMFLOAT3(0., 0.f, 0.));
+    cPlayer = new Camera();
     c2DScreen = new Camera();
     cLight = new Camera(DirectX::XMFLOAT3(-10.f, 10.f, -10.f), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
 
     tDefault = new Texture();
     tBlueNoiseRG = new Texture();
     tClearPixel = new Texture();
+    tOpacityDefault = new Texture();
+    tSpecularDefault = new Texture();
 
     sPoint = new Sampler();
+    sMipLinear = new Sampler();
 
     mDefaultDiffuse = new DiffuseMap();
 
@@ -695,10 +778,14 @@ void _DirectX::Load() {
     bDepth = new RenderBufferDepth2D();
     bGBuffer = new RenderBufferColor3Depth();
     bSSLR = new RenderBufferColor1();
+    bDeferred = new RenderBufferColor1();
 
     pCubemap = new CubemapTexture();
 
     pQuery = new Query();
+
+    cbDeferredGlobalInst = new ConstantBuffer();
+    cbDeferredLightInst  = new ConstantBuffer();
 
     sfxShotSingle = new SoundEffect("../Sounds/SingleEnergyShot.wav");
     sfxShotSingle->Create();
@@ -726,6 +813,10 @@ void _DirectX::Load() {
 #endif
 
     const WindowConfig& cfg = gWindow->GetCFG();
+
+    // Deferred buffer
+    bDeferred->SetSize(1024, 540);
+    bDeferred->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT);
 
     // Screen-Space Local Reflections buffer
     bSSLR->SetSize(1024, 540);
@@ -771,13 +862,17 @@ void _DirectX::Load() {
     tDefault->SetName("Default tile texture");
     //gContext->GenerateMips(tDefault->GetSRV());
 
-    // Set default texture
-    Model::SetDefaultTexture(tDefault);
-
     // Load more textures
     tBlueNoiseRG->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
 
     //tClearPixel->Load("../Textures/ClearPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    tOpacityDefault->Load("../Textures/ClearPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    tSpecularDefault->Load("../Texture/DarkPixel.png", DXGI_FORMAT_B8G8R8A8_UNORM);
+
+    // Set default textures
+    Model::SetDefaultTexture(tDefault);
+    Model::SetDefaultTextureOpacity(tOpacityDefault);
+    Model::SetDefaultTextureSpecular(tSpecularDefault);
 
     // Create point sampler
     D3D11_SAMPLER_DESC pDesc;
@@ -789,12 +884,19 @@ void _DirectX::Load() {
     sPoint->Create(pDesc);
     sPoint->SetName("Point sampler");
 
+    pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
+    pDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    pDesc.MinLOD = 0;
+    pDesc.MipLODBias = 0;
+    pDesc.MaxAnisotropy = 16;
+    sMipLinear->Create(pDesc);
+
     // Create maps
     mDefaultDiffuse->mTexture = tDefault;
 
     // Create materials
     mDefault->SetDiffuse(mDefaultDiffuse);
-    mDefault->SetSampler(sPoint);
+    mDefault->SetSampler(sMipLinear);
     mDefault->SetName("Default material");
 
     // Setup cameras
@@ -809,6 +911,30 @@ void _DirectX::Load() {
 
     // Save aspect for further use
     fAspect = cfg2.fAspect;
+
+    // Deferred global constant buffer
+    cbDeferredGlobalInst->CreateDefault(sizeof(cbDeferredGlobal));
+    cbDeferredGlobal* dgData = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
+    
+    // Don't forget to update buffer
+    float fHalfTanFov = tanf(DirectX::XMConvertToRadians(cfg2.FOV * .5)); // dtan(fov * .5)
+    dgData->_TanAspect = { fHalfTanFov * fAspect, -fHalfTanFov };
+    dgData->_Texel     = { 1.f / cfg.CurrentWidth, 1.f / cfg.CurrentHeight2};
+    dgData->_Far       = { cfg2.fFar, 0.f, 0.f, 0.f };
+    dgData->_mInvView  = DirectX::XMMatrixIdentity();
+
+    cbDeferredGlobalInst->Unmap();
+
+    // Deferred light constant buffer
+    cbDeferredLightInst->CreateDefault(sizeof(cbDeferredLight));
+    cbDeferredLight* dlData = (cbDeferredLight*)cbDeferredLightInst->Map();
+
+    dlData->_LightDiffuse = { .7f, .9f, 0.f };
+    dlData->_LightData    = { 8.f, 1.5f };
+    dlData->PADDING1      = 0.f;
+    dlData->PADDING2      = { 0.f, 0.f };
+
+    cbDeferredLightInst->Unmap();
 
     // 
     cfg2.FOV = 90.f;
@@ -862,9 +988,16 @@ void _DirectX::Load() {
     shSSLR->LoadFile("shSSLRPS.cso", Shader::Pixel);
 
     // GUI
-    //shGUI->LoadFile("../CompiledShaders/shGUIVS.cso", Shader::Vertex);
     shGUI->AttachShader(shPostProcess, Shader::Vertex);
     shGUI->LoadFile("shGUIPS.cso", Shader::Pixel);
+
+    // Deferred
+    shDeferred->LoadFile("shDeferredVS.cso", Shader::Vertex);
+    shDeferred->LoadFile("shDeferredPS.cso", Shader::Pixel);
+
+    // Deferred final pass
+    shDeferredFinal->AttachShader(shPostProcess, Shader::Vertex);
+    shDeferredFinal->LoadFile("shDeferredFinalPS.cso", Shader::Pixel);
 
     // Clean shaders
     shTest->ReleaseBlobs();
@@ -876,10 +1009,12 @@ void _DirectX::Load() {
     shTexturedQuad->ReleaseBlobs();
     shPostProcess->ReleaseBlobs();
     shSSLR->ReleaseBlobs();
+    shDeferred->ReleaseBlobs();
+    shDeferredFinal->ReleaseBlobs();
 
     // Create model
     mModel1 = new Model("Test model #1");
-    mModel1->LoadModel<Vertex_PNT>("../Models/Teapot.obj");
+    mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/TestLevel1.obj");// Sponza/sponza.obj");
     mModel1->EnableDefaultTexture();
 
     mModel2 = new Model("Test model #2");
@@ -889,16 +1024,20 @@ void _DirectX::Load() {
     mModel3->LoadModel<Vertex_P>("../Models/UVMappedUnitSphere.obj");
     mModel3->DisableDefaultTexture();
 
+    mUnitSphereUV = new Model("Unit sphere");
+    mUnitSphereUV->LoadModel<Vertex_PT>("../Models/UVMappedUnitSphere.obj");
+    mUnitSphereUV->DisableDefaultTexture();
+
     mScreenPlane = new Model("Screen plane model");
     mScreenPlane->LoadModel<Vertex_PT>("../Models/ScreenPlane.obj");
     mScreenPlane->DisableDefaultTexture();
 
     mSpaceShip = new Model("Space ship model");
-    mSpaceShip->LoadModel<Vertex_PNT>("../Models/Space Ship Guns1.obj");
+    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Space Ship Guns1.obj");
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Shadow test model");
-    mShadowTest1->LoadModel<Vertex_PNT>("../Models/TestLevel2.obj");
+    mShadowTest1->LoadModel<Vertex_PNT_TgBn>("../Models/TestLevel2.obj");
     mShadowTest1->EnableDefaultTexture();
 
     // Create model instances
@@ -933,11 +1072,13 @@ void _DirectX::Load() {
 
     // Space ship
     miSpaceShip = new ModelInstance();
-    miSpaceShip->SetModel(mSpaceShip);
+    miSpaceShip->SetModel(mModel1); //mSpaceShip);
     miSpaceShip->SetShader(shTest);
     miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *
-                                DirectX::XMMatrixScaling(10.f, 10.f, 10.f) * 
-                                DirectX::XMMatrixTranslation(50.f, 10.f, 0.f));
+                                //DirectX::XMMatrixScaling(.0625, .0625, .0625)
+                                DirectX::XMMatrixScaling(4, 4, 4)
+                                //DirectX::XMMatrixTranslation(50.f, 10.f, 0.f)
+    );
     
     // Speaks for it's self
 #ifdef LOWPOLY_EXAMPLE
@@ -969,11 +1110,6 @@ void _DirectX::Load() {
     Output.pRenderTargetView = gRTV;
     Output.Blend.Mode = GFSDK_SSAO_BlendMode::GFSDK_SSAO_MULTIPLY_RGB;
 #endif
-
-    // Debug report if we can
-#ifdef _DEBUG
-    if( gDirectX->gDebug ) gDirectX->gDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
-#endif
 }
 
 void _DirectX::Unload() {
@@ -981,6 +1117,10 @@ void _DirectX::Unload() {
 #if USE_HBAO_PLUS
     pAOContext->Release();
 #endif
+
+    // Release constant buffers
+    cbDeferredGlobalInst->Release();
+    cbDeferredLightInst->Release();
 
     // Release SFX
     sfxShotSingle->Release();
@@ -1011,6 +1151,8 @@ void _DirectX::Unload() {
     shTexturedQuad->DeleteShaders();
     shPostProcess->DeleteShaders();
     shSSLR->DeleteShaders();
+    shDeferred->DeleteShaders();
+    shDeferredFinal->DeleteShaders();
 
     // Release models
     mModel1->Release();
@@ -1018,6 +1160,7 @@ void _DirectX::Unload() {
     mModel3->Release();
     mScreenPlane->Release();
     mShadowTest1->Release();
+    mUnitSphereUV->Release();
 
     // Release meshes
 #ifdef LOWPOLY_EXAMPLE
@@ -1139,15 +1282,17 @@ int main() {
     
     // Window config
     WindowConfig winCFG;
-    winCFG.Borderless = false;
-    winCFG.Windowed = true;
+    winCFG.Borderless  = false;
+    winCFG.Windowed    = true;
+    winCFG.ShowConsole = true;
     winCFG.Width = 1024;
     winCFG.Height = 540;
     winCFG.Title = L"Luna Engine";
     winCFG.Icon = L"Engine/Assets/Engine.ico";
 
     // Create window
-    gWindow->Create(&winCFG);
+    gWindow->Create(winCFG);
+    winCFG = gWindow->GetCFG();
 
     // Get input devices
     gInput = gWindow->GetInputDevice();
@@ -1162,16 +1307,17 @@ int main() {
     adCFG.Flags = 0;
 
     // Create audio device
-    gAudioDevice->Create(&adCFG);
+    gAudioDevice->Create(adCFG);
 
     // DirectX config
     DirectXConfig dxCFG;
     dxCFG.BufferCount = 2;
     dxCFG.Width = winCFG.CurrentWidth;
-    dxCFG.Height = winCFG.CurrentHeight;
+    dxCFG.Height = winCFG.CurrentHeight2;
     dxCFG.m_hwnd = gWindow->GetHWND();
     dxCFG.RefreshRate = 60;
     dxCFG.UseHDR = true;
+    dxCFG.DeferredContext = false;
     dxCFG.Windowed = winCFG.Windowed;
     dxCFG.Ansel = USE_ANSEL;
 
@@ -1186,6 +1332,11 @@ int main() {
     if( gDirectX->ShowError(gDirectX->Create(dxCFG)) ) { return 1; }
 
     //std::cout << "Ansel avaliable: " << ansel::isAnselAvailable() << std::endl;
+
+    // Debug report if we can
+#ifdef _DEBUG
+    if( gDirectX->gDebug ) gDirectX->gDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+#endif
 
     // Include ImGUI
 #if _DEBUG_BUILD

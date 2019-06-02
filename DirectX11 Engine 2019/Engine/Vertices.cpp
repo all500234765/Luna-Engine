@@ -48,3 +48,26 @@ Vertex_PNTC::Vertex_PNTC(aiMesh* inMesh, size_t i) {
         Texcoord = DirectX::XMFLOAT2(0, 0);
     }
 }
+
+Vertex_PNT_TgBn::Vertex_PNT_TgBn(aiMesh* inMesh, size_t i) {
+    Position  = DirectX::XMFLOAT3(inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z);
+    Normal    = DirectX::XMFLOAT3(inMesh->mNormals[i].x, inMesh->mNormals[i].y, inMesh->mNormals[i].z);
+    
+    if( inMesh->mTangents ) {
+        Tangent = DirectX::XMFLOAT3(inMesh->mTangents[i].x, inMesh->mTangents[i].y, inMesh->mTangents[i].z);
+    } else {
+        Tangent = DirectX::XMFLOAT3(0, 0, 0);
+    }
+
+    if( inMesh->mBitangents ) {
+        BiTangent = DirectX::XMFLOAT3(inMesh->mBitangents[i].x, inMesh->mBitangents[i].y, inMesh->mBitangents[i].z);
+    } else {
+        BiTangent = DirectX::XMFLOAT3(0, 0, 0);
+    }
+    
+    if( inMesh->mTextureCoords[0] ) {
+        Texcoord = DirectX::XMFLOAT2(inMesh->mTextureCoords[0][i].x, inMesh->mTextureCoords[0][i].y);
+    } else {
+        Texcoord = DirectX::XMFLOAT2(0, 0);
+    }
+}

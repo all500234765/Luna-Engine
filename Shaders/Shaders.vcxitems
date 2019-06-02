@@ -28,6 +28,12 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\HS\shTerrainHS.hlsl">
       <ShaderType>Hull</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDeferredFinalPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDeferredPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shGUIPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -49,6 +55,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadPS.hlsl">
       <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDeferredVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shGUIVS.hlsl">
       <ShaderType>Vertex</ShaderType>

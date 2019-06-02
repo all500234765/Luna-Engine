@@ -77,8 +77,11 @@ static const float threshold = .9; // .9
 #define fsqrt(x) sqrt(dot(x, x)) //dot(length(x), length(x))
 
 half4 main(PS In): SV_Target0 {
+    float2 fxaaFrame;
+    _Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
+
     // Sobel operator
-    const int2 texAddrOffsets[8] = {
+    /*const int2 texAddrOffsets[8] = {
             int2(-1, -1),
             int2(0, -1),
             int2(1, -1),
@@ -92,8 +95,6 @@ half4 main(PS In): SV_Target0 {
     float lum[8];
     int i;
     float3 LuminanceConv = float3(.2125f, .7154f, .0721f);
-    float2 fxaaFrame;
-    _Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
     float D;
 
     for( i = 0; i < 8; i++ ) {
@@ -105,7 +106,8 @@ half4 main(PS In): SV_Target0 {
     float y = lum[0] + 2 * lum[1] + lum[2] - lum[5] - 2 * lum[6] - lum[7];
 
     D = 1.; //(1. - Color2Depth(_Depth.Sample(_DepthSamp, In.Texcoord))) / 1.;
-    float edge = D * sqrt(x * x + y * y);
+    float edge = D * sqrt(x * x + y * y);*/
+    float edge = 0.f;
 
     // 
     half4 Diff = _Texture.Sample(_Sampler, In.Texcoord);
@@ -113,8 +115,7 @@ half4 main(PS In): SV_Target0 {
     if( Diff.a < .5f ) { discard; }
 
     // Add snow
-    half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
-
+    //half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
 
     // Chromatic Abberation
     //float hdrLeft  = _Texture.Sample(_Sampler, In.Texcoord, int2(-1, -1)).b;
@@ -128,7 +129,7 @@ half4 main(PS In): SV_Target0 {
 
     // Tonemapping
     //Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
-    Diff.rgb = (1. - edge) * (Diff.rgb / (Diff.rgb + 1.f)) * 2.f;
+    Diff.rgb = (1. - edge) * (Diff.rgb / (Diff.rgb + 1.f));
 
     // 
     return Diff;
