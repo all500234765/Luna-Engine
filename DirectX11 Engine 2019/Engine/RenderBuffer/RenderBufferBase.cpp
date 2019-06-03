@@ -123,7 +123,7 @@ sRenderBuffer* RenderBufferBase::CreateDSV2D(int W, int H, UINT bpp) {
     }
 
     // Output
-    sRenderBuffer *Out = new sRenderBuffer;
+    sRenderBuffer *Out = new sRenderBuffer();
         Out->pDSV       = pDSV;
         Out->pTexture2D = pTexture;
         Out->pSRV       = pSRV;
@@ -209,6 +209,11 @@ void RenderBufferBase::BindResource(sRenderBuffer* data, Shader::ShaderType type
         case Shader::Domain  : gDirectX->gContext->DSSetShaderResources(slot, 1, &data->pSRV); break;
         case Shader::Compute : gDirectX->gContext->CSSetShaderResources(slot, 1, &data->pSRV); break;
     }
+}
+
+void RenderBufferBase::SetSize(int w, int h) {
+    Width = w;
+    Height = h;
 }
 
 void RenderBufferBase::BindTarget(sRenderBuffer* dRTV, sRenderBuffer* dDSV) {

@@ -286,8 +286,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
         case WM_SIZE:
             // Window was resized
             if( ApplicationHandle == nullptr ) return 0;
-            ApplicationHandle->cfg.CurrentWidth  = LOWORD(lparam);
-            ApplicationHandle->cfg.CurrentHeight = HIWORD(lparam);
+            ApplicationHandle->cfg.CurrentWidth   = LOWORD(lparam);
+            ApplicationHandle->cfg.CurrentHeight  = HIWORD(lparam);
+            ApplicationHandle->cfg.CurrentHeight2 = HIWORD(lparam) + (ApplicationHandle->cfg.CurrentHeight2 - ApplicationHandle->cfg.CurrentHeight);
             ApplicationHandle->cfg.Resized = true;
             return 0;
 

@@ -19,7 +19,7 @@
 #include "Engine/Models/Mesh.h"
 #include "Engine/Materials/Texture.h"
 
-class Model {
+class Model: public DirectXChild {
 protected:
     static Texture *gDefaultTexture, *gDefaultTextureOpacity, *gDefaultTextureSpecular;
 

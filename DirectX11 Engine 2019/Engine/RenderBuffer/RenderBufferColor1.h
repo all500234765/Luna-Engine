@@ -7,7 +7,6 @@ private:
     sRenderBuffer *sColor0;
 
 public:
-    void SetSize(int w, int h);
     void CreateColor0(DXGI_FORMAT format);
     void BindResources(Shader::ShaderType type, UINT slot);
     void Bind();

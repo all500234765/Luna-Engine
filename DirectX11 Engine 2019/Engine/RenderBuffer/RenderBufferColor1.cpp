@@ -1,10 +1,5 @@
 #include "RenderBufferColor1.h"
 
-void RenderBufferColor1::SetSize(int w, int h) {
-    Width = w;
-    Height = h;
-}
-
 void RenderBufferColor1::CreateColor0(DXGI_FORMAT format) {
     sColor0 = CreateRTV2D(Width, Height, format);
 }

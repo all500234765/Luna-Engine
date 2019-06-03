@@ -57,7 +57,9 @@ void Model::Render(/*bool bBindTextures*/) {
         } else {
             // Bind default texture
             if( gDefaultTexture && bUseDefaultTexture ) {
-                gDefaultTexture->Bind(Shader::Pixel, 1);
+                //gDefaultTexture->Bind(Shader::Pixel, 1);
+                ID3D11ShaderResourceView* pNullRes = nullptr;
+                gDirectX->gContext->PSSetShaderResources(1, 1, &pNullRes);
             }
         }
 
@@ -67,7 +69,9 @@ void Model::Render(/*bool bBindTextures*/) {
         } else {
             // Bind default texture
             if( gDefaultTextureOpacity && bUseDefaultTexture ) {
-                gDefaultTextureOpacity->Bind(Shader::Pixel, 2);
+                //gDefaultTextureOpacity->Bind(Shader::Pixel, 2);
+                //ID3D11ShaderResourceView* pNullRes = nullptr;
+                //gDirectX->gContext->PSSetShaderResources(2, 1, &pNullRes);
             }
         }
 
@@ -77,7 +81,9 @@ void Model::Render(/*bool bBindTextures*/) {
         } else {
             // Bind default texture
             if( gDefaultTextureSpecular && bUseDefaultTexture ) {
-                gDefaultTextureSpecular->Bind(Shader::Pixel, 3);
+                //gDefaultTextureSpecular->Bind(Shader::Pixel, 3);
+                //ID3D11ShaderResourceView* pNullRes = nullptr;
+                //gDirectX->gContext->PSSetShaderResources(3, 1, &pNullRes);
             }
         }
         

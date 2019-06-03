@@ -129,7 +129,7 @@ half4 main(PS In): SV_Target0 {
 
     // Tonemapping
     //Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
-    Diff.rgb = (1. - edge) * (Diff.rgb / (Diff.rgb + 1.f));
+    Diff.rgb *= (1. - edge) * (1.f / (Diff.rgb + 1.f)) * 1.5;
 
     // 
     return Diff;

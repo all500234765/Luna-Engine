@@ -14,7 +14,7 @@ ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 
 Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault;
 DiffuseMap *mDefaultDiffuse;
-Sampler *sPoint, *sMipLinear;
+Sampler *sPoint, *sMipLinear, *sPointClamp;
 
 Material *mDefault;
 
@@ -32,6 +32,10 @@ SoundEffect *sfxShotSingle, *sfxGunReload, *sfxWalk1, *sfxWalk2;
 Music* mscMainTheme;
 
 ConstantBuffer *cbDeferredGlobalInst, *cbDeferredLightInst;
+
+ID3D11RasterizerState *rsFrontCull;
+
+D3D11_VIEWPORT vpDepth, vpMain;
 
 // Deferred light system needs those
 struct cbDeferredLight {
@@ -248,13 +252,15 @@ bool _DirectX::FrameFunction() {
     }
 
     // Render depth buffer
-    /*bDepth->Bind();
-    
+    bDepth->Bind();
+
+    gContext->RSSetState(rsFrontCull);
+    gContext->RSSetViewports(1, &vpDepth);
     gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
-    mLevel1->Bind(cLight);
+    miSpaceShip->Bind(cLight);
     shVertexOnly->Bind();
-    mLevel1->Render();*/
+    miSpaceShip->Render();
 
     //mShadowTest1->Render();
     
@@ -264,8 +270,13 @@ bool _DirectX::FrameFunction() {
         gContext->RSSetState(gRSDefault);
     }
 
-    // Render to default buffers
+    // Render to gbuffer
+    gContext->RSSetViewports(1, &vpMain);
+
     //gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+    ID3D11RenderTargetView *pEmptyRTV = nullptr;
+    gContext->OMSetRenderTargets(1, &pEmptyRTV, nullptr);
+
     bGBuffer->Bind();
     gContext->ClearRenderTargetView(bGBuffer->GetColor0()->pRTV, Clear);
     gContext->ClearRenderTargetView(bGBuffer->GetColor1()->pRTV, Clear0);
@@ -292,7 +303,7 @@ bool _DirectX::FrameFunction() {
 
     // Bind depth buffer
     bDepth->BindResources(Shader::Pixel, 4);
-    sPoint->Bind(Shader::Pixel, 4);
+    sPointClamp->Bind(Shader::Pixel, 4);
 
     // Bind noise texture
     tBlueNoiseRG->Bind(Shader::Pixel, 5);
@@ -678,9 +689,9 @@ void _DirectX::ComposeUI() {
 void _DirectX::Resize() {
     const WindowConfig& cfg = gWindow->GetCFG();
     if( !cfg.Resized ) { return; }                                     // Window isn't resized
-    if( cfg.CurrentWidth <= 0 && cfg.CurrentHeight <= 0 ) { return;  } // Window was minimazed
+    if( cfg.CurrentWidth <= 0 && cfg.CurrentHeight2 <= 0 ) { return;  } // Window was minimazed
 
-    std::cout << "Window/DirectX resize event (w=" << cfg.CurrentWidth << ", h=" << cfg.CurrentHeight << ")" << std::endl;
+    std::cout << "Window/DirectX resize event (w=" << cfg.CurrentWidth << ", h=" << cfg.CurrentHeight2 << ")" << std::endl;
 
     // Release targets
     gContext->OMSetRenderTargets(0, 0, 0);
@@ -715,25 +726,32 @@ void _DirectX::Resize() {
 
     // Recalculate camer's aspect ratio and projection matrix
     CameraConfig cfg2 = cPlayer->GetParams();
-    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight2);
     cPlayer->BuildProj();
 
     // Save aspect
     fAspect = cfg2.fAspect;
 
     cfg2 = c2DScreen->GetParams();
-    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight2);
     c2DScreen->BuildProj();
 
     // Set up the viewport
     D3D11_VIEWPORT vp;
     vp.Width = static_cast<float>(cfg.CurrentWidth);
-    vp.Height = static_cast<float>(cfg.CurrentHeight);
+    vp.Height = static_cast<float>(cfg.CurrentHeight2);
     vp.MinDepth = 0.0f;
     vp.MaxDepth = 1.0f;
     vp.TopLeftX = 0;
     vp.TopLeftY = 0;
     gContext->RSSetViewports(1, &vp);
+
+    vpMain.MinDepth = 0.f;
+    vpMain.MaxDepth = 1.f;
+    vpMain.TopLeftX = 0;
+    vpMain.TopLeftY = 0;
+    vpMain.Width    = cfg.CurrentWidth;
+    vpMain.Height   = cfg.CurrentHeight2;
 }
 
 void _DirectX::Load() {
@@ -770,6 +788,7 @@ void _DirectX::Load() {
 
     sPoint = new Sampler();
     sMipLinear = new Sampler();
+    sPointClamp = new Sampler();
 
     mDefaultDiffuse = new DiffuseMap();
 
@@ -814,6 +833,10 @@ void _DirectX::Load() {
 
     const WindowConfig& cfg = gWindow->GetCFG();
 
+    // Create depth buffer
+    bDepth->Create(2048, 2048, 32);
+    bDepth->SetName("Shadow map depth buffer");
+
     // Deferred buffer
     bDeferred->SetSize(1024, 540);
     bDeferred->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT);
@@ -828,6 +851,22 @@ void _DirectX::Load() {
     bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
     bGBuffer->CreateColor1(DXGI_FORMAT_R16G16_FLOAT);       // Normal
     bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
+    
+    // Create 
+    D3D11_RASTERIZER_DESC rDesc2;
+    ZeroMemory(&rDesc2, sizeof(D3D11_RASTERIZER_DESC));
+    rDesc2.AntialiasedLineEnable = false;
+    rDesc2.CullMode = D3D11_CULL_FRONT;
+    rDesc2.DepthBias = 0;
+    rDesc2.DepthBiasClamp = 0.0f;
+    rDesc2.DepthClipEnable = true;
+    rDesc2.FillMode = D3D11_FILL_SOLID;
+    rDesc2.FrontCounterClockwise = false;
+    rDesc2.MultisampleEnable = false;
+    rDesc2.ScissorEnable = false;
+    rDesc2.SlopeScaledDepthBias = 0.0f;
+    
+    gDevice->CreateRasterizerState(&rDesc2, &rsFrontCull);
     
     // Create blend state with no color write
     pBlendState0 = new BlendState();
@@ -853,10 +892,6 @@ void _DirectX::Load() {
     // Create cubemap
     pCubemap->CreateFromFiles("../Textures/Cubemaps/Test/", false, DXGI_FORMAT_R8G8B8A8_UNORM);
 
-    // Create depth buffer
-    bDepth->Create(2048, 2048, 32);
-    bDepth->SetName("Depth buffer");
-
     // Create default texture
     tDefault->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
     tDefault->SetName("Default tile texture");
@@ -874,22 +909,39 @@ void _DirectX::Load() {
     Model::SetDefaultTextureOpacity(tOpacityDefault);
     Model::SetDefaultTextureSpecular(tSpecularDefault);
 
-    // Create point sampler
+    // Create samplers
+    FLOAT BorderColor[] = { 1.f, 1.f, 1.f, 1.f };
+
     D3D11_SAMPLER_DESC pDesc;
     ZeroMemory(&pDesc, sizeof(D3D11_SAMPLER_DESC));
     pDesc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
     pDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     pDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     pDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    sPoint->Create(pDesc);
-    sPoint->SetName("Point sampler");
-
-    pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
+    pDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
     pDesc.MaxLOD = D3D11_FLOAT32_MAX;
     pDesc.MinLOD = 0;
     pDesc.MipLODBias = 0;
     pDesc.MaxAnisotropy = 16;
+
+    // Point sampler
+    sPoint->Create(pDesc);
+    sPoint->SetName("Point sampler");
+
+    // Anisotropic mip sampler
+    pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
     sMipLinear->Create(pDesc);
+    sMipLinear->SetName("Anisotropic mip sampler");
+
+    // Clamped point sampler
+    pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+    pDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    pDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    pDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    pDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+    *pDesc.BorderColor = *BorderColor;
+    sPointClamp->Create(pDesc);
+    sPointClamp->SetName("Clamp point sampler");
 
     // Create maps
     mDefaultDiffuse->mTexture = tDefault;
@@ -901,13 +953,22 @@ void _DirectX::Load() {
 
     // Setup cameras
     CameraConfig cfg2;
-    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight2);
     cfg2.FOV = 100.f;
     cfg2.fNear = .1f;
     cfg2.fFar = 10000.f;
     cPlayer->SetParams(cfg2);
     cPlayer->BuildProj();
     cPlayer->BuildView();
+
+    /*vpMain.MinDepth = cfg2.fNear;
+    vpMain.MaxDepth = cfg2.fFar;*/
+    vpMain.MinDepth = 0.f;
+    vpMain.MaxDepth = 1.f;
+    vpMain.TopLeftX = 0;
+    vpMain.TopLeftY = 0;
+    vpMain.Width    = cfg.CurrentWidth;
+    vpMain.Height   = cfg.CurrentHeight2;
 
     // Save aspect for further use
     fAspect = cfg2.fAspect;
@@ -952,6 +1013,15 @@ void _DirectX::Load() {
     cLight->SetParams(cfg2);
     cLight->BuildProj();
     cLight->BuildView();
+
+    /*vpDepth.MinDepth = cfg2.fNear;
+    vpDepth.MaxDepth = cfg2.fFar;*/
+    vpDepth.MinDepth = 0.f;
+    vpDepth.MaxDepth = 1.f;
+    vpDepth.TopLeftX = 0;
+    vpDepth.TopLeftY = 0;
+    vpDepth.Width    = 2048;
+    vpDepth.Height   = 2048;
 
     // Load shader
     shTest->LoadFile("shTestVS.cso", Shader::Vertex);
@@ -1014,7 +1084,7 @@ void _DirectX::Load() {
 
     // Create model
     mModel1 = new Model("Test model #1");
-    mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/TestLevel1.obj");// Sponza/sponza.obj");
+    mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/TransparencyTest1/TrasparancyTestJoined.obj"); //Sponza/sponza.obj");
     mModel1->EnableDefaultTexture();
 
     mModel2 = new Model("Test model #2");

@@ -1,3 +1,10 @@
+cbuffer cbBoolTextures : register(b0) {
+    bool bNormals;
+    bool bOpacity;
+    bool bSpecular;
+    bool bCubemap;
+};
+
 Texture2D _DiffuseTexture    : register(t0);
 SamplerState _DiffuseSampler : register(s0);
 
@@ -12,8 +19,11 @@ SamplerState _OpacitySampler : register(s2) {
 Texture2D _SpecularTexture    : register(t3);
 SamplerState _SpecularSampler : register(s3);
 
-Texture2D<float1> _DepthTexture : register(t4);
-SamplerState _DepthSampler      : register(s4);
+Texture2D<float1> _DepthTexture       : register(t4);
+SamplerComparisonState  _DepthSampler : register(s4) {
+    Filter = COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+    ComparisonFunc = LESS;
+};
 
 Texture2D<float2> _NoiseTexture : register(t5);
 SamplerState _NoiseSampler      : register(s5);
@@ -32,15 +42,23 @@ struct PS {
 };
 
 float SampleShadow(float4 lpos) {
-    const float bias = 1.f / 2048.f;
+    const float bias = .000005*0;// +1.f / 2048.f;
+    const float _Far = 10000.f;
 
-    float3 projCoords = float3((1. + lpos.x / lpos.z) * .5,
-                               (3. - lpos.y / lpos.z) * .5,
-                                    (lpos.z / lpos.w) - bias);
+    float3 projCoords = float3(.5 + (lpos.x / lpos.w) * .5,
+                               .5 - (lpos.y / lpos.w) * .5,
+                                    (lpos.z / lpos.w));
 
-    if( saturate(projCoords.x) != projCoords.x || saturate(projCoords.y) != projCoords.y ) return 0.;
+    // If out of bounds - no shadows should be applied
+    if( saturate(projCoords.x) != projCoords.x || saturate(projCoords.y) != projCoords.y
+     || projCoords.z > 1. ) return 0.;
 
-    float sDepth = _DepthTexture.Sample(_DepthSampler, projCoords.xy + _NoiseTexture.Sample(_NoiseSampler, projCoords.xy)*0.);
+    // Apply bias
+    projCoords.z -= bias;
+
+    // 
+    float2 fNoise = _NoiseTexture.Sample(_NoiseSampler, projCoords.xy * 20.f) * .00625;
+    float sDepth = _DepthTexture.SampleCmpLevelZero(_DepthSampler, projCoords.xy + fNoise, projCoords.z);
     
     return (projCoords.z < sDepth) ? 1. : 0.;
 }
@@ -68,8 +86,8 @@ GBuffer main(PS In) {
 
     // Calculate normal
     half3 N = normalize(mul(In.WorldTBN, NormalTex * 2. - 1.));
-
-    half S = 1.; // SampleShadow(In.LightPos) * .2 + .8;
+    
+    half S = SampleShadow(In.LightPos) * .4 + .6;
     half4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord); // Diffuse texture
 
     //Diff = pow(_CubemapTexture.Sample(_CubemapSampler, normalize(In.InputPos)), 1. / 2.2);
@@ -89,7 +107,7 @@ GBuffer main(PS In) {
 
     GBuffer Out;
         Out.Normal   = EncodeNormal(N);
-        Out.Diffuse  = Diff; //lerp(half4(.5, .6, .8, 1.), Diff, S);// * half4(L.xxx, 1.) + half4(SpecularColor, 0.);
+        Out.Diffuse  = Diff * S; //lerp(half4(.5, .6, .8, 1.), Diff, S);// * half4(L.xxx, 1.) + half4(SpecularColor, 0.);
         Out.Specular = _SpecularTexture.Sample(_SpecularSampler, In.Texcoord);
     return Out;
 }

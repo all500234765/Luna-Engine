@@ -123,6 +123,7 @@ public:
     sRenderBuffer* CreateDSV3D(int W, int H, int D, UINT bpp=32);
 
     void BindResource(sRenderBuffer* data, Shader::ShaderType type, UINT slot = 0);
+    void SetSize(int w, int h);
 
     void BindTarget(sRenderBuffer* dRTV, sRenderBuffer* dDSV);
     void BindTarget(sRenderBuffer* data);
