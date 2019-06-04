@@ -5,9 +5,28 @@ cbuffer MatrixBuffer : register(b0) {
     float4   vPosition;
 };
 
-struct VS {
-    float3 Position : POSITION0;
-    float2 Texcoord : TEXCOORD0;
+static const float2 arrPos[6] = {
+    // Tri 1
+    float2(+1., +1.), // Top Right
+    float2(+1., -1.), // Bottom Right
+    float2(-1., +1.), // Top Left
+    
+    // Tri 2
+    float2(-1., +1.), // Top Left
+    float2(+1., -1.), // Bottom Right
+    float2(-1., -1.)  // Bottom Left
+};
+
+static const float2 arrUV[6] = {
+    // Tri 1
+    float2(1., 0.), // Top Right
+    float2(1., 1.), // Bottom Right
+    float2(0., 0.), // Top Left
+
+    // Tri 2
+    float2(0., 0.), // Top Left
+    float2(1., 1.), // Bottom Right
+    float2(0., 1.)  // Bottom Left
 };
 
 struct PS {
@@ -15,12 +34,12 @@ struct PS {
     float2 Texcoord : TEXCOORD0;
 };
 
-PS main(VS In, uint index : SV_VertexID) {
-    In.Position.x--;
-    In.Position.y++;
+PS main(uint index : SV_VertexID) {
+    float2 UV  = arrUV[index];
+    float2 Pos = arrPos[index];
 
     PS Out;
-        Out.Position = mul(mWorld, float4(In.Position.xy, 1., 1.));
-        Out.Texcoord = float2(In.Texcoord.x, 1. - In.Texcoord.y);
+        Out.Position = mul(mWorld, float4(Pos, 1., 1.));
+        Out.Texcoord = UV;
     return Out;
 }

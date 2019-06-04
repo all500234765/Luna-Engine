@@ -87,7 +87,7 @@ half4 main(PS In): SV_Target0 {
 
             // Calc specular
             float3 R = normalize(reflect(L, Normal));
-            float3 V = normalize(-Vertex);
+            float3 V = normalize(-Vertex.xyz);
 
             float spec = pow(max(dot(R, V), 0.f), 32.f);
 

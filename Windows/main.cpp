@@ -455,7 +455,8 @@ bool _DirectX::FrameFunction() {
     //gContext->PSSetShaderResources(1, 1, &_SSLRBf->pSRV);
     //sPoint->Bind(Shader::Pixel);
 
-    mScreenPlane->Render();
+    gContext->Draw(6, 0);
+
 #pragma endregion
 
     // HBAO+
@@ -500,7 +501,7 @@ bool _DirectX::FrameFunction() {
             gContext->PSSetShaderResources(0, 1, &pDebugTextures[(size - 1) - i]);
 
             // Render plane
-            mScreenPlane->Render();
+            gContext->Draw(6, 0);
         }
     }
 
@@ -934,10 +935,10 @@ void _DirectX::Load() {
     sMipLinear->SetName("Anisotropic mip sampler");
 
     // Clamped point sampler
-    pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-    pDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-    pDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-    pDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+    pDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+    pDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+    pDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
     pDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
     *pDesc.BorderColor = *BorderColor;
     sPointClamp->Create(pDesc);
