@@ -2,7 +2,8 @@ cbuffer bGlobal : register(b0) {
     float2 _TanAspect; // dtan(fov * .5) * aspect, - dtan(fov / 2)
     float2 _Texel;     // 1 / texture width, 1 / texture height
     float1 _Far;
-    float3 PADDING0;
+    float1 PADDING0;
+    float4 _ProjValues;
     float4x4 _mInvView;
 }
 

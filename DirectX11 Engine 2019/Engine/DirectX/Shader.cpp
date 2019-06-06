@@ -124,12 +124,12 @@ void Shader::AttachShader(Shader* origin, ShaderType type) {
 void Shader::Bind() {
     if( pl->GetLayout() ) pl->Bind();
 
-    if( ((Type & Vertex  ) == Vertex  ) ) { gDirectX->gContext->VSSetShader(sVertex, NULL, 0); }
-    if( ((Type & Pixel   ) == Pixel   ) ) { gDirectX->gContext->PSSetShader(sPixel, NULL, 0); }
-    if( ((Type & Geometry) == Geometry) ) { gDirectX->gContext->GSSetShader(sGeometry, NULL, 0); }
-    if( ((Type & Hull    ) == Hull    ) ) { gDirectX->gContext->HSSetShader(sHull, NULL, 0); }
-    if( ((Type & Domain  ) == Domain  ) ) { gDirectX->gContext->DSSetShader(sDomain, NULL, 0); }
-//  if( ((Type & Compute ) == Compute ) ) { gDirectX->gContext->CSSetShader(sCompute, NULL, 0); }
+    if( ((Type & Vertex  ) == Vertex  ) ) { gDirectX->gContext->VSSetShader(sVertex, NULL, 0);   } else { gDirectX->gContext->VSSetShader(nullptr, NULL, 0); }
+    if( ((Type & Pixel   ) == Pixel   ) ) { gDirectX->gContext->PSSetShader(sPixel, NULL, 0);    } else { gDirectX->gContext->PSSetShader(nullptr, NULL, 0); }
+    if( ((Type & Geometry) == Geometry) ) { gDirectX->gContext->GSSetShader(sGeometry, NULL, 0); } else { gDirectX->gContext->GSSetShader(nullptr, NULL, 0); }
+    if( ((Type & Hull    ) == Hull    ) ) { gDirectX->gContext->HSSetShader(sHull, NULL, 0);     } else { gDirectX->gContext->HSSetShader(nullptr, NULL, 0); }
+    if( ((Type & Domain  ) == Domain  ) ) { gDirectX->gContext->DSSetShader(sDomain, NULL, 0);   } else { gDirectX->gContext->DSSetShader(nullptr, NULL, 0); }
+//  if( ((Type & Compute ) == Compute ) ) { gDirectX->gContext->CSSetShader(sCompute, NULL, 0);  } else { gDirectX->gContext->CSSetShader(nullptr, NULL, 0); }
 }
 
 void Shader::Dispatch(UINT x, UINT y, UINT z) {

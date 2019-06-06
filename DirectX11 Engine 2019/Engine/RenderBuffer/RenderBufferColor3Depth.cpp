@@ -45,10 +45,22 @@ void RenderBufferColor3Depth::Release() {
 
 void RenderBufferColor3Depth::Resize(int w, int h) {
     SetSize(w, h);
-    sColor0->Resize(gDirectX->gDevice, w, h);
-    sColor1->Resize(gDirectX->gDevice, w, h);
-    sColor2->Resize(gDirectX->gDevice, w, h);
-    sDepth->Resize(gDirectX->gDevice, w, h);
+    
+    DXGI_FORMAT f1 = sColor0->format;
+    sColor0->Release();
+    sColor0 = CreateRTV2D(w, h, f1);
+
+    f1 = sColor1->format;
+    sColor1->Release();
+    sColor1 = CreateRTV2D(w, h, f1);
+
+    f1 = sColor2->format;
+    sColor2->Release();
+    sColor2 = CreateRTV2D(w, h, f1);
+
+    UINT bpp = sDepth->bpp;
+    sDepth->Release();
+    sDepth = CreateDSV2D(w, h, bpp);
 }
 
 sRenderBuffer* RenderBufferColor3Depth::GetColor0() {

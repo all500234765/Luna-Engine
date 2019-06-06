@@ -87,7 +87,7 @@ void Window::Create(const WindowConfig& config) {
     else                    flags |= WS_OVERLAPPEDWINDOW;
 
     // Adjust window size and position
-    cfg.CurrentHeight2 = cfg.CurrentHeight;
+    cfg.CurrentHeight2 = cfg.CurrentHeight - 1;
 
     //RECT rect = {posX, posY, posX + cfg.CurrentWidth, posY + cfg.CurrentHeight};
     //AdjustWindowRectEx(&rect, flags, false, WS_EX_APPWINDOW);
@@ -288,7 +288,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
             if( ApplicationHandle == nullptr ) return 0;
             ApplicationHandle->cfg.CurrentWidth   = LOWORD(lparam);
             ApplicationHandle->cfg.CurrentHeight  = HIWORD(lparam);
-            ApplicationHandle->cfg.CurrentHeight2 = HIWORD(lparam) + (ApplicationHandle->cfg.CurrentHeight2 - ApplicationHandle->cfg.CurrentHeight);
+            ApplicationHandle->cfg.CurrentHeight2 = HIWORD(lparam) - 1;// +(ApplicationHandle->cfg.CurrentHeight2 - ApplicationHandle->cfg.CurrentHeight);
             ApplicationHandle->cfg.Resized = true;
             return 0;
 

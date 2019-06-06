@@ -27,6 +27,12 @@ struct sRenderBuffer {
         ID3D11Texture3D *pTexture3D;
     };
 
+    // Format unit
+    union {
+        UINT bpp;
+        DXGI_FORMAT format;
+    };
+
     // Resource unit
     ID3D11ShaderResourceView *pSRV;
     char Flags; // Flags
@@ -39,76 +45,6 @@ struct sRenderBuffer {
         if( ((Flags & RTV) == RTV) && pRTV != nullptr ) { pRTV->Release(); }
 
         if( pSRV ) { pSRV->Release(); }
-    }
-
-    void Resize(ID3D11Device* dev, int w, int h) {
-        if( ((Flags & DSV) == DSV) && pDSV != nullptr ) {
-            // Resize if DSV
-            D3D11_DEPTH_STENCIL_VIEW_DESC pDesc;
-            pDSV->GetDesc(&pDesc);
-
-            if( ((Flags & Is3D) == Is3D) ) {
-                // 3D Texture
-                //D3D11_SUBRESOURCE_DATA pData;
-                D3D11_TEXTURE3D_DESC pDescTex;
-                pTexture3D->GetDesc(&pDescTex);
-                pTexture3D->Release();
-                pTexture3D = 0;
-
-                pDescTex.Width = w;
-                pDescTex.Height = h;
-
-                dev->CreateTexture3D(&pDescTex, NULL, &pTexture3D);
-            } else {
-                // 2D Texture
-                //D3D11_SUBRESOURCE_DATA pData;
-                D3D11_TEXTURE2D_DESC pDescTex;
-                pTexture2D->GetDesc(&pDescTex);
-                pTexture2D->Release();
-                pTexture2D = 0;
-
-                pDescTex.Width = w;
-                pDescTex.Height = h;
-
-                dev->CreateTexture2D(&pDescTex, NULL, &pTexture2D);
-            }
-
-
-        }
-
-        if( ((Flags & RTV) == RTV) && pRTV != nullptr ) {
-            // Resize if RTV
-            D3D11_RENDER_TARGET_VIEW_DESC pDesc;
-            pRTV->GetDesc(&pDesc);
-
-            if( ((Flags & Is3D) == Is3D) ) {
-                // 3D Texture
-                //D3D11_SUBRESOURCE_DATA pData;
-                D3D11_TEXTURE3D_DESC pDescTex;
-                pTexture3D->GetDesc(&pDescTex);
-                pTexture3D->Release();
-                pTexture3D = 0;
-
-                pDescTex.Width = w;
-                pDescTex.Height = h;
-
-                dev->CreateTexture3D(&pDescTex, NULL, &pTexture3D);
-            } else {
-                // 2D Texture
-                //D3D11_SUBRESOURCE_DATA pData;
-                D3D11_TEXTURE2D_DESC pDescTex;
-                pTexture2D->GetDesc(&pDescTex);
-                pTexture2D->Release();
-                pTexture2D = 0;
-
-                pDescTex.Width = w;
-                pDescTex.Height = h;
-
-                dev->CreateTexture2D(&pDescTex, NULL, &pTexture2D);
-            }
-
-
-        }
     }
 };
 

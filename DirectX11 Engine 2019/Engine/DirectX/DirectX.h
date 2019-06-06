@@ -52,7 +52,7 @@ private:
     ID3D11Texture2D *gDSVTex;
 
     // States
-    ID3D11DepthStencilState *pDSS_Default, *pDSS_Default_NoDepthWrite;
+    ID3D11DepthStencilState *pDSS_Default, *pDSS_Default_NoDepthWrite, *pDSS_Default_InvDepth;
     ID3D11RasterizerState *gRSDefault, *gRSDefaultWriteframe;
 
     // CFG

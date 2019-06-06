@@ -1,8 +1,10 @@
 cbuffer cbBoolTextures : register(b0) {
+    bool bDiffuse;
     bool bNormals;
     bool bOpacity;
     bool bSpecular;
     bool bCubemap;
+    bool PADDING[11];
 };
 
 Texture2D _DiffuseTexture    : register(t0);
@@ -13,11 +15,13 @@ SamplerState _NormalSampler : register(s1);
 
 Texture2D _OpacityTexture    : register(t2);
 SamplerState _OpacitySampler : register(s2) {
-    BorderColor = 1.f;
+    BorderColor = float4(1.f, 1.f, 1.f, 1.f);
 };
 
 Texture2D _SpecularTexture    : register(t3);
-SamplerState _SpecularSampler : register(s3);
+SamplerState _SpecularSampler : register(s3) {
+    BorderColor = float4(0.f, 0.f, 0.f, 1.f);
+};
 
 Texture2D<float1> _DepthTexture       : register(t4);
 SamplerComparisonState  _DepthSampler : register(s4) {
@@ -32,7 +36,7 @@ TextureCube _CubemapTexture  : register(t6);
 SamplerState _CubemapSampler : register(s6);
 
 struct PS {
-    float4 Position   : SV_Position;
+    float4   Position : SV_Position;
     float3x3 WorldTBN : TEXCOORD0;
     float2   Texcoord : TEXCOORD3;
     float3   WorldPos : TEXCOORD4;
@@ -58,7 +62,7 @@ float SampleShadow(float4 lpos) {
      || projCoords.z > 1. ) return 0.;
 
     // Calculate dx and dy based on Noise
-    float2 fNoise = _NoiseTexture.Sample(_NoiseSampler, projCoords.xy * 20.f) * 2. - 1.; // * .00625;
+    float2 fNoise = _NoiseTexture.Sample(_NoiseSampler, projCoords.xy /* 20.f*/) * 2. - 1.; // * .00625;
     float2 dx = float2(fNoise.x * _ShadowMapTexel, 0.);
     float2 dy = float2(0., fNoise.y * _ShadowMapTexel);
     float2 p_dxdy = (dx + dy);
@@ -79,7 +83,7 @@ float SampleShadow(float4 lpos) {
 
 struct GBuffer {
     half4 Diffuse  : SV_Target0;
-    half2 Normal   : SV_Target1;
+    half4 Normal   : SV_Target1;
     half4 Specular : SV_Target2;
 };
 
@@ -91,18 +95,25 @@ half2 EncodeNormal(half3 n) {
 }
 
 GBuffer main(PS In) {
-    /*return float4((1. + In.LightPos.x / In.LightPos.z) * .5, 
-                  (3. - In.LightPos.y / In.LightPos.z) * .5, 0., 1.);*/
-
     [branch] if( _OpacityTexture.Sample(_OpacitySampler, In.Texcoord).r < .1 ) { discard; }
 
-    half3 NormalTex = _NormalTexture.Sample(_NormalSampler, In.Texcoord).rgb;
-
     // Calculate normal
-    half3 N = normalize(mul(In.WorldTBN, NormalTex * 2. - 1.));
-    
-    half S = SampleShadow(In.LightPos) * .5 + .5;
-    half4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord); // Diffuse texture
+    half3 N;
+    //[branch] if( bNormals ) 
+    {
+        half3 NormalTex = _NormalTexture.Sample(_NormalSampler, In.Texcoord).rgb;
+
+        N = normalize(mul(In.WorldTBN, NormalTex * 2. - 1.));
+    } /*else {
+        N = normalize(In.WorldTBN._m20_m21_m22);
+    } //*/
+
+    // Shadows
+    const float s = .4;
+    half S = 1.; // SampleShadow(In.LightPos) * s + (1. - s);
+
+    // Diffuse texture
+    half4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord);
 
     //Diff = pow(_CubemapTexture.Sample(_CubemapSampler, normalize(In.InputPos)), 1. / 2.2);
 
@@ -120,8 +131,8 @@ GBuffer main(PS In) {
     //half3 SpecularColor = spec * _LightColor;
 
     GBuffer Out;
-        Out.Normal   = EncodeNormal(N);
-        Out.Diffuse  = Diff * S; //lerp(half4(.5, .6, .8, 1.), Diff, S);// * half4(L.xxx, 1.) + half4(SpecularColor, 0.);
+        Out.Normal   = half4(EncodeNormal(N), 0., 1.);
+        Out.Diffuse  = half4(lerp(.21 * half3(.5, .6, .8), Diff.rgb, S), Diff.a);// * half4(L.xxx, 1.) + half4(SpecularColor, 0.);
         Out.Specular = _SpecularTexture.Sample(_SpecularSampler, In.Texcoord);
     return Out;
 }

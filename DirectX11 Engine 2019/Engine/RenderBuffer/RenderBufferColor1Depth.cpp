@@ -27,6 +27,18 @@ void RenderBufferColor1Depth::Release() {
     sDepth->Release();
 }
 
+void RenderBufferColor1Depth::Resize(int w, int h) {
+    SetSize(w, h);
+
+    DXGI_FORMAT f1 = sColor0->format;
+    sColor0->Release();
+    sColor0 = CreateRTV2D(w, h, f1);
+
+    UINT bpp = sDepth->bpp;
+    sDepth->Release();
+    sDepth = CreateDSV2D(w, h, bpp);
+}
+
 sRenderBuffer* RenderBufferColor1Depth::GetColor0() {
     return sColor0;
 }

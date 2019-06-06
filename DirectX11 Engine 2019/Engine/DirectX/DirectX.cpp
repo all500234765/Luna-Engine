@@ -155,11 +155,14 @@ int _DirectX::Create(const DirectXConfig& config) {
     pDesc2.ViewDimension = (D3D11_DSV_DIMENSION)(D3D11_DSV_DIMENSION_TEXTURE2D + 2 * cfg.MSAA);
     pDesc2.Flags = 0;
 
-    // Create depth stencil state
+    // Create depth stencil states
     gDevice->CreateDepthStencilState(&pDSD, &pDSS_Default);
 
     pDSD.DepthEnable = false;
     gDevice->CreateDepthStencilState(&pDSD, &pDSS_Default_NoDepthWrite);
+
+    pDSD.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+    gDevice->CreateDepthStencilState(&pDSD, &pDSS_Default_InvDepth);
 
     // Create depth texture
     gDevice->CreateTexture2D(&pTex2DDesc, NULL, &gDSVTex);

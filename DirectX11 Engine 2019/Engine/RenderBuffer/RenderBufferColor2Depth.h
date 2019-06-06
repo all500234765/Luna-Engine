@@ -14,6 +14,7 @@ public:
     void BindResources(Shader::ShaderType type, UINT slot);
     void Bind();
     void Release();
+    void Resize(int w, int h);
 
     sRenderBuffer* GetColor0();
     sRenderBuffer* GetColor1();

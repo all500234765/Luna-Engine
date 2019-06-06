@@ -12,7 +12,7 @@ void ConstantBuffer::CreateDefault(UINT size) {
     desc.StructureByteStride = 0;
 
     HRESULT hr = gDirectX->gDevice->CreateBuffer(&desc, NULL, &pBuff);
-    std::cout << "Buffer created (error=" << hr << ")" << std::endl;
+    std::cout << "cBuffer created (error=" << hr << ", size=" << size << ")" << std::endl;
 }
 
 void* ConstantBuffer::Map() {

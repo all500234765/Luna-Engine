@@ -8,19 +8,19 @@
 Camera *cPlayer, *c2DScreen, *cLight;
 Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
        *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR, *shDeferred, 
-       *shDeferredFinal;
+       *shDeferredFinal, *shDeferredPointLight;
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
 ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 
 Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault;
 DiffuseMap *mDefaultDiffuse;
-Sampler *sPoint, *sMipLinear, *sPointClamp;
+Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougness;
 
 Material *mDefault;
 
 RenderBufferDepth2D *bDepth;
 RenderBufferColor3Depth *bGBuffer;
-RenderBufferColor1 *bSSLR, *bDeferred;
+RenderBufferColor1 *bSSLR, *bDeferred, *bShadows;
 
 CubemapTexture *pCubemap;
 
@@ -31,13 +31,13 @@ BlendState *pBlendState0; // TODO: Use BlendState class
 SoundEffect *sfxShotSingle, *sfxGunReload, *sfxWalk1, *sfxWalk2;
 Music* mscMainTheme;
 
-ConstantBuffer *cbDeferredGlobalInst, *cbDeferredLightInst;
-
 ID3D11RasterizerState *rsFrontCull;
 
 D3D11_VIEWPORT vpDepth, vpMain;
 
 // Deferred light system needs those
+ConstantBuffer *cbDeferredGlobalInst, *cbDeferredLightInst;
+
 struct cbDeferredLight {
     DirectX::XMFLOAT3 _LightDiffuse;
     float             PADDING1;
@@ -46,10 +46,21 @@ struct cbDeferredLight {
 };
 
 struct cbDeferredGlobal {
-    DirectX::XMFLOAT2 _TanAspect; // dtan(fov * .5) * aspect, - dtan(fov / 2)
-    DirectX::XMFLOAT2 _Texel;     // 1 / texture width, 1 / texture height
-    DirectX::XMFLOAT4 _Far;       // x - Far, yzw - PADDING0
-    DirectX::XMMATRIX _mInvView;  // Inverse matrix of view
+    DirectX::XMFLOAT2 _TanAspect;  // dtan(fov * .5) * aspect, - dtan(fov / 2)
+    DirectX::XMFLOAT2 _Texel;      // 1 / target width, 1 / target height
+    float _Far;                    // Far
+    float PADDING0;                // Unused
+    DirectX::XMFLOAT4 _ProjValues; // 1 / m[0][0], 1 / m[1][1], m[3][2], -m[2][2]
+    DirectX::XMMATRIX _mInvView;   // Inverse matrix of view matrix
+};
+
+// SSLR
+ConstantBuffer *cbSSLRMatrixInst;
+struct cbSSLRMatrix {
+    DirectX::XMMATRIX _mInvView; // Inverse matrix of view matrix
+    DirectX::XMMATRIX _mInvProj; // Inverse matrix of projection matrix
+    DirectX::XMMATRIX _mProj;
+    DirectX::XMMATRIX _mView;
 };
 
 // Not yet done
@@ -229,12 +240,12 @@ int sfxWalkIndex;
 bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
-    
+
     // Bind and clear RTV
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
 
-    float Clear[4] = {.2f, .2f, .2f, 1.f}; // RGBA
-    float Clear0[4] = {0.f, 0.f, 0.f, 1.f}; // RGBA black
+    float Clear[4] = { .2f, .2f, .2f, 1.f }; // RGBA
+    float Clear0[4] = { 0.f, 0.f, 0.f, 1.f }; // RGBA black
     gContext->ClearRenderTargetView(gRTV, Clear);
     gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
@@ -251,26 +262,29 @@ bool _DirectX::FrameFunction() {
         cPlayer->BuildView();
     }
 
-    // Render depth buffer
+#pragma region Render depth buffer
     bDepth->Bind();
 
     gContext->RSSetState(rsFrontCull);
     gContext->RSSetViewports(1, &vpDepth);
     gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+    gContext->OMSetDepthStencilState(pDSS_Default, 1);
 
     miSpaceShip->Bind(cLight);
     shVertexOnly->Bind();
     miSpaceShip->Render();
 
     //mShadowTest1->Render();
-    
+#pragma endregion
+
+    // Reset to defaults
     if( bIsWireframe ) {
         gContext->RSSetState(gRSDefaultWriteframe);
     } else {
         gContext->RSSetState(gRSDefault);
     }
 
-    // Render to gbuffer
+#pragma region Render to gbuffer
     gContext->RSSetViewports(1, &vpMain);
 
     //gContext->OMSetRenderTargets(1, &gRTV, gDSV);
@@ -287,7 +301,7 @@ bool _DirectX::FrameFunction() {
 
     // Bind light buffer
     cLight->BindBuffer(Shader::Vertex, 1);
-    
+
     // Bind default material
     mDefault->BindTextures(Shader::Pixel, 0);
     sMipLinear->Bind(Shader::Pixel, 0);
@@ -296,10 +310,10 @@ bool _DirectX::FrameFunction() {
     sMipLinear->Bind(Shader::Pixel, 1);
 
     mDefault->BindTextures(Shader::Pixel, 2);
-    sMipLinear->Bind(Shader::Pixel, 2);
+    sMipLinearOpacity->Bind(Shader::Pixel, 2);
 
     mDefault->BindTextures(Shader::Pixel, 3);
-    sMipLinear->Bind(Shader::Pixel, 3);
+    sMipLinearRougness->Bind(Shader::Pixel, 3);
 
     // Bind depth buffer
     bDepth->BindResources(Shader::Pixel, 4);
@@ -319,7 +333,7 @@ bool _DirectX::FrameFunction() {
 
     //mTerrainMesh->Bind();
     //mTerrainMesh->Render();
-    
+
     miSpaceShip->Bind(cPlayer);
     miSpaceShip->Render();
 
@@ -339,7 +353,7 @@ bool _DirectX::FrameFunction() {
     //              DirectX::XMMatrixTranslationFromVector(SunWorldPos);
     //cPlayer->SetWorldMatrix(mWorld);
     //cPlayer->BuildConstantBuffer();
-    
+
     //shTexturedQuad->Bind();
     //cPlayer->BindBuffer(Shader::Vertex, 0);
 
@@ -367,26 +381,29 @@ bool _DirectX::FrameFunction() {
     sMipLinear->Bind(Shader::Pixel);
 
     mSkybox->Render();
+#pragma endregion
 
     // Enable depth test
-    gContext->OMSetDepthStencilState(pDSS_Default, 1);
+    //gContext->OMSetDepthStencilState(pDSS_Default, 1);
 
     // Set defaults
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     gContext->RSSetState(gRSDefault);
 
-    sRenderBuffer* _Depth2 = bDepth->GetDepth(); // Shadow map
-    sRenderBuffer* _Depth  = bGBuffer->GetDepth();
-    sRenderBuffer* _Color0 = bGBuffer->GetColor0(); // Diffuse
-    sRenderBuffer* _Color1 = bGBuffer->GetColor1(); // Normal
-    sRenderBuffer* _Color2 = bGBuffer->GetColor2(); // Specular
+    sRenderBuffer* _Depth2 = bDepth->GetDepth();     // Shadow map
+    sRenderBuffer* _Depth = bGBuffer->GetDepth();    // Depth
+    sRenderBuffer* _Color0 = bGBuffer->GetColor0();  // Diffuse
+    sRenderBuffer* _Color1 = bGBuffer->GetColor1();  // Normal
+    sRenderBuffer* _Color2 = bGBuffer->GetColor2();  // Specular
     sRenderBuffer* _ColorD = bDeferred->GetColor0(); // Diffuse deferred
-    sRenderBuffer* _SSLRBf = bSSLR->GetColor0(); // SSLR
+    sRenderBuffer* _SSLRBf = bSSLR->GetColor0();     // SSLR
 
 #pragma region Deferred rendering pass 1
     bDeferred->Bind();                                      // Set Render Target
-    shDeferred->Bind();                                     // Set Shader
+    shDeferredPointLight->Bind();                           // Set Shader
     gContext->ClearRenderTargetView(_ColorD->pRTV, Clear0); // Clear Render Target
+
+    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 
     // Build & Bind Constant buffer
     DirectX::XMFLOAT4 LightPos = { 1.62895, 5.54253, 2.93616/*60.4084, 22.6733, 2.3704*/, 20 };
@@ -394,9 +411,9 @@ bool _DirectX::FrameFunction() {
         //DirectX::XMMatrixScaling(LightPos.w, LightPos.w, LightPos.w) *
         DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z));
     cPlayer->BuildConstantBuffer({ LightPos.x, LightPos.y, LightPos.z, LightPos.w });
-    cPlayer->BindBuffer(Shader::Vertex, 0);
+    cPlayer->BindBuffer(Shader::Domain, 0);
 
-    // Update inverse matrix
+    // Update matrix
     cbDeferredGlobal* data = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
     data->_mInvView = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
 
@@ -412,27 +429,53 @@ bool _DirectX::FrameFunction() {
     sPoint->Bind(Shader::Pixel, 0);
     sPoint->Bind(Shader::Pixel, 1);
 
-    mUnitSphereUV->Render();
+    gContext->Draw(2, 0);
+
+    //mUnitSphereUV->Render();
+
 #pragma endregion
 
-    // Screen-space local reflections
-    /*bSSLR->Bind(); // Render Target
+    // Defaults
+    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    gContext->OMSetDepthStencilState(pDSS_Default, 1);
+
+#pragma region Screen-space local reflections
+    bSSLR->Bind(); // Render Target
     shSSLR->Bind(); // Shader
     gContext->ClearRenderTargetView(_SSLRBf->pRTV, Clear0);
 
+    DirectX::XMVECTOR wparam;
+    wparam.m128_f32[0] = cPlayer->GetPosition().x;
+    wparam.m128_f32[1] = cPlayer->GetPosition().y;
+    wparam.m128_f32[2] = cPlayer->GetPosition().z;
+    wparam.m128_f32[3] = 1.;
+
     c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
-    c2DScreen->BuildConstantBuffer(); // Constant buffer
+    c2DScreen->BuildConstantBuffer(wparam); // Constant buffer
     c2DScreen->BindBuffer(Shader::Vertex, 0);
 
-    gContext->PSSetShaderResources(0, 1, &_Color0->pSRV);
-    gContext->PSSetShaderResources(1, 1, &_Color1->pSRV);
-    gContext->PSSetShaderResources(2, 1, &_Depth->pSRV);
+    // Update constant buffer for SSLR
+    cbSSLRMatrix *SSLRMdata = (cbSSLRMatrix*)cbSSLRMatrixInst->Map();
+    //DirectX::XMMATRIX __m = cPlayer->GetProjMatrix() * cPlayer->GetViewMatrix();
+    SSLRMdata->_mInvView = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
+    SSLRMdata->_mInvProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetProjMatrix()), cPlayer->GetProjMatrix());
+    SSLRMdata->_mView    = cPlayer->GetViewMatrix();
+    SSLRMdata->_mProj    = cPlayer->GetProjMatrix();
+    cbSSLRMatrixInst->Unmap();
+
+    // Bind constant buffer
+    cbSSLRMatrixInst->Bind(Shader::Pixel, 0);
+
+    gContext->PSSetShaderResources(0, 1, &_Color0->pSRV); // Diffuse
+    gContext->PSSetShaderResources(1, 1, &_Color1->pSRV); // Normal
+    gContext->PSSetShaderResources(2, 1, &_Depth->pSRV);  // Depth
 
     sPoint->Bind(Shader::Pixel, 0);
     sPoint->Bind(Shader::Pixel, 1);
     sPoint->Bind(Shader::Pixel, 2);
 
-    mScreenPlane->Render();*/
+    gContext->Draw(6, 0);
+#pragma endregion
 
 #pragma region Deferred final pass
 
@@ -452,8 +495,8 @@ bool _DirectX::FrameFunction() {
     sPoint->Bind(Shader::Pixel);
 
     // SSLR
-    //gContext->PSSetShaderResources(1, 1, &_SSLRBf->pSRV);
-    //sPoint->Bind(Shader::Pixel);
+    gContext->PSSetShaderResources(1, 1, &_SSLRBf->pSRV);
+    sPoint->Bind(Shader::Pixel);
 
     gContext->Draw(6, 0);
 
@@ -476,7 +519,7 @@ bool _DirectX::FrameFunction() {
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
             _Color0->pSRV,
             _Color1->pSRV,
-            _ColorD->pSRV
+            _SSLRBf->pSRV
         };
 
         shGUI->Bind();
@@ -552,7 +595,7 @@ void _DirectX::Tick(float fDeltaTime) {
 
     if( !bLookMouse ) { return; }
     float dx = 0.f, dy = 0.f;
-
+    
 #if USE_GAMEPADS
     // Use gamepad if we can and it's connected
     if( gGamepad[0]->IsConnected() ) {
@@ -584,6 +627,7 @@ void _DirectX::Tick(float fDeltaTime) {
         if( abs(dy) <= .1 ) {
             fPitch += (float(gMouse->GetY() - winCFG.CurrentHeight2 * .5f) * fSensetivityY * fDeltaTime);
             b = true;
+            //std::cout << winCFG.CurrentHeight2 * .5f << " " << gMouse->GetY() << std::endl;
         }
 
         if( b ) gMouse->SetAt(int(winCFG.CurrentWidth * .5f), int(winCFG.CurrentHeight2 * .5f));
@@ -692,16 +736,21 @@ void _DirectX::Resize() {
     if( !cfg.Resized ) { return; }                                     // Window isn't resized
     if( cfg.CurrentWidth <= 0 && cfg.CurrentHeight2 <= 0 ) { return;  } // Window was minimazed
 
-    std::cout << "Window/DirectX resize event (w=" << cfg.CurrentWidth << ", h=" << cfg.CurrentHeight2 << ")" << std::endl;
+    std::cout << "Window/DirectX resize event (w=" << cfg.CurrentWidth << ", h=" << cfg.CurrentHeight << ")" << std::endl;
 
     // Release targets
     gContext->OMSetRenderTargets(0, 0, 0);
     gRTV->Release();
-    bGBuffer->Resize(cfg.CurrentWidth, cfg.CurrentHeight2);
+
+    // Resize buffer
+    bGBuffer->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
+    bSSLR->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
+    bDeferred->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
+    bShadows->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
 
     // Resize swapchain
     scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
-    scd.BufferDesc.Height = (UINT)cfg.CurrentHeight2;
+    scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
 
     gSwapchain->ResizeTarget(&scd.BufferDesc);
 
@@ -727,20 +776,20 @@ void _DirectX::Resize() {
 
     // Recalculate camer's aspect ratio and projection matrix
     CameraConfig cfg2 = cPlayer->GetParams();
-    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight2);
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
     cPlayer->BuildProj();
 
     // Save aspect
     fAspect = cfg2.fAspect;
 
     cfg2 = c2DScreen->GetParams();
-    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight2);
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
     c2DScreen->BuildProj();
 
     // Set up the viewport
     D3D11_VIEWPORT vp;
     vp.Width = static_cast<float>(cfg.CurrentWidth);
-    vp.Height = static_cast<float>(cfg.CurrentHeight2);
+    vp.Height = static_cast<float>(cfg.CurrentHeight);
     vp.MinDepth = 0.0f;
     vp.MaxDepth = 1.0f;
     vp.TopLeftX = 0;
@@ -751,8 +800,8 @@ void _DirectX::Resize() {
     vpMain.MaxDepth = 1.f;
     vpMain.TopLeftX = 0;
     vpMain.TopLeftY = 0;
-    vpMain.Width    = cfg.CurrentWidth;
-    vpMain.Height   = cfg.CurrentHeight2;
+    vpMain.Width    = vp.Width;
+    vpMain.Height   = vp.Height;
 }
 
 void _DirectX::Load() {
@@ -776,6 +825,7 @@ void _DirectX::Load() {
     shSSLR = new Shader();
     shDeferred = new Shader();
     shDeferredFinal = new Shader();
+    shDeferredPointLight = new Shader();
 
     cPlayer = new Camera();
     c2DScreen = new Camera();
@@ -790,6 +840,8 @@ void _DirectX::Load() {
     sPoint = new Sampler();
     sMipLinear = new Sampler();
     sPointClamp = new Sampler();
+    sMipLinearOpacity = new Sampler();
+    sMipLinearRougness = new Sampler();
 
     mDefaultDiffuse = new DiffuseMap();
 
@@ -799,6 +851,7 @@ void _DirectX::Load() {
     bGBuffer = new RenderBufferColor3Depth();
     bSSLR = new RenderBufferColor1();
     bDeferred = new RenderBufferColor1();
+    bShadows = new RenderBufferColor1();
 
     pCubemap = new CubemapTexture();
 
@@ -806,7 +859,8 @@ void _DirectX::Load() {
 
     cbDeferredGlobalInst = new ConstantBuffer();
     cbDeferredLightInst  = new ConstantBuffer();
-
+    cbSSLRMatrixInst = new ConstantBuffer();
+    
     sfxShotSingle = new SoundEffect("../Sounds/SingleEnergyShot.wav");
     sfxShotSingle->Create();
     sfxShotSingle->SetVolume(.2f);
@@ -834,6 +888,9 @@ void _DirectX::Load() {
 
     const WindowConfig& cfg = gWindow->GetCFG();
 
+    // 
+    cbSSLRMatrixInst->CreateDefault(sizeof(cbSSLRMatrix));
+
     // Create depth buffer
     bDepth->Create(2048, 2048, 32);
     bDepth->SetName("Shadow map depth buffer");
@@ -849,15 +906,15 @@ void _DirectX::Load() {
     // Geometry Buffer
     bGBuffer->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
     bGBuffer->CreateDepth(32);
-    bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
-    bGBuffer->CreateColor1(DXGI_FORMAT_R16G16_FLOAT);       // Normal
+    bGBuffer->CreateColor0(DXGI_FORMAT_R10G10B10A2_UNORM); // Diffuse
+    bGBuffer->CreateColor1(DXGI_FORMAT_R16G16B16A16_FLOAT); // Normal
     bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
     
     // Create 
     D3D11_RASTERIZER_DESC rDesc2;
     ZeroMemory(&rDesc2, sizeof(D3D11_RASTERIZER_DESC));
     rDesc2.AntialiasedLineEnable = false;
-    rDesc2.CullMode = D3D11_CULL_FRONT;
+    rDesc2.CullMode = D3D11_CULL_NONE;
     rDesc2.DepthBias = 0;
     rDesc2.DepthBiasClamp = 0.0f;
     rDesc2.DepthClipEnable = true;
@@ -911,8 +968,6 @@ void _DirectX::Load() {
     Model::SetDefaultTextureSpecular(tSpecularDefault);
 
     // Create samplers
-    FLOAT BorderColor[] = { 1.f, 1.f, 1.f, 1.f };
-
     D3D11_SAMPLER_DESC pDesc;
     ZeroMemory(&pDesc, sizeof(D3D11_SAMPLER_DESC));
     pDesc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
@@ -929,6 +984,16 @@ void _DirectX::Load() {
     sPoint->Create(pDesc);
     sPoint->SetName("Point sampler");
 
+    // Linear mip opacity sampler
+    pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
+    sMipLinearOpacity->Create(pDesc);
+    sMipLinearOpacity->SetName("Linear mip opacity sampler");
+
+    // Linear mip rougness sampler
+    pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = 0.;
+    sMipLinearRougness->Create(pDesc);
+    sMipLinearRougness->SetName("Linear mip rougness sampler");
+
     // Anisotropic mip sampler
     pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
     sMipLinear->Create(pDesc);
@@ -940,7 +1005,7 @@ void _DirectX::Load() {
     pDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
     pDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
     pDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
-    *pDesc.BorderColor = *BorderColor;
+    pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sPointClamp->Create(pDesc);
     sPointClamp->SetName("Clamp point sampler");
 
@@ -979,11 +1044,14 @@ void _DirectX::Load() {
     cbDeferredGlobal* dgData = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
     
     // Don't forget to update buffer
+    DirectX::XMMATRIX mProjTmp = cPlayer->GetProjMatrix();
     float fHalfTanFov = tanf(DirectX::XMConvertToRadians(cfg2.FOV * .5)); // dtan(fov * .5)
-    dgData->_TanAspect = { fHalfTanFov * fAspect, -fHalfTanFov };
-    dgData->_Texel     = { 1.f / cfg.CurrentWidth, 1.f / cfg.CurrentHeight2};
-    dgData->_Far       = { cfg2.fFar, 0.f, 0.f, 0.f };
-    dgData->_mInvView  = DirectX::XMMatrixIdentity();
+    dgData->_TanAspect  = { fHalfTanFov * fAspect, -fHalfTanFov };
+    dgData->_Texel      = { 1.f / cfg.CurrentWidth, 1.f / cfg.CurrentHeight2};
+    dgData->_Far        = cfg2.fFar;
+    dgData->PADDING0    = 0;
+    dgData->_ProjValues = { 1.f / mProjTmp.r[0].m128_f32[0], 1.f / mProjTmp.r[1].m128_f32[1], mProjTmp.r[3].m128_f32[2], -mProjTmp.r[2].m128_f32[2] };
+    dgData->_mInvView   = DirectX::XMMatrixIdentity();
 
     cbDeferredGlobalInst->Unmap();
 
@@ -1008,7 +1076,7 @@ void _DirectX::Load() {
 
     // 
     cfg2.fNear = .1f;
-    cfg2.fFar = 10000.f;
+    cfg2.fFar  = 10000.f;
     cfg2.FOV = 90.f;
     cfg2.fAspect = 1.f;
     cLight->SetParams(cfg2);
@@ -1070,6 +1138,12 @@ void _DirectX::Load() {
     shDeferredFinal->AttachShader(shPostProcess, Shader::Vertex);
     shDeferredFinal->LoadFile("shDeferredFinalPS.cso", Shader::Pixel);
 
+    // Deferred point light
+    shDeferredPointLight->LoadFile("shNullVertexVS.cso"        , Shader::Vertex);
+    shDeferredPointLight->LoadFile("shHemisphereHS.cso"        , Shader::Hull);
+    shDeferredPointLight->LoadFile("shHemisphereDS.cso"        , Shader::Domain);
+    shDeferredPointLight->LoadFile("shDeferredPointLightPS.cso", Shader::Pixel);
+
     // Clean shaders
     shTest->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
@@ -1082,10 +1156,13 @@ void _DirectX::Load() {
     shSSLR->ReleaseBlobs();
     shDeferred->ReleaseBlobs();
     shDeferredFinal->ReleaseBlobs();
+    shDeferredPointLight->ReleaseBlobs();
 
     // Create model
     mModel1 = new Model("Test model #1");
-    mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/TransparencyTest1/TrasparancyTestJoined.obj"); //Sponza/sponza.obj");
+    //mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/Sponza/sponza.obj");
+    mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/TransparencyTest1/TrasparancyTestJoined.obj");
+    //mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/PBRTest.obj");
     mModel1->EnableDefaultTexture();
 
     mModel2 = new Model("Test model #2");
@@ -1224,6 +1301,7 @@ void _DirectX::Unload() {
     shSSLR->DeleteShaders();
     shDeferred->DeleteShaders();
     shDeferredFinal->DeleteShaders();
+    shDeferredPointLight->DeleteShaders();
 
     // Release models
     mModel1->Release();

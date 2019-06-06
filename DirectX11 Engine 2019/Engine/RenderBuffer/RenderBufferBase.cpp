@@ -56,6 +56,7 @@ sRenderBuffer* RenderBufferBase::CreateRTV2D(int W, int H, DXGI_FORMAT format) {
         Out->pTexture2D = pTexture;
         Out->pSRV       = pSRV;
         Out->Flags      = RTV | Is2D;
+        Out->format     = format;
     return Out;
 }
 
@@ -128,6 +129,7 @@ sRenderBuffer* RenderBufferBase::CreateDSV2D(int W, int H, UINT bpp) {
         Out->pTexture2D = pTexture;
         Out->pSRV       = pSRV;
         Out->Flags      = DSV | Is2D;
+        Out->bpp        = bpp;
     return Out;
 }
 

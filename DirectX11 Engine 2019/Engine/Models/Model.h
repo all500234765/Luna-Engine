@@ -18,10 +18,12 @@
 
 #include "Engine/Models/Mesh.h"
 #include "Engine/Materials/Texture.h"
+#include "Engine/DirectX/ConstantBuffer.h"
 
 class Model: public DirectXChild {
 protected:
     static Texture *gDefaultTexture, *gDefaultTextureOpacity, *gDefaultTextureSpecular;
+    static ID3D11ShaderResourceView* gNullRes;
 
 private:
     typedef enum {
@@ -45,6 +47,18 @@ private:
     int num, mVertexSize;
     bool bUseDefaultTexture = true;
 
+    ConstantBuffer *cbBoolTexturesInst;
+
+    struct cbBoolTextures {
+        bool bDiffuse;
+        bool bNormals;
+        bool bOpacity;
+        bool bSpecular;
+        bool bCubemap;
+        bool PADDING[11];
+    };
+
+    //cbBoolTextures cbBoolTexturesInstData;
 public:
     Model(const char* name, int SizeOfVertex);
     Model(const char* name);

@@ -30,8 +30,9 @@ static const float2 arrUV[6] = {
 };
 
 struct PS {
-    float4 Position : SV_Position;
-    float2 Texcoord : TEXCOORD0;
+    float4 Position  : SV_Position;
+    float2 Texcoord  : TEXCOORD0;
+    float4 CameraPos : TEXCOORD1;
 };
 
 PS main(uint index : SV_VertexID) {
@@ -39,7 +40,8 @@ PS main(uint index : SV_VertexID) {
     float2 Pos = arrPos[index];
 
     PS Out;
-        Out.Position = mul(mWorld, float4(Pos, 1., 1.));
-        Out.Texcoord = UV;
+        Out.Position  = mul(mWorld, float4(Pos, 1., 1.));
+        Out.Texcoord  = UV;
+        Out.CameraPos = vPosition;
     return Out;
 }
