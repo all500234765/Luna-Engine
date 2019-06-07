@@ -49,6 +49,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shPostProcessPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shScreenSpaceShadowsPS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shSkyboxPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>

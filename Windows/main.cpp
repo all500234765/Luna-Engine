@@ -8,7 +8,7 @@
 Camera *cPlayer, *c2DScreen, *cLight;
 Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
        *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR, *shDeferred, 
-       *shDeferredFinal, *shDeferredPointLight;
+       *shDeferredFinal, *shDeferredPointLight, *shScreenSpaceShadows;
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
 ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 
@@ -397,6 +397,7 @@ bool _DirectX::FrameFunction() {
     sRenderBuffer* _Color2 = bGBuffer->GetColor2();  // Specular
     sRenderBuffer* _ColorD = bDeferred->GetColor0(); // Diffuse deferred
     sRenderBuffer* _SSLRBf = bSSLR->GetColor0();     // SSLR
+    sRenderBuffer* _Shadow = bShadows->GetColor0();  // Shadow buffer
 
 #pragma region Deferred rendering pass 1
     bDeferred->Bind();                                      // Set Render Target
@@ -477,6 +478,37 @@ bool _DirectX::FrameFunction() {
     gContext->Draw(6, 0);
 #pragma endregion
 
+#pragma region Screen-Space Shadow mapping
+    // Set up states
+    bShadows->Bind();
+    shScreenSpaceShadows->Bind();
+    gContext->ClearRenderTargetView(_Shadow->pRTV, Clear0);
+
+    // Constant buffers
+    c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
+    c2DScreen->BuildConstantBuffer(); // Constant buffer
+    c2DScreen->BindBuffer(Shader::Vertex, 0);
+
+    cbSSLRMatrixInst->Bind(Shader::Pixel, 0);
+    cLight->BindBuffer(Shader::Pixel, 1);
+
+    //gContext->PSSetShaderResources(2, 1, &_Depth->pSRV);  // Depth
+
+    // Bind scene depth buffer
+    bGBuffer->BindResources(Shader::Pixel, 0);
+    sPoint->Bind(Shader::Pixel, 0);
+
+    // Bind sun depth buffer
+    bDepth->BindResources(Shader::Pixel, 1);
+    sPointClamp->Bind(Shader::Pixel, 1);
+
+    // Bind noise texture
+    tBlueNoiseRG->Bind(Shader::Pixel, 2);
+    sPoint->Bind(Shader::Pixel, 2);
+
+    gContext->Draw(6, 0);
+#pragma endregion
+
 #pragma region Deferred final pass
 
 #pragma endregion
@@ -517,7 +549,7 @@ bool _DirectX::FrameFunction() {
     if( bDebugGUI ) {
         // 3 is best number here
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
-            _Color0->pSRV,
+            _Shadow->pSRV,
             _Color1->pSRV,
             _SSLRBf->pSRV
         };
@@ -826,6 +858,7 @@ void _DirectX::Load() {
     shDeferred = new Shader();
     shDeferredFinal = new Shader();
     shDeferredPointLight = new Shader();
+    shScreenSpaceShadows = new Shader();
 
     cPlayer = new Camera();
     c2DScreen = new Camera();
@@ -888,8 +921,12 @@ void _DirectX::Load() {
 
     const WindowConfig& cfg = gWindow->GetCFG();
 
-    // 
+    // Create constant buffers
     cbSSLRMatrixInst->CreateDefault(sizeof(cbSSLRMatrix));
+
+    // 
+    bShadows->SetSize(1024, 540);
+    bShadows->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
 
     // Create depth buffer
     bDepth->Create(2048, 2048, 32);
@@ -1144,6 +1181,10 @@ void _DirectX::Load() {
     shDeferredPointLight->LoadFile("shHemisphereDS.cso"        , Shader::Domain);
     shDeferredPointLight->LoadFile("shDeferredPointLightPS.cso", Shader::Pixel);
 
+    // Screen-Space shadows
+    shScreenSpaceShadows->AttachShader(shPostProcess, Shader::Vertex);
+    shScreenSpaceShadows->LoadFile("shScreenSpaceShadowsPS.cso", Shader::Pixel);
+
     // Clean shaders
     shTest->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
@@ -1157,6 +1198,7 @@ void _DirectX::Load() {
     shDeferred->ReleaseBlobs();
     shDeferredFinal->ReleaseBlobs();
     shDeferredPointLight->ReleaseBlobs();
+    shScreenSpaceShadows->ReleaseBlobs();
 
     // Create model
     mModel1 = new Model("Test model #1");
@@ -1302,6 +1344,7 @@ void _DirectX::Unload() {
     shDeferred->DeleteShaders();
     shDeferredFinal->DeleteShaders();
     shDeferredPointLight->DeleteShaders();
+    shScreenSpaceShadows->DeleteShaders();
 
     // Release models
     mModel1->Release();
@@ -1319,6 +1362,9 @@ void _DirectX::Unload() {
     // Release buffers
     bDepth->Release();
     bGBuffer->Release();
+    bDeferred->Release();
+    bShadows->Release();
+    bSSLR->Release();
 }
 
 #if USE_ANSEL

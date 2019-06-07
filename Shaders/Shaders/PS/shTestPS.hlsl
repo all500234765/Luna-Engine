@@ -62,7 +62,7 @@ float SampleShadow(float4 lpos) {
      || projCoords.z > 1. ) return 0.;
 
     // Calculate dx and dy based on Noise
-    float2 fNoise = _NoiseTexture.Sample(_NoiseSampler, projCoords.xy /* 20.f*/) * 2. - 1.; // * .00625;
+    float2 fNoise = _NoiseTexture.Sample(_NoiseSampler, projCoords.xy * 20.f) * 2. - 1.; // * .00625;
     float2 dx = float2(fNoise.x * _ShadowMapTexel, 0.);
     float2 dy = float2(0., fNoise.y * _ShadowMapTexel);
     float2 p_dxdy = (dx + dy);
