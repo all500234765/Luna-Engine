@@ -929,7 +929,7 @@ void _DirectX::Load() {
     bShadows->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
 
     // Create depth buffer
-    bDepth->Create(2048, 2048, 32);
+    bDepth->Create(1024, 1024, 32);
     bDepth->SetName("Shadow map depth buffer");
 
     // Deferred buffer
@@ -943,7 +943,7 @@ void _DirectX::Load() {
     // Geometry Buffer
     bGBuffer->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
     bGBuffer->CreateDepth(32);
-    bGBuffer->CreateColor0(DXGI_FORMAT_R10G10B10A2_UNORM); // Diffuse
+    bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
     bGBuffer->CreateColor1(DXGI_FORMAT_R16G16B16A16_FLOAT); // Normal
     bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
     
