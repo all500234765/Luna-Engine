@@ -36,7 +36,7 @@ ID3D11RasterizerState *rsFrontCull;
 
 D3D11_VIEWPORT vpDepth, vpMain;
 
-// 
+// Physical objects
 PhysicsObjectSphere *sphere1, *sphere2;
 
 // Deferred light system needs those
@@ -269,7 +269,8 @@ bool _DirectX::FrameFunction() {
         cPlayer->BuildView();
     }
 
-#pragma region Render depth buffer
+
+#pragma region Render depth buffer for directional light
     bDepth->Bind();
 
     gContext->RSSetState(rsFrontCull);
@@ -297,7 +298,8 @@ bool _DirectX::FrameFunction() {
 
     // Balls
     for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
-        DrawBall(cLight, gPhysicsEngine->GetObjectP(i)->GetPosition(), ((PhysicsObjectSphere*)gPhysicsEngine->GetObjectP(i))->GetRadius());
+        DrawBall(cLight, gPhysicsEngine->GetObjectP(i)->GetPosition(), 
+                 ((PhysicsObjectSphere*)gPhysicsEngine->GetObjectP(i))->GetRadius());
     }
 
     //mShadowTest1->Render();
@@ -410,7 +412,11 @@ bool _DirectX::FrameFunction() {
 
     // Balls
     for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
-        DrawBall(cPlayer, gPhysicsEngine->GetObjectP(i)->GetPosition(), ((PhysicsObjectSphere*)gPhysicsEngine->GetObjectP(i))->GetRadius());
+        const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
+
+        if( obj->GetShapeType() == PhysicsShapeType::Sphere )
+            DrawBall(cPlayer, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
+
     }
 
     // Render skybox
@@ -896,8 +902,8 @@ void _DirectX::Resize() {
 
 void _DirectX::Load() {
     // Physics
-    sphere1 = new PhysicsObjectSphere({ 0., 10., 0. }, 4., { 1., 1., 0. });
-    sphere2 = new PhysicsObjectSphere({ 20., 30., -9. }, 3., { -.8, -.9, .7 });
+    sphere1 = new PhysicsObjectSphere({ 0., 0.,   0. }, 1., { 0., 0., +1. });
+    sphere2 = new PhysicsObjectSphere({ 0., 0., +10. }, 2., { 0., 0., -1. });
 
     gPhysicsEngine->PushObject(sphere1);
     gPhysicsEngine->PushObject(sphere2);

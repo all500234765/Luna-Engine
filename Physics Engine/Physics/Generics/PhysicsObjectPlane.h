@@ -11,7 +11,9 @@ private:
     pFloat mDistance;
 
 public:
-    PhysicsObjectPlane(const pFloat3& normal, pFloat dist): mNormal(normal), mDistance(dist) {};
+    PhysicsObjectPlane(const pFloat3& normal, pFloat dist): mNormal(normal), mDistance(dist) {
+        SetType(PhysicsShapeType::Plane);
+    };
 
     inline const pFloat3& GetNormal() const { return mNormal; }
     inline pFloat GetDistance() const { return mDistance; }
