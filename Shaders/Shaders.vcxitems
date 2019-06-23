@@ -28,6 +28,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shTerrainDS.hlsl">
       <ShaderType>Domain</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shUnitsphereDS.hlsl">
+      <ShaderType>Domain</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\HS\shHemisphereHS.hlsl">
       <ShaderType>Hull</ShaderType>
     </FxCompile>
@@ -67,6 +70,9 @@
       <FileType>Document</FileType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shUnitSpherePS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDeferredVS.hlsl">

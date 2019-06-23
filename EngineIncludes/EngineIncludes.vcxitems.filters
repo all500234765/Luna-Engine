@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)EngineIncludes\MainInclude.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)EngineIncludes\EngineDirectories.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\EngineDirectories.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\MainInclude.h" />
   </ItemGroup>
 </Project>

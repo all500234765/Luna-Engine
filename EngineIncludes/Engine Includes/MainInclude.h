@@ -51,6 +51,14 @@
 #include "Audio/SoundEffect.h"
 #include "Audio/Music.h"
 
+// Physics Engine
+#include "Physics/Collision/CollisionData.h"
+#include "Physics/Generics/PhysicsObject.h"
+#include "Physics/Generics/PhysicsObjectSphere.h"
+#include "Physics/Main/PhysicsEngine.h"
+#include "Physics/Main/PhysicsEngineDX11.h"
+#include "Physics/Main/PhysicsEngineSIMD.h"
+
 // Ansel support
 #if USE_ANSEL
 #include "Vendor/Ansel/AnselSDK.h"
@@ -87,12 +95,13 @@
 #endif
 
 // Global game instances
-static _DirectX    *gDirectX     = 0;
-static Window      *gWindow      = 0;
-static Input       *gInput       = 0;
-static Mouse       *gMouse       = 0;
-static Keyboard    *gKeyboard    = 0;
-static AudioDevice *gAudioDevice = 0;
+static _DirectX      *gDirectX       = 0;
+static Window        *gWindow        = 0;
+static Input         *gInput         = 0;
+static Mouse         *gMouse         = 0;
+static Keyboard      *gKeyboard      = 0;
+static AudioDevice   *gAudioDevice   = 0;
+static PhysicsEngine *gPhysicsEngine = 0;
 
 #if USE_GAMEPADS
 static Gamepad* gGamepad[NUM_GAMEPAD] = {};

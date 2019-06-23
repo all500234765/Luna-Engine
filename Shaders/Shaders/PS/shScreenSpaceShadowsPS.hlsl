@@ -20,8 +20,6 @@ struct LightData {
     float4   vLightPosition;
 };
 
-StructuredBuffer<LightData> _LightBuffer : register(t3);
-
 Texture2D<float1> _ScreenDepthTexture : register(t0);
 SamplerState _ScreenDepthSampler      : register(s0);
 
@@ -33,6 +31,8 @@ SamplerComparisonState  _DepthSampler : register(s1) {
 
 Texture2D<float2> _NoiseTexture : register(t2);
 SamplerState _NoiseSampler      : register(s2);
+
+//StructuredBuffer<LightData> _LightBuffer : register(t3);
 
 // Screen space to World Space
 float3 GetWorldPos(float2 uv, float z) {

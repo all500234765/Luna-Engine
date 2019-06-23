@@ -4,6 +4,7 @@
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
     <HasSharedItems>true</HasSharedItems>
     <ItemsProjectGuid>{479577c0-029a-4ea8-bbd0-53e56b3faaa4}</ItemsProjectGuid>
+    <ItemsProjectName>Engine Includes</ItemsProjectName>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -14,7 +15,7 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)EngineIncludes\EngineDirectories.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)EngineIncludes\MainInclude.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\EngineDirectories.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\MainInclude.h" />
   </ItemGroup>
 </Project>

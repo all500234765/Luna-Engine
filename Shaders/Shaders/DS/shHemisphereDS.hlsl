@@ -14,6 +14,7 @@ struct PS {
     float4 Position : SV_Position0;
     float2 Texcoord : TEXCOORD0;
     float4 LightPos : TEXCOORD1;
+    float3 Normal   : NORMAL0;
 };
 
 struct HS {
@@ -36,7 +37,13 @@ PS main(ConstantOut In, float2 uv : SV_DomainLocation, const OutputPatch<HS, 4> 
     // Transform to projected space and generate UVs
     PS Out;
         Out.Position = mul(mProj, mul(mView, pos));
-        Out.Texcoord = Out.Position.xy / Out.Position.w;
         Out.LightPos = vPosition;
+
+        // Normalize to get texcoords
+        Out.Texcoord = Out.Position.xy / Out.Position.w * .5;
+        Out.Texcoord.x += .5;
+        Out.Texcoord.y = .5 - Out.Texcoord.y;
+
+        Out.Normal = nDir;
     return Out;
 }

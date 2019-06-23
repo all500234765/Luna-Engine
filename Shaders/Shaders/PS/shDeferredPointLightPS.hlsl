@@ -5,13 +5,14 @@ cbuffer bGlobal : register(b0) {
     float1 PADDING0;    // 
     float4 _ProjValues; // 1 / m[0][0], 1 / m[1][1], m[3][2], -m[2][2]
     float4x4 _mInvView; // 
+    float4 vCameraPos;  // Camera position
 }
 
 cbuffer bLightData : register(b1) {
     float3 _LightDiffuse;
     float1 PADDING1;
     float2 _LightData; // Empty, Intensity
-    float4 PADDING2;
+    float4 vPosition; // Light pos, w - unused
 };
 
 Texture2D<half2> _NormalTexture : register(t0);
@@ -43,23 +44,34 @@ float3 GetWorldPos(float2 ClipSpace, float lDepth) {
 struct PS {
     float4 Position : SV_Position0;
     float2 Texcoord : TEXCOORD0;
-    float3 LightPos : TEXCOORD1;
+    float4 LightPos : TEXCOORD1;
     
 };
 
+half3 PointLight(float3 p, float3 n) {
+    float3 lDir = vPosition  - p;
+    float3 eyeD = vCameraPos - p;
+    float dist = length(lDir);
+
+    // Lambertian
+    return dot(n, lDir / dist) * _LightDiffuse * _LightData.y;
+
+    // Specular
+
+}
+
 half4 main(PS In) : SV_Target0 {
     // Unpack GBuffer
-    int3 Location = int3(In.Position.xy, 0);
-
-    float LinDepth = Depth2Linear(_DepthTexture.Load(Location).x);
+    float LinDepth = Depth2Linear(_DepthTexture.Sample(_DepthSampler, In.Texcoord).x);
     //half4 Diffuse = ;
-    half3 Normal = NormalDecode(_NormalTexture.Load(Location));
+    half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
 
     // Reconstruct world position
     float3 WorldPos = GetWorldPos(In.Texcoord, LinDepth);
 
-    // 
-    half4 Final = half4((LinDepth.xxx) * 100., 1.);
+    // Calculate point light
+    half4 Final = half4(PointLight(In.Position.xyz, Normal), 1.);
+
 
 
     return Final;

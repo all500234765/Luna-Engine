@@ -4,8 +4,11 @@ SamplerState _Sampler : register(s0);
 Texture2D _SSLRTexture    : register(t1);
 SamplerState _SSLRSampler : register(s1);
 
-Texture2D<half2> _NormalTexture : register(t2);
-SamplerState _NormalSampler     : register(s2);
+Texture2D _ShadowTexture    : register(t2);
+SamplerState _ShadowSampler : register(s2);
+
+Texture2D _DeferredTexture    : register(t3);
+SamplerState _DeferredSampler : register(s3);
 
 struct PS {
     float4 Position : SV_Position;
@@ -92,6 +95,11 @@ half4 main(PS In): SV_Target0 {
     FxaaTex tex = {_Sampler, _Texture};
     Diff = FxaaPixelShader(In.Texcoord, 0, tex, tex, tex, 1.f / fxaaFrame, 0, 0, 0, 
                            fxaaSubpix, fxaaEdgeThreshold, fxaaEdgeThresholdMin, 0, 0, 0, 0);
+
+    //half3 Shadows  = _ShadowTexture.Sample(_ShadowSampler, In.Texcoord);
+    half3 Deferred = _DeferredTexture.Sample(_DeferredSampler, In.Texcoord);
+
+    //Diff.rgb *= Shadows;
 
     // Chromatic Abberation
     //float hdrLeft = _Texture.Sample(_Sampler, In.Texcoord, int2(-1, -1)).b;

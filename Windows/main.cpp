@@ -2,13 +2,14 @@
 #include "Engine/Extensions/Default.h"
 #include "Engine/Input/Gamepad.h"
 
-#include "EngineIncludes/MainInclude.h"
+#include "Engine Includes/MainInclude.h"
 
 // Test instances
 Camera *cPlayer, *c2DScreen, *cLight;
-Shader *shTest, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
+Shader *shSurface, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
        *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR, *shDeferred, 
-       *shDeferredFinal, *shDeferredPointLight, *shScreenSpaceShadows;
+       *shDeferredFinal, *shDeferredPointLight, *shScreenSpaceShadows, 
+       *shUnitSphere, *shUnitSphereDepthOnly;
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
 ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 
@@ -35,14 +36,18 @@ ID3D11RasterizerState *rsFrontCull;
 
 D3D11_VIEWPORT vpDepth, vpMain;
 
+// 
+PhysicsObjectSphere *sphere1, *sphere2;
+
 // Deferred light system needs those
 ConstantBuffer *cbDeferredGlobalInst, *cbDeferredLightInst;
 
 struct cbDeferredLight {
-    DirectX::XMFLOAT3 _LightDiffuse;
-    float             PADDING1;
-    DirectX::XMFLOAT2 _LightData; // Range, intensity
-    DirectX::XMFLOAT2 PADDING2;
+    DirectX::XMFLOAT3 _LightDiffuse; // Light diffuse color
+    float             PADDING1;      // Unused
+    DirectX::XMFLOAT2 _LightData;    // Range, intensity
+    DirectX::XMFLOAT2 PADDING2;      // Unused
+    DirectX::XMFLOAT4 vPosition;     // Camera pos, w - unused
 };
 
 struct cbDeferredGlobal {
@@ -52,6 +57,7 @@ struct cbDeferredGlobal {
     float PADDING0;                // Unused
     DirectX::XMFLOAT4 _ProjValues; // 1 / m[0][0], 1 / m[1][1], m[3][2], -m[2][2]
     DirectX::XMMATRIX _mInvView;   // Inverse matrix of view matrix
+    DirectX::XMFLOAT4 vCameraPos;  // Camera pos, w - unused
 };
 
 // SSLR
@@ -64,6 +70,7 @@ struct cbSSLRMatrix {
 };
 
 // Not yet done
+// And prob. won't be
 //#define LOWPOLY_EXAMPLE
 #ifdef LOWPOLY_EXAMPLE
 Mesh* mTerrainMesh;
@@ -274,6 +281,25 @@ bool _DirectX::FrameFunction() {
     shVertexOnly->Bind();
     miSpaceShip->Render();
 
+    // Render physics engine test unit spheres
+    shUnitSphereDepthOnly->Bind();
+
+    // 
+    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+
+    auto DrawBall = [&](Camera* cam, const pFloat3& pos, float radius) {
+        cam->SetWorldMatrix(DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z));
+        cam->BuildConstantBuffer({ 0., 0., 0., radius });
+        cam->BindBuffer(Shader::Domain, 0);
+
+        gContext->Draw(2, 0);
+    };
+
+    // Balls
+    for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
+        DrawBall(cLight, gPhysicsEngine->GetObjectP(i)->GetPosition(), ((PhysicsObjectSphere*)gPhysicsEngine->GetObjectP(i))->GetRadius());
+    }
+
     //mShadowTest1->Render();
 #pragma endregion
 
@@ -374,6 +400,19 @@ bool _DirectX::FrameFunction() {
     //gContext->OMSetDepthStencilState(pDSS_Default_NoDepthWrite, 1);
 #pragma endregion
 
+    // Render physics engine test unit spheres
+    shUnitSphere->Bind();
+
+    // 
+    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+
+    // Physics
+
+    // Balls
+    for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
+        DrawBall(cPlayer, gPhysicsEngine->GetObjectP(i)->GetPosition(), ((PhysicsObjectSphere*)gPhysicsEngine->GetObjectP(i))->GetRadius());
+    }
+
     // Render skybox
     mSkybox->Bind(cPlayer);
 
@@ -407,7 +446,7 @@ bool _DirectX::FrameFunction() {
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 
     // Build & Bind Constant buffer
-    DirectX::XMFLOAT4 LightPos = { 1.62895, 5.54253, 2.93616/*60.4084, 22.6733, 2.3704*/, 20 };
+    DirectX::XMFLOAT4 LightPos = { 1.62895, 5.54253, 2.93616/*60.4084, 22.6733, 2.3704*/, 100 };
     cPlayer->SetWorldMatrix(
         //DirectX::XMMatrixScaling(LightPos.w, LightPos.w, LightPos.w) *
         DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z));
@@ -415,9 +454,17 @@ bool _DirectX::FrameFunction() {
     cPlayer->BindBuffer(Shader::Domain, 0);
 
     // Update matrix
+    float FOV = cPlayer->GetParams().FOV;
+    float fFar = cPlayer->GetParams().fFar;
+    DirectX::XMMATRIX mProjTmp = cPlayer->GetProjMatrix();
+    float fHalfTanFov = tanf(DirectX::XMConvertToRadians(FOV * .5)); // dtan(fov * .5)
     cbDeferredGlobal* data = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
-    data->_mInvView = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
-
+    data->_mInvView   = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
+    data->_TanAspect = { fHalfTanFov * fAspect, -fHalfTanFov };
+    data->_Texel = { 1.f / cfg.Width, 1.f / cfg.Height };
+    data->_Far = fFar;
+    data->PADDING0 = 0;
+    data->_ProjValues = { 1.f / mProjTmp.r[0].m128_f32[0], 1.f / mProjTmp.r[1].m128_f32[1], mProjTmp.r[3].m128_f32[2], -mProjTmp.r[2].m128_f32[2] };
     cbDeferredGlobalInst->Unmap();
 
     // Bind buffers
@@ -480,7 +527,7 @@ bool _DirectX::FrameFunction() {
 
 #pragma region Screen-Space Shadow mapping
     // Set up states
-    bShadows->Bind();
+    /*bShadows->Bind();
     shScreenSpaceShadows->Bind();
     gContext->ClearRenderTargetView(_Shadow->pRTV, Clear0);
 
@@ -506,7 +553,7 @@ bool _DirectX::FrameFunction() {
     tBlueNoiseRG->Bind(Shader::Pixel, 2);
     sPoint->Bind(Shader::Pixel, 2);
 
-    gContext->Draw(6, 0);
+    gContext->Draw(6, 0);*/
 #pragma endregion
 
 #pragma region Deferred final pass
@@ -524,11 +571,19 @@ bool _DirectX::FrameFunction() {
     
     // Diffuse
     gContext->PSSetShaderResources(0, 1, &_Color0->pSRV);
-    sPoint->Bind(Shader::Pixel);
+    sPoint->Bind(Shader::Pixel, 0);
 
     // SSLR
     gContext->PSSetShaderResources(1, 1, &_SSLRBf->pSRV);
-    sPoint->Bind(Shader::Pixel);
+    sPoint->Bind(Shader::Pixel, 1);
+
+    // Shadows
+    gContext->PSSetShaderResources(2, 1, &_Shadow->pSRV);
+    sPoint->Bind(Shader::Pixel, 2);
+
+    // Deferred
+    gContext->PSSetShaderResources(3, 1, &_ColorD->pSRV);
+    sPoint->Bind(Shader::Pixel, 3);
 
     gContext->Draw(6, 0);
 
@@ -550,8 +605,8 @@ bool _DirectX::FrameFunction() {
         // 3 is best number here
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
             _Shadow->pSRV,
-            _Color1->pSRV,
-            _SSLRBf->pSRV
+            _SSLRBf->pSRV,
+            _ColorD->pSRV
         };
 
         shGUI->Bind();
@@ -598,6 +653,9 @@ float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f
 float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
+
+    // Update physics
+    gPhysicsEngine->Dispatch(fDeltaTime);
 
     // Set light's view matrix to math main camera's one
     if( gKeyboard->IsPressed(VK_SPACE) ) {
@@ -837,6 +895,13 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::Load() {
+    // Physics
+    sphere1 = new PhysicsObjectSphere({ 0., 10., 0. }, 4., { 1., 1., 0. });
+    sphere2 = new PhysicsObjectSphere({ 20., 30., -9. }, 3., { -.8, -.9, .7 });
+
+    gPhysicsEngine->PushObject(sphere1);
+    gPhysicsEngine->PushObject(sphere2);
+
     // Temp Bug fix
     gKeyboard->SetState(VK_W, false);
     gKeyboard->SetState(VK_S, false);
@@ -846,7 +911,7 @@ void _DirectX::Load() {
     gKeyboard->SetState(VK_RIGHT, false);
 
     // Create instances
-    shTest = new Shader();
+    shSurface = new Shader();
     shTerrain = new Shader();
     shSkeletalAnimations = new Shader();
     shGUI = new Shader();
@@ -859,6 +924,8 @@ void _DirectX::Load() {
     shDeferredFinal = new Shader();
     shDeferredPointLight = new Shader();
     shScreenSpaceShadows = new Shader();
+    shUnitSphere = new Shader();
+    shUnitSphereDepthOnly = new Shader();
 
     cPlayer = new Camera();
     c2DScreen = new Camera();
@@ -927,9 +994,9 @@ void _DirectX::Load() {
     // 
     bShadows->SetSize(1024, 540);
     bShadows->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
-
+    
     // Create depth buffer
-    bDepth->Create(1024, 1024, 32);
+    bDepth->Create(2048, 2048, 32);
     bDepth->SetName("Shadow map depth buffer");
 
     // Deferred buffer
@@ -1100,6 +1167,7 @@ void _DirectX::Load() {
     dlData->_LightData    = { 8.f, 1.5f };
     dlData->PADDING1      = 0.f;
     dlData->PADDING2      = { 0.f, 0.f };
+    dlData->vPosition     = { 1.62895, 5.54253, 2.93616, 0 };
 
     cbDeferredLightInst->Unmap();
 
@@ -1126,12 +1194,12 @@ void _DirectX::Load() {
     vpDepth.MaxDepth = 1.f;
     vpDepth.TopLeftX = 0;
     vpDepth.TopLeftY = 0;
-    vpDepth.Width    = 2048;
-    vpDepth.Height   = 2048;
+    vpDepth.Width    = bDepth->GetWidth();
+    vpDepth.Height   = bDepth->GetHeight();
 
     // Load shader
-    shTest->LoadFile("shTestVS.cso", Shader::Vertex);
-    shTest->LoadFile("shTestPS.cso", Shader::Pixel);
+    shSurface->LoadFile("shTestVS.cso", Shader::Vertex);
+    shSurface->LoadFile("shTestPS.cso", Shader::Pixel);
 
     // Don't forget to bind MatrixBuffer to Domain shader instead of Vertex
     shTerrain->LoadFile("shTerrainVS.cso", Shader::Vertex);
@@ -1184,9 +1252,21 @@ void _DirectX::Load() {
     // Screen-Space shadows
     shScreenSpaceShadows->AttachShader(shPostProcess, Shader::Vertex);
     shScreenSpaceShadows->LoadFile("shScreenSpaceShadowsPS.cso", Shader::Pixel);
+    
+    // Unit sphere
+    shUnitSphere->AttachShader(shDeferredPointLight, Shader::Vertex);
+    shUnitSphere->AttachShader(shDeferredPointLight, Shader::Hull);
+    shUnitSphere->LoadFile("shUnitSphereDS.cso", Shader::Domain);
+    shUnitSphere->LoadFile("shUnitSpherePS.cso", Shader::Pixel);
+
+    // Unit sphere depth only
+    shUnitSphereDepthOnly->AttachShader(shDeferredPointLight, Shader::Vertex);
+    shUnitSphereDepthOnly->AttachShader(shDeferredPointLight, Shader::Hull);
+    shUnitSphereDepthOnly->AttachShader(shUnitSphere, Shader::Domain);
+    shUnitSphereDepthOnly->SetNullShader(Shader::Pixel);
 
     // Clean shaders
-    shTest->ReleaseBlobs();
+    shSurface->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
     shSkeletalAnimations->ReleaseBlobs();
     shGUI->ReleaseBlobs();
@@ -1199,11 +1279,14 @@ void _DirectX::Load() {
     shDeferredFinal->ReleaseBlobs();
     shDeferredPointLight->ReleaseBlobs();
     shScreenSpaceShadows->ReleaseBlobs();
+    shUnitSphere->ReleaseBlobs();
+    shUnitSphereDepthOnly->ReleaseBlobs();
 
     // Create model
     mModel1 = new Model("Test model #1");
     //mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/Sponza/sponza.obj");
-    mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/TransparencyTest1/TrasparancyTestJoined.obj");
+    mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/ScreenPlane.obj");
+    //mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/TransparencyTest1/TrasparancyTestJoined.obj");
     //mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/PBRTest.obj");
     mModel1->EnableDefaultTexture();
 
@@ -1235,7 +1318,7 @@ void _DirectX::Load() {
     mLevel1 = new ModelInstance();
     mLevel1->SetName("Level 1 Instance");
     mLevel1->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
-    mLevel1->SetShader(shTest);
+    mLevel1->SetShader(shSurface);
     mLevel1->SetModel(mModel1);
 
     // Dunes
@@ -1263,12 +1346,18 @@ void _DirectX::Load() {
     // Space ship
     miSpaceShip = new ModelInstance();
     miSpaceShip->SetModel(mModel1); //mSpaceShip);
-    miSpaceShip->SetShader(shTest);
-    miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *
+    miSpaceShip->SetShader(shSurface);
+    miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(90.f)) *
+                                DirectX::XMMatrixTranslation(-1, -.25, 1) *
                                 //DirectX::XMMatrixScaling(.0625, .0625, .0625)
-                                DirectX::XMMatrixScaling(4, 4, 4)
-                                //DirectX::XMMatrixTranslation(50.f, 10.f, 0.f)
+                                DirectX::XMMatrixScaling(40, 10, 40)
+                                //DirectX::XMMatrixTranslation(-.5.f, -.5.f, 0.f)
     );
+    //miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *
+    //                            //DirectX::XMMatrixScaling(.0625, .0625, .0625)
+    //                            DirectX::XMMatrixScaling(4, 4, 4)
+    //                            //DirectX::XMMatrixTranslation(50.f, 10.f, 0.f)
+    //);
     
     // Speaks for it's self
 #ifdef LOWPOLY_EXAMPLE
@@ -1332,7 +1421,7 @@ void _DirectX::Unload() {
     //tDefault->Release(); // Material will delete it
 
     // Release shaders
-    shTest->DeleteShaders();
+    shSurface->DeleteShaders();
     shTerrain->DeleteShaders();
     shGUI->DeleteShaders();
     shSkeletalAnimations->DeleteShaders();
@@ -1345,6 +1434,8 @@ void _DirectX::Unload() {
     shDeferredFinal->DeleteShaders();
     shDeferredPointLight->DeleteShaders();
     shScreenSpaceShadows->DeleteShaders();
+    shUnitSphere->DeleteShaders();
+    shUnitSphereDepthOnly->DeleteShaders();
 
     // Release models
     mModel1->Release();
@@ -1474,6 +1565,7 @@ int main() {
     gWindow = new Window();
     gDirectX = new _DirectX();
     gAudioDevice = new AudioDevice();
+    gPhysicsEngine = new PhysicsEngine();
     
     // Window config
     WindowConfig winCFG;
@@ -1556,6 +1648,9 @@ int main() {
 
     // Set audio object
     AudioDeviceChild::SetAudioDevice(gAudioDevice);
+
+    // Set physics object
+    //PhysicsEngineChild::SetPhysicsEngine(gPhysicsEngine);
 
     // Load game data
     gDirectX->Load();

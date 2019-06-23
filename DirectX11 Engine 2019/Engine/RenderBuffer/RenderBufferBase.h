@@ -60,6 +60,9 @@ public:
 
     void BindResource(sRenderBuffer* data, Shader::ShaderType type, UINT slot = 0);
     void SetSize(int w, int h);
+    int GetWidth();
+    int GetHeight();
+    int GetDepth();
 
     void BindTarget(sRenderBuffer* dRTV, sRenderBuffer* dDSV);
     void BindTarget(sRenderBuffer* data);

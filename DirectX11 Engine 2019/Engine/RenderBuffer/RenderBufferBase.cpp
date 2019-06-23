@@ -218,6 +218,18 @@ void RenderBufferBase::SetSize(int w, int h) {
     Height = h;
 }
 
+int RenderBufferBase::GetWidth() {
+    return Width;
+}
+
+int RenderBufferBase::GetHeight() {
+    return Height;
+}
+
+int RenderBufferBase::GetDepth() {
+    return Depth;
+}
+
 void RenderBufferBase::BindTarget(sRenderBuffer* dRTV, sRenderBuffer* dDSV) {
     gDirectX->gContext->OMSetRenderTargets(1, &dRTV->pRTV, dDSV->pDSV);
 }

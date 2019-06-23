@@ -47,7 +47,7 @@ struct PS {
 
 float SampleShadow(float4 lpos) {
     const float _ShadowMapTexel = 1.f / 2048.f;
-    const float bias = .001*0;// +_ShadowMapTexel;
+    const float bias = .000005; // +_ShadowMapTexel;
     const float _Far = 10000.f;
 
     float3 projCoords = float3(.5 + (lpos.x / lpos.w) * .5,
@@ -94,7 +94,7 @@ half2 EncodeNormal(half3 n) {
     return half2(atan2(n.y, n.x) / kPI, n.z) * .5f + .5f;
 }
 
-GBuffer main(PS In) {
+GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
     [branch] if( _OpacityTexture.Sample(_OpacitySampler, In.Texcoord).r < .1 ) { discard; }
 
     // Calculate normal
@@ -102,15 +102,17 @@ GBuffer main(PS In) {
     //[branch] if( bNormals ) 
     {
         half3 NormalTex = _NormalTexture.Sample(_NormalSampler, In.Texcoord).rgb;
+        [branch] if( NormalTex.r > 0. ) N = normalize(mul(In.WorldTBN, NormalTex * 2. - 1.));
+        else                            N = normalize(In.WorldTBN._m20_m21_m22);
 
-        N = normalize(mul(In.WorldTBN, NormalTex * 2. - 1.));
+        N *= (1. - bIsFront * 2.);
     } /*else {
         N = normalize(In.WorldTBN._m20_m21_m22);
     } //*/
 
     // Shadows
-    const float s = .4;
-    half S = 1.; // SampleShadow(In.LightPos) * s + (1. - s);
+    const float s = .5;
+    half S = SampleShadow(In.LightPos) * s + (1. - s);
 
     // Diffuse texture
     half4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord);
