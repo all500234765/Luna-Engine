@@ -46,6 +46,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2D.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2DArray.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\ReferenceCounter.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Vertices.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\Window.h" />

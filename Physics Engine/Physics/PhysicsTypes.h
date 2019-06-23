@@ -2,6 +2,19 @@
 
 #include <algorithm>
 
+#ifndef _PhysicsShapeType_
+#define _PhysicsShapeType_
+typedef enum: char {
+    Undefined,
+    Sphere,
+    AABB,
+    Plane,
+    Box,
+    Cylinder,
+    Complex
+} PhysicsShapeType;
+#endif
+
 typedef float pFloat;
 
 struct pFloat3 {

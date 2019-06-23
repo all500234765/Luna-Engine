@@ -37,6 +37,7 @@ ID3D11RasterizerState *rsFrontCull;
 D3D11_VIEWPORT vpDepth, vpMain;
 
 // Physical objects
+PhysicsCollider *pColliderSphere;
 PhysicsObjectSphere *sphere1, *sphere2;
 
 // Deferred light system needs those
@@ -298,8 +299,10 @@ bool _DirectX::FrameFunction() {
 
     // Balls
     for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
-        DrawBall(cLight, gPhysicsEngine->GetObjectP(i)->GetPosition(), 
-                 ((PhysicsObjectSphere*)gPhysicsEngine->GetObjectP(i))->GetRadius());
+        const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
+
+        if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
+            DrawBall(cLight, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
     }
 
     //mShadowTest1->Render();
@@ -414,7 +417,7 @@ bool _DirectX::FrameFunction() {
     for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
         const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
 
-        if( obj->GetShapeType() == PhysicsShapeType::Sphere )
+        if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
             DrawBall(cPlayer, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
 
     }
@@ -902,8 +905,18 @@ void _DirectX::Resize() {
 
 void _DirectX::Load() {
     // Physics
-    sphere1 = new PhysicsObjectSphere({ 0., 0.,   0. }, 1., { 0., 0., +1. });
-    sphere2 = new PhysicsObjectSphere({ 0., 0., +10. }, 2., { 0., 0., -1. });
+    pColliderSphere = new PhysicsCollider(PhysicsShapeType::Sphere);
+
+    sphere1 = new PhysicsObjectSphere(pColliderSphere);
+    sphere2 = new PhysicsObjectSphere(pColliderSphere);
+
+    sphere1->SetPosition({ 0., 0., 0. });
+    sphere1->SetRadius(1.);
+    sphere1->SetVelocity({ 0., 0., +1. });
+
+    sphere2->SetPosition({ 0., 0., +10. });
+    sphere2->SetRadius(2.);
+    sphere2->SetVelocity({ 0., 0., -1. });
 
     gPhysicsEngine->PushObject(sphere1);
     gPhysicsEngine->PushObject(sphere2);
@@ -1402,6 +1415,9 @@ void _DirectX::Unload() {
 #if USE_HBAO_PLUS
     pAOContext->Release();
 #endif
+
+    // Physics
+    gPhysicsEngine->Release();
 
     // Release constant buffers
     cbDeferredGlobalInst->Release();

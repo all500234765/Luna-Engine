@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Physics\Collision\CollisionData.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Physics\Generics\PhysicsCollider.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Physics\Generics\PhysicsObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Physics\Generics\PhysicsObject.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Physics\Generics\PhysicsObjectAABB.cpp" />
@@ -24,6 +25,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Physics\Main\PhysicsEngineSIMD.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Physics\Generics\PhysicsCollider.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Physics\Generics\PhysicsObjectAABB.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Physics\Generics\PhysicsObjectPlane.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Physics\Generics\PhysicsObjectSphere.h" />

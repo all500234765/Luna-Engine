@@ -11,17 +11,13 @@ private:
     pFloat mDistance;
 
 public:
-    PhysicsObjectPlane(const pFloat3& normal, pFloat dist): mNormal(normal), mDistance(dist) {
-        SetType(PhysicsShapeType::Plane);
-    };
+    PhysicsObjectPlane(PhysicsCollider* col);
 
     inline const pFloat3& GetNormal() const { return mNormal; }
+    inline void SetNormal(const pFloat3& n) { mNormal = n; }
+
     inline pFloat GetDistance() const { return mDistance; }
+    inline void SetDistance(pFloat d) { mDistance = d; }
 
     const PhysicsObjectPlane& Normalized() const;
-
-    CollisionData Collide(const PhysicsObjectSphere& other) const override;
-    CollisionData Collide(const PhysicsObjectPlane& other) const override;
-    CollisionData Collide(const PhysicsObjectAABB& other) const override;
-
 };

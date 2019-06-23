@@ -18,6 +18,7 @@ public:
     void PopObject(PhysicsObject* obj);
 
     virtual void Dispatch(float dt);
+    virtual void Release();
 
     inline const PhysicsObject* GetObjectP(unsigned int index) const { return objects[index]; }
     inline int GetNumObjects() const { return objects.size(); }
