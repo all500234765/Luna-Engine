@@ -3,7 +3,7 @@
 class ReferenceCounter {
 public:
     ReferenceCounter():
-        _mRefCounter(1) {
+        _mRefCounter(0) {
     }
 
     inline int GetReferenceCount() { return _mRefCounter; }

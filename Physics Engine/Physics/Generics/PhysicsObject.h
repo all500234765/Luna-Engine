@@ -28,6 +28,8 @@ public:
     inline void SetPosition(const pFloat3& pos) { mPosition = pos; }
     //inline void SetOrientation(const pQuat& orient) { mOrientation = orient; }
 
+    inline void AddVelocity(const pFloat3& vel) { mVelocity += vel; }
+
     // Collision and colliders
     inline void SetCollider(PhysicsCollider* col) { mCollider = col; mCollider->GetRef()->AddReference(); }
     inline PhysicsCollider* GetCollider() const { return mCollider; }
@@ -37,3 +39,4 @@ public:
     // Integration
     void Integrate(float dt);
 };
+    

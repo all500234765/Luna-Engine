@@ -1,7 +1,7 @@
 #include "PhysicsObjectPlane.h"
 
 PhysicsObjectPlane::PhysicsObjectPlane(PhysicsCollider* col) {
-
+    SetCollider(col);
 }
 
 // TODO

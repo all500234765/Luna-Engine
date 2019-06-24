@@ -15,29 +15,49 @@ CollisionData PhysicsObject::Collide(const PhysicsObject& other) const {
         PhysicsObjectSphere* Other = (PhysicsObjectSphere*)&other;
 
         pFloat rDist = Self->GetRadius() + Other->GetRadius();
-        pFloat cDist = ((pFloat3)other.GetPosition() - GetPosition()).length();
+        pFloat3 Normal = (other.GetPosition() - GetPosition());
+        pFloat cDist = Normal.length();
+        Normal /= cDist;
+
+        pFloat dist = cDist - rDist;
 
         // Check for intersection
-        return { (cDist < rDist), cDist - rDist };
+        return { dist < 0, Normal * dist };
+
+        // 
     } else if( mCollider->GetShapeType() == PhysicsShapeType::AABB && other.mCollider->GetShapeType() == PhysicsShapeType::AABB ) {
         // Both AABBs
         PhysicsObjectAABB* Self = (PhysicsObjectAABB*)this;
         PhysicsObjectAABB* Other = (PhysicsObjectAABB*)&other;
 
-        pFloat dist = ((pFloat3)Other->GetMinPos() - Self->GetMaxPos()).max(
-            (pFloat3)Self->GetMinPos() - (pFloat3)Other->GetMaxPos()).max();
+        pFloat3 Normal = (Other->GetMinPos() - Self->GetMaxPos()).max(Self->GetMinPos() - Other->GetMaxPos());
 
         // Check for intersection
-        return { (dist < 0), dist };
+        return { (Normal.max() < 0), Normal };
+
+        // 
     } else if( mCollider->GetShapeType() == PhysicsShapeType::Plane && other.mCollider->GetShapeType() == PhysicsShapeType::Sphere ) {
-        // Both AABBs
+        // Plane vs Sphere
         PhysicsObjectPlane* Self = (PhysicsObjectPlane*)this;
         PhysicsObjectSphere* Other = (PhysicsObjectSphere*)&other;
 
         float dFsc = Self->GetDistance() + Self->GetNormal().dot(other.GetPosition()); // Distance from sphere center
         float dFs = dFsc - Other->GetRadius(); // Distance from sphere
 
-        return { dFs < 0, dFs };
+        return { dFs < 0, Self->GetNormal() * dFs };
+
+        // 
+    } else if( mCollider->GetShapeType() == PhysicsShapeType::Sphere && other.mCollider->GetShapeType() == PhysicsShapeType::Plane ) {
+        // Sphere vs Plane
+        PhysicsObjectSphere* Self  = (PhysicsObjectSphere*)this;
+        PhysicsObjectPlane* Other = (PhysicsObjectPlane*)&other;
+
+        float dFsc = Other->GetDistance() + Other->GetNormal().dot(this->GetPosition()); // Distance from sphere center
+        float dFs = dFsc - Self->GetRadius(); // Distance from sphere
+
+        return { dFs < 0, Other->GetNormal() * dFs };
+
+        // 
     }
 
     return {};

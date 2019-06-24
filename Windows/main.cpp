@@ -37,8 +37,9 @@ ID3D11RasterizerState *rsFrontCull;
 D3D11_VIEWPORT vpDepth, vpMain;
 
 // Physical objects
-PhysicsCollider *pColliderSphere;
+PhysicsCollider *pColliderSphere, *pColliderPlane;
 PhysicsObjectSphere *sphere1, *sphere2;
+PhysicsObjectPlane *plane1;
 
 // Deferred light system needs those
 ConstantBuffer *cbDeferredGlobalInst, *cbDeferredLightInst;
@@ -904,22 +905,32 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::Load() {
-    // Physics
+    // Physics setup
     pColliderSphere = new PhysicsCollider(PhysicsShapeType::Sphere);
+    pColliderPlane  = new PhysicsCollider(PhysicsShapeType::Plane);
 
     sphere1 = new PhysicsObjectSphere(pColliderSphere);
     sphere2 = new PhysicsObjectSphere(pColliderSphere);
+    plane1  = new PhysicsObjectPlane(pColliderPlane);
 
-    sphere1->SetPosition({ 0., 0., 0. });
+    sphere1->SetPosition({ 0., 2., 0. });
     sphere1->SetRadius(1.);
     sphere1->SetVelocity({ 0., 0., +1. });
 
-    sphere2->SetPosition({ 0., 0., +10. });
+    sphere2->SetPosition({ 2, 2., +10. });
     sphere2->SetRadius(2.);
     sphere2->SetVelocity({ 0., 0., -1. });
 
+    plane1->SetNormal({ 0., 1., 0. });
+    plane1->SetDistance(2.4);
+
     gPhysicsEngine->PushObject(sphere1);
     gPhysicsEngine->PushObject(sphere2);
+    gPhysicsEngine->PushObject(plane1);
+
+    gPhysicsEngine->SetGravity({0., -9.8, 0.});
+    gPhysicsEngine->SetAirResistance({0., .5, 0.});
+    gPhysicsEngine->SetFriction(.98);
 
     // Temp Bug fix
     gKeyboard->SetState(VK_W, false);
