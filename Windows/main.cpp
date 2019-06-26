@@ -241,7 +241,7 @@ GFSDK_SSAO_Output_D3D11 Output;
 #endif
 
 float fAspect = 1024.f / 540.f;
-bool bIsWireframe = false, bDebugGUI = false, bLookMouse = true;
+bool bIsWireframe = false, bDebugGUI = false, bLookMouse = true, bPause = false;
 int SceneID = 0;
 int sfxWalkIndex;
 
@@ -665,7 +665,7 @@ void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
 
     // Update physics
-    gPhysicsEngine->Dispatch(fDeltaTime);
+    if( !bPause ) gPhysicsEngine->Dispatch(fDeltaTime);
 
     // Set light's view matrix to math main camera's one
     if( gKeyboard->IsPressed(VK_SPACE) ) {
@@ -673,10 +673,41 @@ void _DirectX::Tick(float fDeltaTime) {
         cLight->BuildConstantBuffer();
     }
 
+    // Throw ball
+    if( gKeyboard->IsPressed(VK_F5) ) {
+        PhysicsObjectSphere *sphereX = new PhysicsObjectSphere(pColliderSphere);
+        sphereX->SetPosition(cPlayer->GetPosition());
+        sphereX->SetRadius(rand() % 3);
+        sphereX->SetMass(1);
+
+        const pFloat3 p = { 1., 1., 0. };
+        pFloat3 pRot = cPlayer->GetRotation();
+        float pr = DirectX::XMConvertToRadians(pRot.x);
+        float yr = DirectX::XMConvertToRadians(pRot.y);
+        float qr = yr - DirectX::XMConvertToRadians(90.f * (p.z / fabsf(p.z)));
+
+        // Move the direction we looking at
+        pFloat3 q = pFloat3(
+            // X
+            (p.x * sinf(yr) + p.z * cosf(yr)) * cosf(pr),
+
+            // Y
+            -p.x * sinf(pr),
+
+            // Z
+            (p.x * cosf(yr) - p.z * sinf(yr)) * cosf(pr)
+        );
+
+        sphereX->SetVelocity(q * 100.);
+
+        gPhysicsEngine->PushObject(sphereX);
+    }
+
     // Toggle debug
     bIsWireframe ^= gKeyboard->IsPressed(VK_F1); // Toggle wireframe mode
-    bDebugGUI ^= gKeyboard->IsPressed(VK_F3);    // Toggle debug gui mode
-    bLookMouse ^= gKeyboard->IsPressed(VK_F2);   // Toggle release mouse
+    bDebugGUI    ^= gKeyboard->IsPressed(VK_F3); // Toggle debug gui mode
+    bLookMouse   ^= gKeyboard->IsPressed(VK_F2); // Toggle release mouse
+    bPause       ^= gKeyboard->IsPressed(VK_F4); // Toggle world pause
 
     // Update camera
     DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
@@ -914,15 +945,18 @@ void _DirectX::Load() {
     plane1  = new PhysicsObjectPlane(pColliderPlane);
 
     sphere1->SetPosition({ 0., 2., 0. });
-    sphere1->SetRadius(1.);
     sphere1->SetVelocity({ 0., 0., +1. });
+    sphere1->SetRadius(1.);
+    sphere1->SetMass(1);
 
     sphere2->SetPosition({ 2, 2., +10. });
-    sphere2->SetRadius(2.);
     sphere2->SetVelocity({ 0., 0., -1. });
+    sphere2->SetRadius(2.);
+    sphere1->SetMass(2);
 
     plane1->SetNormal({ 0., 1., 0. });
     plane1->SetDistance(2.4);
+    plane1->SetFixed(true);
 
     gPhysicsEngine->PushObject(sphere1);
     gPhysicsEngine->PushObject(sphere2);

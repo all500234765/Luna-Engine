@@ -210,12 +210,6 @@
   <ItemGroup>
     <ClInclude Include="resource.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Windows.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\Compiled\Windows_Build\Bin\Engine\Assets\TileIcon_70.png" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -1,5 +1,7 @@
 #pragma once
 
+#define _LUNA_ENGINE_DX11_
+
 // Core Engine
 #include "Engine/Input/Input.h"
 #include "Engine/Input/Gamepad.h"

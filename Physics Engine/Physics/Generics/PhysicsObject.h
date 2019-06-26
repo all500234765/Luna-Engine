@@ -9,6 +9,8 @@ private:
     pFloat3 mPosition;
     //pQuat   mOrientation;
     PhysicsCollider* mCollider;
+    bool mFixed;
+    pFloat mMass;
 
 public:
     PhysicsObject(): mPosition(), mVelocity() {};
@@ -29,6 +31,12 @@ public:
     //inline void SetOrientation(const pQuat& orient) { mOrientation = orient; }
 
     inline void AddVelocity(const pFloat3& vel) { mVelocity += vel; }
+
+    inline bool IsFixed() const { return mFixed; }
+    inline void SetFixed(bool v) { mFixed = v; }
+
+    inline pFloat GetMass() const { return mMass; }
+    inline void SetMass(pFloat m) { mMass = m; }
 
     // Collision and colliders
     inline void SetCollider(PhysicsCollider* col) { mCollider = col; mCollider->GetRef()->AddReference(); }

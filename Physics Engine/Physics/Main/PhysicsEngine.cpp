@@ -18,7 +18,9 @@ void PhysicsEngine::Dispatch(float dt) {
     // Default CPU Dispatch function
     for( auto obj : objects ) {
         obj->Integrate(dt);
-        obj->AddVelocity((mGravity - obj->GetVelocity() * mFriction) * dt);
+        if( !obj->IsFixed() ) {
+            obj->AddVelocity((mGravity - obj->GetVelocity() * mFriction) * dt);
+        }
     }
 
     // Handle collisions
@@ -44,7 +46,7 @@ void PhysicsEngine::Dispatch(float dt) {
 }
 
 void PhysicsEngine::Release() {
-    for( auto v = objects.begin(); v != objects.end(); v++ ) {
+    for( auto v = objects.begin(); v != objects.end(); ++v ) {
         v = objects.erase(v);
     }
 }
