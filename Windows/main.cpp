@@ -71,165 +71,6 @@ struct cbSSLRMatrix {
     DirectX::XMMATRIX _mView;
 };
 
-// Not yet done
-// And prob. won't be
-//#define LOWPOLY_EXAMPLE
-#ifdef LOWPOLY_EXAMPLE
-Mesh* mTerrainMesh;
-
-// Terrain example
-// Single square
-struct Square {
-    int row, col;
-    int NL, NR;
-
-    Vertex_PNT StoreData(int size) {
-        Vertex_PNT v;
-            v.Position = DirectX::XMFLOAT3(row, 0., col);
-            v.Normal   = DirectX::XMFLOAT3(0., 1., 0.);
-            v.Texcoord = DirectX::XMFLOAT2((float)row / (float)size, (float)col / (float)size);
-        return v;
-    }
-
-    Vertex_PNT StoreBottomRow(int size) {
-        Vertex_PNT v;
-            v.Position = DirectX::XMFLOAT3(row, 0., col);
-            v.Normal   = DirectX::XMFLOAT3(0., 1., 0.);
-            v.Texcoord = DirectX::XMFLOAT2((float)row / (float)size, (float)col / (float)size);
-        return v;
-    }
-};
-
-void CreateLowpolyTerrain(Mesh* mesh, int size) {
-    IndexBuffer *ib = new IndexBuffer;
-    VertexBuffer *vb = new VertexBuffer;
-
-    // 
-    int mNumVertices = 0, mIndexNum = 0;
-    std::vector<int> indices;
-    std::vector<Vertex_PNT> vertices;
-
-    std::vector<Square> vLastRow;
-
-    // Calculate vertex count
-    mNumVertices = size * 2 + (size - 2) * (size - 1) * 2;
-
-    // Resize vector
-    vertices.resize(mNumVertices);
-
-    // Populate vertices
-    for( int i = 0; i < size - 1; i++ ) {
-        for( int j = 0; j < size - 1; j++ ) {
-            // Store square
-            Square s = {i, j};
-            vertices.push_back(s.StoreData(size));
-
-            // Save last row
-            if( i == size - 2 ) {
-                vLastRow.push_back(s);
-            }
-        }
-    }
-
-    std::cout << "Vertices populated" << std::endl;
-
-    // Process last row
-    for( int i = 0; i < vLastRow.size(); i++ ) {
-        vertices.push_back(vLastRow[i].StoreBottomRow(size));
-    }
-
-    std::cout << "Last row processed" << std::endl;
-
-    // Generate indices
-    // ...
-    // 
-    int rLen = (mNumVertices - 1) * 2;
-    mIndexNum = (mNumVertices - 1) * (mNumVertices - 1) * 6;
-
-    // Store top section
-    for( int i = 0; i < mNumVertices - 3; i++ ) {
-        for( int j = 0; j < mNumVertices - 1; j++ ) {
-            int TL = (i * rLen) + j * 2;
-            int TR = (TL + 1);
-            int BL = TL + rLen;
-            int BR = BL + 1;
-
-            // Store quad
-            bool bRighthanded = (i % 2) != (j % 2);
-
-            // Store Left Tri
-            indices.push_back(TL);
-            indices.push_back(BL);
-            indices.push_back(bRighthanded ? BR : TR);
-
-            // Store Right Tri
-            indices.push_back(TR);
-            indices.push_back(bRighthanded ? TL : BL);
-            indices.push_back(BR);
-        }
-    }
-
-    std::cout << "Top section is stored" << std::endl;
-
-    // Store 2nd last line
-    for( int i = 0, j = mNumVertices - 3; i < mNumVertices - 1; i++ ) {
-        int TL = (j * rLen) + i * 2;
-        int TR = (TL + 1);
-        int BL = TL + rLen - i;
-        int BR = BL + 1;
-
-        // Store quad
-        bool bRighthanded = (i % 2) != (j % 2);
-
-        // Store Left Tri
-        indices.push_back(TL);
-        indices.push_back(BL);
-        indices.push_back(bRighthanded ? BR : TR);
-
-        // Store Right Tri
-        indices.push_back(TR);
-        indices.push_back(bRighthanded ? TL : BL);
-        indices.push_back(BR);
-    }
-
-    std::cout << "2nd line is stored" << std::endl;
-
-    // Store last line
-    for( int i = 0, j = mNumVertices - 2; i < mNumVertices - 1; i++ ) {
-        int TL = (j * rLen) + i;
-        int TR = (TL + 1);
-        int BL = TL + mNumVertices;
-        int BR = BL + 1;
-
-        // Store last row quad
-        bool bRighthanded = (i % 2) != (j % 2);
-
-        // Store Left Tri
-        indices.push_back(TL);
-        indices.push_back(BL);
-        indices.push_back(bRighthanded ? BR : TR);
-
-        // Store Right Tri
-        indices.push_back(BR);
-        indices.push_back(TR);
-        indices.push_back(bRighthanded ? TL : BL);
-    }
-
-    std::cout << "Last line is stored" << std::endl;
-
-    // Create buffers
-    ib->CreateDefault(mIndexNum, &indices[0]);
-    vb->CreateDefault(mNumVertices, sizeof(Vertex_PNT), &vertices[0]);
-
-    // Debug
-    ib->SetName("Lowpoly Terrain's Index Buffer");
-    vb->SetName("Lowpoly Terrain's Vertex Buffer");
-
-    // Create mesh
-    mesh->SetBuffer(vb, ib);
-}
-#endif
-
 // HBAO+
 #if USE_HBAO_PLUS
 GFSDK_SSAO_CustomHeap CustomHeap;
@@ -270,7 +111,6 @@ bool _DirectX::FrameFunction() {
     {
         cPlayer->BuildView();
     }
-
 
 #pragma region Render depth buffer for directional light
     bDepth->Bind();
@@ -675,7 +515,7 @@ void _DirectX::Tick(float fDeltaTime) {
 
     // Throw ball
     if( gKeyboard->IsPressed(VK_F5) ) {
-        PhysicsObjectSphere *sphereX = new PhysicsObjectSphere(pColliderSphere);
+        /*PhysicsObjectSphere *sphereX = new PhysicsObjectSphere(pColliderSphere);
         sphereX->SetPosition(cPlayer->GetPosition());
         sphereX->SetRadius(rand() % 3);
         sphereX->SetMass(1);
@@ -700,7 +540,7 @@ void _DirectX::Tick(float fDeltaTime) {
 
         sphereX->SetVelocity(q * 100.);
 
-        gPhysicsEngine->PushObject(sphereX);
+        gPhysicsEngine->PushObject(sphereX);*/
     }
 
     // Toggle debug
@@ -936,7 +776,7 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::Load() {
-    // Physics setup
+#pragma region Physics setup
     pColliderSphere = new PhysicsCollider(PhysicsShapeType::Sphere);
     pColliderPlane  = new PhysicsCollider(PhysicsShapeType::Plane);
 
@@ -965,6 +805,7 @@ void _DirectX::Load() {
     gPhysicsEngine->SetGravity({0., -9.8, 0.});
     gPhysicsEngine->SetAirResistance({0., .5, 0.});
     gPhysicsEngine->SetFriction(.98);
+#pragma endregion
 
     // Temp Bug fix
     gKeyboard->SetState(VK_W, false);
@@ -974,7 +815,7 @@ void _DirectX::Load() {
     gKeyboard->SetState(VK_LEFT, false);
     gKeyboard->SetState(VK_RIGHT, false);
 
-    // Create instances
+#pragma region Create instances
     shSurface = new Shader();
     shTerrain = new Shader();
     shSkeletalAnimations = new Shader();
@@ -991,9 +832,9 @@ void _DirectX::Load() {
     shUnitSphere = new Shader();
     shUnitSphereDepthOnly = new Shader();
 
-    cPlayer = new Camera();
+    cPlayer = new Camera(DirectX::XMFLOAT3(-24.6163, 14.3178, 24.5916));
     c2DScreen = new Camera();
-    cLight = new Camera(DirectX::XMFLOAT3(-10.f, 10.f, -10.f), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
+    cLight = new Camera(DirectX::XMFLOAT3(-64.1149, 60.3294, 56.2415), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
 
     tDefault = new Texture();
     tBlueNoiseRG = new Texture();
@@ -1024,7 +865,9 @@ void _DirectX::Load() {
     cbDeferredGlobalInst = new ConstantBuffer();
     cbDeferredLightInst  = new ConstantBuffer();
     cbSSLRMatrixInst = new ConstantBuffer();
-    
+#pragma endregion
+
+#pragma region Load sounds
     sfxShotSingle = new SoundEffect("../Sounds/SingleEnergyShot.wav");
     sfxShotSingle->Create();
     sfxShotSingle->SetVolume(.2f);
@@ -1044,6 +887,7 @@ void _DirectX::Load() {
     sfxWalk2 = new SoundEffect("../Sounds/Paid/Walk2.wav");
     sfxWalk2->Create();
     sfxWalk2->SetVolume(.2f);
+#pragma endregion
 
     // Ansel support
 #if USE_ANSEL
@@ -1052,6 +896,7 @@ void _DirectX::Load() {
 
     const WindowConfig& cfg = gWindow->GetCFG();
 
+#pragma region Create buffers
     // Create constant buffers
     cbSSLRMatrixInst->CreateDefault(sizeof(cbSSLRMatrix));
 
@@ -1077,8 +922,9 @@ void _DirectX::Load() {
     bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
     bGBuffer->CreateColor1(DXGI_FORMAT_R16G16B16A16_FLOAT); // Normal
     bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
-    
-    // Create 
+#pragma endregion
+
+#pragma region Create states
     D3D11_RASTERIZER_DESC rDesc2;
     ZeroMemory(&rDesc2, sizeof(D3D11_RASTERIZER_DESC));
     rDesc2.AntialiasedLineEnable = false;
@@ -1114,7 +960,9 @@ void _DirectX::Load() {
 
     // Create occlusion query
     pQuery->Create(D3D11_QUERY_OCCLUSION);
+#pragma endregion
 
+#pragma region Load textures
     // Create cubemap
     pCubemap->CreateFromFiles("../Textures/Cubemaps/Test/", false, DXGI_FORMAT_R8G8B8A8_UNORM);
 
@@ -1129,12 +977,14 @@ void _DirectX::Load() {
     //tClearPixel->Load("../Textures/ClearPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
     tOpacityDefault->Load("../Textures/ClearPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
     tSpecularDefault->Load("../Texture/DarkPixel.png", DXGI_FORMAT_B8G8R8A8_UNORM);
+#pragma endregion 
 
     // Set default textures
     Model::SetDefaultTexture(tDefault);
     Model::SetDefaultTextureOpacity(tOpacityDefault);
     Model::SetDefaultTextureSpecular(tSpecularDefault);
 
+#pragma region Samplers, Viewports, some constant buffers
     // Create samplers
     D3D11_SAMPLER_DESC pDesc;
     ZeroMemory(&pDesc, sizeof(D3D11_SAMPLER_DESC));
@@ -1260,7 +1110,10 @@ void _DirectX::Load() {
     vpDepth.TopLeftY = 0;
     vpDepth.Width    = bDepth->GetWidth();
     vpDepth.Height   = bDepth->GetHeight();
+#pragma endregion
 
+
+#pragma region Load Shaders
     // Load shader
     shSurface->LoadFile("shTestVS.cso", Shader::Vertex);
     shSurface->LoadFile("shTestPS.cso", Shader::Pixel);
@@ -1308,6 +1161,7 @@ void _DirectX::Load() {
     shDeferredFinal->LoadFile("shDeferredFinalPS.cso", Shader::Pixel);
 
     // Deferred point light
+    // Don't forget to bind MatrixBuffer to Domain shader instead of Vertex
     shDeferredPointLight->LoadFile("shNullVertexVS.cso"        , Shader::Vertex);
     shDeferredPointLight->LoadFile("shHemisphereHS.cso"        , Shader::Hull);
     shDeferredPointLight->LoadFile("shHemisphereDS.cso"        , Shader::Domain);
@@ -1318,12 +1172,14 @@ void _DirectX::Load() {
     shScreenSpaceShadows->LoadFile("shScreenSpaceShadowsPS.cso", Shader::Pixel);
     
     // Unit sphere
+    // Don't forget to bind MatrixBuffer to Domain shader instead of Vertex
     shUnitSphere->AttachShader(shDeferredPointLight, Shader::Vertex);
     shUnitSphere->AttachShader(shDeferredPointLight, Shader::Hull);
     shUnitSphere->LoadFile("shUnitSphereDS.cso", Shader::Domain);
     shUnitSphere->LoadFile("shUnitSpherePS.cso", Shader::Pixel);
 
     // Unit sphere depth only
+    // Don't forget to bind MatrixBuffer to Domain shader instead of Vertex
     shUnitSphereDepthOnly->AttachShader(shDeferredPointLight, Shader::Vertex);
     shUnitSphereDepthOnly->AttachShader(shDeferredPointLight, Shader::Hull);
     shUnitSphereDepthOnly->AttachShader(shUnitSphere, Shader::Domain);
@@ -1345,7 +1201,9 @@ void _DirectX::Load() {
     shScreenSpaceShadows->ReleaseBlobs();
     shUnitSphere->ReleaseBlobs();
     shUnitSphereDepthOnly->ReleaseBlobs();
+#pragma endregion 
 
+#pragma region Load models
     // Create model
     mModel1 = new Model("Test model #1");
     //mModel1->LoadModel<Vertex_PNT_TgBn>("../Models/Sponza/sponza.obj");
@@ -1422,12 +1280,7 @@ void _DirectX::Load() {
     //                            DirectX::XMMatrixScaling(4, 4, 4)
     //                            //DirectX::XMMatrixTranslation(50.f, 10.f, 0.f)
     //);
-    
-    // Speaks for it's self
-#ifdef LOWPOLY_EXAMPLE
-    mTerrainMesh = new Mesh();
-    CreateLowpolyTerrain(mTerrainMesh, 10);
-#endif
+#pragma endregion 
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -1511,11 +1364,6 @@ void _DirectX::Unload() {
     mScreenPlane->Release();
     mShadowTest1->Release();
     mUnitSphereUV->Release();
-
-    // Release meshes
-#ifdef LOWPOLY_EXAMPLE
-    mTerrainMesh->Release();
-#endif
 
     // Release buffers
     bDepth->Release();

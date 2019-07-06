@@ -18,8 +18,10 @@ void PhysicsEngine::Dispatch(float dt) {
     // Default CPU Dispatch function
     for( auto obj : objects ) {
         obj->Integrate(dt);
+
         if( !obj->IsFixed() ) {
-            obj->AddVelocity((mGravity - obj->GetVelocity() * mFriction) * dt);
+            obj->AddVelocity(obj->GetVelocity() * mFriction * dt * -1);
+            obj->AddAcceleration(mGravity * dt);
         }
     }
 
@@ -30,13 +32,17 @@ void PhysicsEngine::Dispatch(float dt) {
 
             if( data.GetResult() ) {
                 // Bounce
-                pFloat3 dir1 = data.GetNormal().normalized();
+                pFloat3 dir1 = data.GetNormal();
+                dir1 = dir1.normalized();
 
                 pFloat3 tmp1 = objects[i]->GetVelocity().normalized();
                 pFloat3 dir2 = dir1.Reflected(tmp1);
 
                 pFloat3 r1 = objects[i]->GetVelocity().Reflected(dir2); // Velocity 1
                 pFloat3 r2 = objects[j]->GetVelocity().Reflected(dir1); // Velocity 2
+
+                objects[i]->SetAcceleration(0);
+                objects[j]->SetAcceleration(0);
 
                 objects[i]->SetVelocity(r1);
                 objects[j]->SetVelocity(r2);

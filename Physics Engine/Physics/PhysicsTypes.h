@@ -62,28 +62,28 @@ struct pFloat3 {
     }
 
     // 
-    pFloat3& operator+=(const pFloat3& rhs) {
+    const pFloat3& operator+=(const pFloat3& rhs) {
         x += rhs.x;
         y += rhs.y;
         z += rhs.z;
         return *this;
     }
 
-    pFloat3& operator-=(const pFloat3& rhs) {
+    const pFloat3& operator-=(const pFloat3& rhs) {
         x -= rhs.x;
         y -= rhs.y;
         z -= rhs.z;
         return *this;
     }
 
-    pFloat3& operator*=(const pFloat3& rhs) {
+    const pFloat3& operator*=(const pFloat3& rhs) {
         x *= rhs.x;
         y *= rhs.y;
         z *= rhs.z;
         return *this;
     }
 
-    pFloat3& operator/=(const pFloat3& rhs) {
+    const pFloat3& operator/=(const pFloat3& rhs) {
         x /= rhs.x;
         y /= rhs.y;
         z /= rhs.z;
@@ -92,7 +92,7 @@ struct pFloat3 {
 
     // 
     template<typename T>
-    pFloat3& operator+=(T rhs) {
+    const pFloat3& operator+=(T rhs) {
         x += rhs;
         y += rhs;
         z += rhs;
@@ -100,7 +100,7 @@ struct pFloat3 {
     }
 
     template<typename T>
-    pFloat3& operator-=(T rhs) {
+    const pFloat3& operator-=(T rhs) {
         x -= rhs;
         y -= rhs;
         z -= rhs;
@@ -108,7 +108,7 @@ struct pFloat3 {
     }
 
     template<typename T>
-    pFloat3& operator*=(T rhs) {
+    const pFloat3& operator*=(T rhs) {
         x *= rhs;
         y *= rhs;
         z *= rhs;
@@ -116,7 +116,7 @@ struct pFloat3 {
     }
 
     template<typename T>
-    pFloat3& operator/=(T rhs) {
+    const pFloat3& operator/=(T rhs) {
         x /= rhs;
         y /= rhs;
         z /= rhs;
@@ -125,26 +125,33 @@ struct pFloat3 {
 
     // TODO: lhs can be T too, not just pFloat3
     template<typename T>
-    pFloat3 operator-(T rhs) const { return pFloat3(x - rhs, y - rhs, z - rhs ); }
+    pFloat3 operator-(T rhs) const { return pFloat3(x - rhs, y - rhs, z - rhs); }
 
     template<typename T>
-    pFloat3 operator*(T rhs) const { return pFloat3( x * rhs, y * rhs, z * rhs ); }
+    pFloat3 operator*(T rhs) const { return pFloat3(x * rhs, y * rhs, z * rhs); }
 
     template<typename T>
-    pFloat3 operator/(T rhs) const { return pFloat3(x / rhs, y / rhs, z / rhs ); }
+    pFloat3 operator/(T rhs) const { return pFloat3(x / rhs, y / rhs, z / rhs); }
 
     template<typename T>
-    pFloat3 operator+(T rhs) const { return pFloat3(x + rhs, y + rhs, z + rhs ); }
+    pFloat3 operator+(T rhs) const { return pFloat3(x + rhs, y + rhs, z + rhs); }
 
     // 
     pFloat length()  const { return std::sqrtf(length2()); };
     pFloat length2() const { return (x * x + y * y + z * z); };
     pFloat max() const { return std::max(std::max(x, y), z); }
-    const pFloat3& normalize() { *this /= length(); return *this; }
-    const pFloat3& normalized() const { return *this / length(); }
+    
+    const pFloat3& normalize() {
+        *this /= length();
+        return *this;
+    }
 
-    const pFloat3& Reflected(const pFloat3& n) const {
-        return *this - n * this->dot(n) * 2;
+    pFloat3 normalized() const {
+        return { *this / length() };
+    }
+
+    pFloat3 Reflected(const pFloat3& n) const {
+        return { *this - n * this->dot(n) * 2 };
     }
 
     const pFloat3& Reflect(const pFloat3& n) {
@@ -160,4 +167,3 @@ struct pQuat {
     pFloat w;
 
 };
-

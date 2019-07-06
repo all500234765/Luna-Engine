@@ -6,6 +6,8 @@
 
 void PhysicsObject::Integrate(float dt) {
     mPosition += mVelocity * dt;
+    mVelocity += mAcceleration * dt;
+    mAcceleration *= .9;
 }
 
 CollisionData PhysicsObject::Collide(const PhysicsObject& other) const {

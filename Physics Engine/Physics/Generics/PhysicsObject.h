@@ -5,6 +5,7 @@
 
 class PhysicsObject {
 private:
+    pFloat3 mAcceleration;
     pFloat3 mVelocity;
     pFloat3 mPosition;
     //pQuat   mOrientation;
@@ -22,14 +23,17 @@ public:
         }
     };
 
+    inline const pFloat3& GetAcceleration() const { return mAcceleration; }
     inline const pFloat3& GetVelocity() const { return mVelocity; }
     inline const pFloat3& GetPosition() const { return mPosition; }
     //inline const pQuat& GetOrientation() const { return mOrientation; }
 
+    inline void SetAcceleration(const pFloat3& acc) { mAcceleration = acc; }
     inline void SetVelocity(const pFloat3& vel) { mVelocity = vel; }
     inline void SetPosition(const pFloat3& pos) { mPosition = pos; }
     //inline void SetOrientation(const pQuat& orient) { mOrientation = orient; }
 
+    inline void AddAcceleration(const pFloat3& acc) { mAcceleration += acc; }
     inline void AddVelocity(const pFloat3& vel) { mVelocity += vel; }
 
     inline bool IsFixed() const { return mFixed; }
@@ -47,4 +51,3 @@ public:
     // Integration
     void Integrate(float dt);
 };
-    
