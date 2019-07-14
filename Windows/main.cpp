@@ -19,7 +19,7 @@ Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougn
 
 Material *mDefault;
 
-RenderBufferDepth2D *bDepth;
+RenderBufferDepth2D *bDepth, *bZBuffer_Editor;
 RenderBufferColor3Depth *bGBuffer;
 RenderBufferColor1 *bSSLR, *bDeferred, *bShadows;
 
@@ -91,6 +91,80 @@ bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
 
+#pragma region Scene rendering
+    auto RenderScene = [&](Camera *cam, uint32_t flags=RendererFlags::None, Camera *light=nullptr) {
+        // 
+        auto DrawBall = [&](Camera* camera, const pFloat3& pos, float radius) {
+            camera->SetWorldMatrix(DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z));
+            camera->BuildConstantBuffer({ 0., 0., 0., radius });
+            camera->BindBuffer(Shader::Domain, 0);
+
+            gContext->Draw(2, 0);
+        };
+
+        // Some data units being binded
+        if( (flags & RendererFlags::DepthPass) == 0 ) {
+            // Bind light buffer
+            light->BindBuffer(Shader::Vertex, 1);
+
+            // Bind default material
+            mDefault->BindTextures(Shader::Pixel, 0);
+            sMipLinear->Bind(Shader::Pixel, 0);
+
+            mDefault->BindTextures(Shader::Pixel, 1);
+            sMipLinear->Bind(Shader::Pixel, 1);
+
+            mDefault->BindTextures(Shader::Pixel, 2);
+            sMipLinearOpacity->Bind(Shader::Pixel, 2);
+
+            mDefault->BindTextures(Shader::Pixel, 3);
+            sMipLinearRougness->Bind(Shader::Pixel, 3);
+
+            // Bind depth buffer
+            bDepth->BindResources(Shader::Pixel, 4);
+            sPointClamp->Bind(Shader::Pixel, 4);
+
+            // Bind noise texture
+            tBlueNoiseRG->Bind(Shader::Pixel, 5);
+            sPoint->Bind(Shader::Pixel, 5);
+
+            // Bind cubemap
+            pCubemap->Bind(Shader::Pixel, 6);
+            sPoint->Bind(Shader::Pixel, 6);
+        }
+
+        // Render Test scene
+        miSpaceShip->Bind(cam);
+        if( flags & RendererFlags::DepthPass ) shVertexOnly->Bind();
+        miSpaceShip->Render();
+
+        // Render physics engine test unit spheres
+        if( flags & RendererFlags::DepthPass ) shUnitSphereDepthOnly->Bind();
+        else                                   shUnitSphere->Bind();
+
+        // 
+        gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+
+        // Balls
+        for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
+            const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
+
+            if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
+                DrawBall(cam, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
+        }
+
+        // Render skybox
+        if( flags & RendererFlags::RenderSkybox ) {
+            mSkybox->Bind(cPlayer);
+
+            pCubemap->Bind(Shader::Pixel);
+            sMipLinear->Bind(Shader::Pixel);
+
+            mSkybox->Render();
+        }
+    };
+#pragma endregion
+
     // Bind and clear RTV
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
 
@@ -112,6 +186,17 @@ bool _DirectX::FrameFunction() {
         cPlayer->BuildView();
     }
 
+#pragma region Render depth buffer for Editor mouse picking
+    bZBuffer_Editor->Bind();
+
+    gContext->RSSetState(rsFrontCull);
+    gContext->RSSetViewports(1, &vpMain);
+    gContext->ClearDepthStencilView(bZBuffer_Editor->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+    gContext->OMSetDepthStencilState(pDSS_Default, 1);
+
+    RenderScene(cPlayer, RendererFlags::DepthPass | RendererFlags::OpaquePass);
+#pragma endregion
+
 #pragma region Render depth buffer for directional light
     bDepth->Bind();
 
@@ -120,33 +205,7 @@ bool _DirectX::FrameFunction() {
     gContext->ClearDepthStencilView(bDepth->GetTarget(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
     gContext->OMSetDepthStencilState(pDSS_Default, 1);
 
-    miSpaceShip->Bind(cLight);
-    shVertexOnly->Bind();
-    miSpaceShip->Render();
-
-    // Render physics engine test unit spheres
-    shUnitSphereDepthOnly->Bind();
-
-    // 
-    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
-
-    auto DrawBall = [&](Camera* cam, const pFloat3& pos, float radius) {
-        cam->SetWorldMatrix(DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z));
-        cam->BuildConstantBuffer({ 0., 0., 0., radius });
-        cam->BindBuffer(Shader::Domain, 0);
-
-        gContext->Draw(2, 0);
-    };
-
-    // Balls
-    for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
-        const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
-
-        if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
-            DrawBall(cLight, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
-    }
-
-    //mShadowTest1->Render();
+    RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
 #pragma endregion
 
     // Reset to defaults
@@ -170,46 +229,7 @@ bool _DirectX::FrameFunction() {
     gContext->ClearDepthStencilView(bGBuffer->GetDepth()->pDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
     // Render scene
-
-    // Bind light buffer
-    cLight->BindBuffer(Shader::Vertex, 1);
-
-    // Bind default material
-    mDefault->BindTextures(Shader::Pixel, 0);
-    sMipLinear->Bind(Shader::Pixel, 0);
-
-    mDefault->BindTextures(Shader::Pixel, 1);
-    sMipLinear->Bind(Shader::Pixel, 1);
-
-    mDefault->BindTextures(Shader::Pixel, 2);
-    sMipLinearOpacity->Bind(Shader::Pixel, 2);
-
-    mDefault->BindTextures(Shader::Pixel, 3);
-    sMipLinearRougness->Bind(Shader::Pixel, 3);
-
-    // Bind depth buffer
-    bDepth->BindResources(Shader::Pixel, 4);
-    sPointClamp->Bind(Shader::Pixel, 4);
-
-    // Bind noise texture
-    tBlueNoiseRG->Bind(Shader::Pixel, 5);
-    sPoint->Bind(Shader::Pixel, 5);
-
-    // Bind cubemap
-    pCubemap->Bind(Shader::Pixel, 6);
-    sPoint->Bind(Shader::Pixel, 6);
-
-    // Render level
-    //mLevel1->Bind(cPlayer);
-    //mLevel1->Render();
-
-    //mTerrainMesh->Bind();
-    //mTerrainMesh->Render();
-
-    miSpaceShip->Bind(cPlayer);
-    miSpaceShip->Render();
-
-    //mShadowTest1->Render();
+    RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -247,29 +267,29 @@ bool _DirectX::FrameFunction() {
 #pragma endregion
 
     // Render physics engine test unit spheres
-    shUnitSphere->Bind();
-
-    // 
-    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
-
-    // Physics
-
-    // Balls
-    for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
-        const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
-
-        if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
-            DrawBall(cPlayer, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
-
-    }
-
-    // Render skybox
-    mSkybox->Bind(cPlayer);
-
-    pCubemap->Bind(Shader::Pixel);
-    sMipLinear->Bind(Shader::Pixel);
-
-    mSkybox->Render();
+    //shUnitSphere->Bind();
+    //
+    //// 
+    //gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+    //
+    //// Physics
+    //
+    //// Balls
+    //for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
+    //    const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
+    //
+    //    if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
+    //        DrawBall(cPlayer, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
+    //
+    //}
+    //
+    //// Render skybox
+    //mSkybox->Bind(cPlayer);
+    //
+    //pCubemap->Bind(Shader::Pixel);
+    //sMipLinear->Bind(Shader::Pixel);
+    //
+    //mSkybox->Render();
 #pragma endregion
 
     // Enable depth test
@@ -505,7 +525,12 @@ void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
 
     // Update physics
-    if( !bPause ) gPhysicsEngine->Dispatch(fDeltaTime);
+    if( !bPause ) {
+        // Update physics N times
+        const int N = 5;
+        float step = fDeltaTime / static_cast<float>(N);
+        for( char i = 0; i < N; i++ ) gPhysicsEngine->Dispatch(step * static_cast<float>(i));
+    }
 
     // Set light's view matrix to math main camera's one
     if( gKeyboard->IsPressed(VK_SPACE) ) {
@@ -713,11 +738,12 @@ void _DirectX::Resize() {
     gContext->OMSetRenderTargets(0, 0, 0);
     gRTV->Release();
 
-    // Resize buffer
+    // Resize buffers
     bGBuffer->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
     bSSLR->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
     bDeferred->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
     bShadows->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
+    bZBuffer_Editor->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
 
     // Resize swapchain
     scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
@@ -798,9 +824,9 @@ void _DirectX::Load() {
     plane1->SetDistance(2.4);
     plane1->SetFixed(true);
 
-    gPhysicsEngine->PushObject(sphere1);
-    gPhysicsEngine->PushObject(sphere2);
-    gPhysicsEngine->PushObject(plane1);
+    //gPhysicsEngine->PushObject(sphere1);
+    //gPhysicsEngine->PushObject(sphere2);
+    //gPhysicsEngine->PushObject(plane1);
 
     gPhysicsEngine->SetGravity({0., -9.8, 0.});
     gPhysicsEngine->SetAirResistance({0., .5, 0.});
@@ -816,47 +842,48 @@ void _DirectX::Load() {
     gKeyboard->SetState(VK_RIGHT, false);
 
 #pragma region Create instances
-    shSurface = new Shader();
-    shTerrain = new Shader();
-    shSkeletalAnimations = new Shader();
-    shGUI = new Shader();
-    shVertexOnly = new Shader();
-    shSkybox = new Shader();
-    shTexturedQuad = new Shader();
-    shPostProcess = new Shader();
-    shSSLR = new Shader();
-    shDeferred = new Shader();
-    shDeferredFinal = new Shader();
-    shDeferredPointLight = new Shader();
-    shScreenSpaceShadows = new Shader();
-    shUnitSphere = new Shader();
+    shSurface             = new Shader();
+    shTerrain             = new Shader();
+    shSkeletalAnimations  = new Shader();
+    shGUI                 = new Shader();
+    shVertexOnly          = new Shader();
+    shSkybox              = new Shader();
+    shTexturedQuad        = new Shader();
+    shPostProcess         = new Shader();
+    shSSLR                = new Shader();
+    shDeferred            = new Shader();
+    shDeferredFinal       = new Shader();
+    shDeferredPointLight  = new Shader();
+    shScreenSpaceShadows  = new Shader();
+    shUnitSphere          = new Shader();
     shUnitSphereDepthOnly = new Shader();
 
-    cPlayer = new Camera(DirectX::XMFLOAT3(-24.6163, 14.3178, 24.5916));
+    cPlayer   = new Camera(DirectX::XMFLOAT3(-24.6163, 14.3178, 24.5916));
     c2DScreen = new Camera();
-    cLight = new Camera(DirectX::XMFLOAT3(-64.1149, 60.3294, 56.2415), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
+    cLight    = new Camera(DirectX::XMFLOAT3(-64.1149, 60.3294, 56.2415), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
 
-    tDefault = new Texture();
-    tBlueNoiseRG = new Texture();
-    tClearPixel = new Texture();
-    tOpacityDefault = new Texture();
+    tDefault         = new Texture();
+    tBlueNoiseRG     = new Texture();
+    tClearPixel      = new Texture();
+    tOpacityDefault  = new Texture();
     tSpecularDefault = new Texture();
 
-    sPoint = new Sampler();
-    sMipLinear = new Sampler();
-    sPointClamp = new Sampler();
-    sMipLinearOpacity = new Sampler();
+    sPoint             = new Sampler();
+    sMipLinear         = new Sampler();
+    sPointClamp        = new Sampler();
+    sMipLinearOpacity  = new Sampler();
     sMipLinearRougness = new Sampler();
 
     mDefaultDiffuse = new DiffuseMap();
 
     mDefault = new Material();
 
-    bDepth = new RenderBufferDepth2D();
-    bGBuffer = new RenderBufferColor3Depth();
-    bSSLR = new RenderBufferColor1();
-    bDeferred = new RenderBufferColor1();
-    bShadows = new RenderBufferColor1();
+    bDepth          = new RenderBufferDepth2D();
+    bGBuffer        = new RenderBufferColor3Depth();
+    bSSLR           = new RenderBufferColor1();
+    bDeferred       = new RenderBufferColor1();
+    bShadows        = new RenderBufferColor1();
+    bZBuffer_Editor = new RenderBufferDepth2D();
 
     pCubemap = new CubemapTexture();
 
@@ -864,7 +891,7 @@ void _DirectX::Load() {
 
     cbDeferredGlobalInst = new ConstantBuffer();
     cbDeferredLightInst  = new ConstantBuffer();
-    cbSSLRMatrixInst = new ConstantBuffer();
+    cbSSLRMatrixInst     = new ConstantBuffer();
 #pragma endregion
 
 #pragma region Load sounds
@@ -903,6 +930,7 @@ void _DirectX::Load() {
     // 
     bShadows->SetSize(1024, 540);
     bShadows->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
+    bShadows->SetName("SS-RT-SM buffer");
     
     // Create depth buffer
     bDepth->Create(2048, 2048, 32);
@@ -911,10 +939,12 @@ void _DirectX::Load() {
     // Deferred buffer
     bDeferred->SetSize(1024, 540);
     bDeferred->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT);
+    bDeferred->SetName("Deferred buffer");
 
     // Screen-Space Local Reflections buffer
     bSSLR->SetSize(1024, 540);
     bSSLR->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
+    bSSLR->SetName("Local Reflections Buffer");
 
     // Geometry Buffer
     bGBuffer->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
@@ -922,6 +952,11 @@ void _DirectX::Load() {
     bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
     bGBuffer->CreateColor1(DXGI_FORMAT_R16G16B16A16_FLOAT); // Normal
     bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
+    bGBuffer->SetName("GBuffer");
+
+    // 
+    bZBuffer_Editor->Create(cfg.CurrentWidth, cfg.CurrentHeight, 32);
+    bZBuffer_Editor->SetName("[Editor]: Z-Buffer");
 #pragma endregion
 
 #pragma region Create states
@@ -1111,7 +1146,6 @@ void _DirectX::Load() {
     vpDepth.Width    = bDepth->GetWidth();
     vpDepth.Height   = bDepth->GetHeight();
 #pragma endregion
-
 
 #pragma region Load Shaders
     // Load shader
@@ -1371,6 +1405,7 @@ void _DirectX::Unload() {
     bDeferred->Release();
     bShadows->Release();
     bSSLR->Release();
+    bZBuffer_Editor->Release();
 }
 
 #if USE_ANSEL
@@ -1489,7 +1524,7 @@ int main() {
     winCFG.ShowConsole = true;
     winCFG.Width = 1024;
     winCFG.Height = 540;
-    winCFG.Title = L"Luna Engine";
+    winCFG.Title = L"Editor - Luna Engine";
     winCFG.Icon = L"Engine/Assets/Engine.ico";
 
     // Create window

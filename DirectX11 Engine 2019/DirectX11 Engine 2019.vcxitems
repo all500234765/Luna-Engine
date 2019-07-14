@@ -40,6 +40,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor1.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor2Depth.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor3Depth.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RendererFlags.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CustomTexture.h" />

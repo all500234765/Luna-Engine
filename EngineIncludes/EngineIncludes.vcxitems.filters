@@ -3,5 +3,14 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\EngineDirectories.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\MainInclude.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Ansel.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Audio.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Core.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\HBAOPlus.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\ImGui.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Models.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Physics.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\RenderBuffers.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Textures.h" />
   </ItemGroup>
 </Project>

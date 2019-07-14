@@ -18,6 +18,12 @@ void RenderBufferDepth2D::Release() {
     sDepth->Release();
 }
 
+void RenderBufferDepth2D::Resize(int w, int h) {
+    UINT bpp = sDepth->bpp;
+    sDepth->Release();
+    sDepth = CreateDSV2D(w, h, bpp);
+}
+
 ID3D11DepthStencilView* RenderBufferDepth2D::GetTarget() {
     return sDepth->pDSV;
 }
