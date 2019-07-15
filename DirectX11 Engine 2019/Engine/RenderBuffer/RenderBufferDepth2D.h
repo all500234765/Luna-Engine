@@ -12,6 +12,7 @@ public:
     void Bind();
     void Release();
     void Resize(int w, int h);
+    void Clear(UINT flags=D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, FLOAT depth=1, UINT8 stencil=0);
 
     ID3D11DepthStencilView *GetTarget();
 

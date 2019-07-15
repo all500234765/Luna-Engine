@@ -39,6 +39,11 @@ void RenderBufferColor1Depth::Resize(int w, int h) {
     sDepth = CreateDSV2D(w, h, bpp);
 }
 
+void RenderBufferColor1Depth::Clear(const FLOAT Color0[4], UINT flags, FLOAT depth, UINT8 stencil) {
+    gDirectX->gContext->ClearRenderTargetView(sColor0->pRTV, Color0);
+    gDirectX->gContext->ClearDepthStencilView(sDepth->pDSV, flags, depth, stencil);
+}
+
 sRenderBuffer* RenderBufferColor1Depth::GetColor0() {
     return sColor0;
 }

@@ -43,6 +43,20 @@ void RenderBufferColor3Depth::Release() {
     sDepth->Release();
 }
 
+void RenderBufferColor3Depth::Clear(const FLOAT Color0[4], UINT flags, FLOAT depth, UINT8 stencil) {
+    gDirectX->gContext->ClearRenderTargetView(sColor0->pRTV, Color0);
+    gDirectX->gContext->ClearRenderTargetView(sColor1->pRTV, Color0);
+    gDirectX->gContext->ClearRenderTargetView(sColor2->pRTV, Color0);
+    gDirectX->gContext->ClearDepthStencilView(sDepth->pDSV, flags, depth, stencil);
+}
+
+void RenderBufferColor3Depth::Clear(const FLOAT Color0[4], const FLOAT Color1[4], const FLOAT Color2[4], UINT flags, FLOAT depth, UINT8 stencil) {
+    gDirectX->gContext->ClearRenderTargetView(sColor0->pRTV, Color0);
+    gDirectX->gContext->ClearRenderTargetView(sColor1->pRTV, Color1);
+    gDirectX->gContext->ClearRenderTargetView(sColor2->pRTV, Color2);
+    gDirectX->gContext->ClearDepthStencilView(sDepth->pDSV, flags, depth, stencil);
+}
+
 void RenderBufferColor3Depth::Resize(int w, int h) {
     SetSize(w, h);
     

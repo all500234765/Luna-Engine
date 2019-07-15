@@ -24,6 +24,10 @@ void RenderBufferColor1::Resize(int w, int h) {
     sColor0 = CreateRTV2D(w, h, f1);
 }
 
+void RenderBufferColor1::Clear(const FLOAT Color0[4]) {
+    gDirectX->gContext->ClearRenderTargetView(sColor0->pRTV, Color0);
+}
+
 sRenderBuffer* RenderBufferColor1::GetColor0() {
     return sColor0;
 }

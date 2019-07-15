@@ -12,6 +12,7 @@ public:
     void Bind();
     void Release();
     void Resize(int w, int h);
+    void Clear(const FLOAT Color0[4]);
 
     sRenderBuffer* GetColor0();
 };

@@ -24,6 +24,10 @@ void RenderBufferDepth2D::Resize(int w, int h) {
     sDepth = CreateDSV2D(w, h, bpp);
 }
 
+void RenderBufferDepth2D::Clear(UINT flags, FLOAT depth, UINT8 stencil) {
+    gDirectX->gContext->ClearDepthStencilView(sDepth->pDSV, flags, depth, stencil);
+}
+
 ID3D11DepthStencilView* RenderBufferDepth2D::GetTarget() {
     return sDepth->pDSV;
 }

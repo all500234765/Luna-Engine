@@ -42,6 +42,6 @@ PS main(ConstantOut In, float2 uv : SV_DomainLocation, const OutputPatch<HS, 4> 
         Out.Texcoord.x += .5;
         Out.Texcoord.y = .5 - Out.Texcoord.y;
 
-        Out.Normal = nDir;
+        Out.Normal = normalize(nDir);
     return Out;
 }
