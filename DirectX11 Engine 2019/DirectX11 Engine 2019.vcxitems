@@ -47,6 +47,9 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CustomTexture.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2D.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2DArray.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\Font.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\Text.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\TextFactory.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\ReferenceCounter.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.h" />
@@ -91,6 +94,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\RasterState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2DArray.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\Font.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\TextFactory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Vertices.cpp" />

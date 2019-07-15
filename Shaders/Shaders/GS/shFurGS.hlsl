@@ -10,22 +10,24 @@ struct PS {
     float2 Texcoord : TEXCOORD0;
 };
 
-void NewShell(inout TriangleStream<GS> TriStream, GS In, float step) {
-    PS Shell;
+void NewShell(inout LineStream<GS> TriStream, GS In, float step) {
+    PS Shell = In;
         Shell.Position = float4(In.Position.xyz + In.Normal * step, In.Position.w);
-        Shell.Texcoord = In.Texcoord;
-        Shell.Normal   = In.Normal;
     TriStream.Append(Shell);
 }
 
-[maxvertexcount(12)]
-void main(triangle GS In[3], inout TriangleStream<GS> TriStream) {
+[maxvertexcount(6)]
+void main(triangle GS In[3], inout LineStream<GS> TriStream) {
     for( int i = 0; i < 3; i++ ) {
-        NewShell(TriStream, In[i], 0.);
+        NewShell(TriStream, In[i], 0);
+        NewShell(TriStream, In[i], 1);
+
+        TriStream.RestartStrip();
     }
 
     TriStream.RestartStrip();
 
+    return;
     for( i = 0; i < 3; i++ ) {
         NewShell(TriStream, In[i], 0.);
         NewShell(TriStream, In[i], 8.);

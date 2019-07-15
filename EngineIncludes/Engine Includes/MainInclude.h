@@ -13,6 +13,9 @@
 #define _LUNA_ENGINE_DX11_
 #include "Physics.h"
 
+// Text engine
+#include "Text.h"
+
 // External
 #include "Ansel.h"
 #include "HBAOPlus.h"

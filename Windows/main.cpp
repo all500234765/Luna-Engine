@@ -4,38 +4,53 @@
 
 #include "Engine Includes/MainInclude.h"
 
-// Test instances
+#pragma region Heap allocated instances
+// Text
+Font *fRegular;
+TextFactory *gTextFactory;
+Text *tTest;
+
+// Cameras
 Camera *cPlayer, *c2DScreen, *cLight;
+
+// Shaders
 Shader *shSurface, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly, 
        *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR, *shDeferred, 
        *shDeferredFinal, *shDeferredPointLight, *shScreenSpaceShadows, 
        *shUnitSphere, *shUnitSphereDepthOnly, *shUnitSphereFur, 
-       *shUnitSphereFurDepthOnly;
+       *shUnitSphereFurDepthOnly, *shSurfaceFur, *shSurfaceFurDepthOnly;
+
+// Models
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
 ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 
+// Textures and materials
 Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault;
 DiffuseMap *mDefaultDiffuse;
 Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougness;
 
 Material *mDefault;
 
+CubemapTexture *pCubemap;
+
+// Render Targets
 RenderBufferDepth2D *bDepth, *bZBuffer_Editor;
 RenderBufferColor3Depth *bGBuffer;
 RenderBufferColor1 *bSSLR, *bDeferred, *bShadows;
 
-CubemapTexture *pCubemap;
-
+// Queries
 Query *pQuery;
 
 // Audio
 SoundEffect *sfxShotSingle, *sfxGunReload, *sfxWalk1, *sfxWalk2;
 Music* mscMainTheme;
 
+// States
 BlendState *pBlendState0;
 RasterState *rsFrontCull;
 //ID3D11RasterizerState *rsFrontCull;
 
+// Viewports
 D3D11_VIEWPORT vpDepth, vpMain;
 
 // Physical objects
@@ -72,6 +87,7 @@ struct cbSSLRMatrix {
     DirectX::XMMATRIX _mProj;
     DirectX::XMMATRIX _mView;
 };
+#pragma endregion
 
 // HBAO+
 #if USE_HBAO_PLUS
@@ -141,8 +157,8 @@ bool _DirectX::FrameFunction() {
         miSpaceShip->Render();
 
         // Render physics engine test unit spheres
-        if( flags & RendererFlags::DepthPass ) shUnitSphereFurDepthOnly->Bind();
-        else                                   shUnitSphereFur->Bind();
+        if( flags & RendererFlags::DepthPass ) shUnitSphereDepthOnly->Bind();
+        else                                   shUnitSphere->Bind();
 
         // 
         gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
@@ -834,9 +850,9 @@ void _DirectX::Load() {
     plane1->SetDistance(2.4);
     plane1->SetFixed(true);
 
-    gPhysicsEngine->PushObject(sphere1);
-    gPhysicsEngine->PushObject(sphere2);
-    gPhysicsEngine->PushObject(plane1);
+    //gPhysicsEngine->PushObject(sphere1);
+    //gPhysicsEngine->PushObject(sphere2);
+    //gPhysicsEngine->PushObject(plane1);
 
     gPhysicsEngine->SetGravity({0., -9.8 * 20., 0.});
     gPhysicsEngine->SetAirResistance({0., .5, 0.});
@@ -869,6 +885,8 @@ void _DirectX::Load() {
     shUnitSphereDepthOnly    = new Shader();
     shUnitSphereFur          = new Shader();
     shUnitSphereFurDepthOnly = new Shader();
+    shSurfaceFur             = new Shader();
+    shSurfaceFurDepthOnly    = new Shader();
 
     cPlayer   = new Camera(DirectX::XMFLOAT3(-24.6163, 14.3178, 24.5916));
     c2DScreen = new Camera();
@@ -1172,11 +1190,11 @@ void _DirectX::Load() {
     shTerrain->LoadFile("shTerrainPS.cso", Shader::Pixel);
 
     // Skeletal animations
-    shSkeletalAnimations->LoadFile("shSkeletalAnimationsVS.cso", Shader::Vertex);
-    shSkeletalAnimations->LoadFile("shSkeletalAnimationsPS.cso", Shader::Pixel);
+    //shSkeletalAnimations->LoadFile("shSkeletalAnimationsVS.cso", Shader::Vertex);
+    //shSkeletalAnimations->LoadFile("shSkeletalAnimationsPS.cso", Shader::Pixel);
 
     // Vertex only shader
-    shVertexOnly->LoadFile("shSimpleVS.cso", Shader::Vertex);
+    shVertexOnly->LoadFile("shSimpleVS.cso", Shader::Vertex); // Change to shSurfaceVS
     shVertexOnly->SetNullShader(Shader::Pixel);
 
     // Skybox
@@ -1246,6 +1264,16 @@ void _DirectX::Load() {
     shUnitSphereFurDepthOnly->AttachShader(shUnitSphereFur, Shader::Geometry);
     shUnitSphereFurDepthOnly->SetNullShader(Shader::Pixel);
 
+    // Surface with Fur
+    shSurfaceFur->AttachShader(shSurface, Shader::Vertex);
+    shSurfaceFur->LoadFile("shSurfaceFurGS.cso", Shader::Geometry);
+    shSurfaceFur->AttachShader(shSurface, Shader::Pixel);
+
+    // Surface with Fur depth only
+    shSurfaceFurDepthOnly->AttachShader(shSurface, Shader::Vertex);
+    shSurfaceFurDepthOnly->AttachShader(shSurfaceFur, Shader::Geometry);
+    shSurfaceFurDepthOnly->SetNullShader(Shader::Pixel);
+
     // Clean shaders
     shSurface->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
@@ -1264,6 +1292,8 @@ void _DirectX::Load() {
     shUnitSphereDepthOnly->ReleaseBlobs();
     shUnitSphereFur->ReleaseBlobs();
     shUnitSphereFurDepthOnly->ReleaseBlobs();
+    shSurfaceFur->ReleaseBlobs();
+    shSurfaceFurDepthOnly->ReleaseBlobs();
 #pragma endregion 
 
 #pragma region Load models
@@ -1330,7 +1360,8 @@ void _DirectX::Load() {
 
     // Space ship
     miSpaceShip = new ModelInstance();
-    miSpaceShip->SetModel(mModel1); //mSpaceShip);
+    miSpaceShip->SetModel(mModel1);
+    //miSpaceShip->SetModel(mSpaceShip);
     miSpaceShip->SetShader(shSurface);
     miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(90.f)) *
                                 DirectX::XMMatrixTranslation(-1, -.25, 1) *
@@ -1425,6 +1456,8 @@ void _DirectX::Unload() {
     shUnitSphereDepthOnly->DeleteShaders();
     shUnitSphereFur->DeleteShaders();
     shUnitSphereFurDepthOnly->DeleteShaders();
+    shSurfaceFur->DeleteShaders();
+    shSurfaceFurDepthOnly->DeleteShaders();
 
     // Release models
     mModel1->Release();
@@ -1556,7 +1589,7 @@ int main() {
     WindowConfig winCFG;
     winCFG.Borderless  = false;
     winCFG.Windowed    = true;
-    winCFG.ShowConsole = false;
+    winCFG.ShowConsole = true;
     winCFG.Width = 1024;
     winCFG.Height = 540;
     winCFG.Title = L"Editor - Luna Engine";

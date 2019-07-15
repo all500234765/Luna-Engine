@@ -18,6 +18,6 @@ half4 main(PS In) : SV_Target0 {
     float3 q = floor(d);
     float3 col = (fmod(q.x + q.y + q.z, 2.) * .5 + .5).xxx;
 
-    return half4(d, 1.);
+    return half4(col * dot(d, _LightDir).xxx * .5 + .5, 1.);
     return half4(lerp(_Ambient, col, max(dot(d, _LightDir), .2)), 1.);
 };

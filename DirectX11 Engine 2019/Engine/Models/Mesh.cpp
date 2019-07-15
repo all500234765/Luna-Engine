@@ -1,21 +1,29 @@
 #include "Mesh.h"
 
 Mesh::Mesh() {
-    vb = new VertexBuffer();
-    ib = new IndexBuffer();
+    //vb = new VertexBuffer();
+    //ib = new IndexBuffer();
 }
 
 void Mesh::Bind() {
-    vb->BindVertex(0);
-    ib->BindIndex(0, DXGI_FORMAT_R32_UINT);
+    if( vb ) vb->BindVertex(0);
+    if( ib ) ib->BindIndex(0, DXGI_FORMAT_R32_UINT);
 }
 
 void Mesh::Render() {
-    gDirectX->gContext->DrawIndexed(ib->GetNumber(), 0, 0);
+    if( ib ) {
+        gDirectX->gContext->DrawIndexed(ib->GetNumber(), 0, 0);
+    } else if( vb ) {
+        gDirectX->gContext->Draw(vb->GetNumber(), 0);
+    }
 }
 
 void Mesh::Render(UINT num) {
-    gDirectX->gContext->DrawIndexedInstanced(ib->GetNumber(), num, 0, 0, 0);
+    if( ib ) {
+        gDirectX->gContext->DrawIndexedInstanced(ib->GetNumber(), num, 0, 0, 0);
+    } else if( vb ) {
+        gDirectX->gContext->DrawInstanced(vb->GetNumber(), num, 0, 0);
+    }
 }
 
 void Mesh::SetBuffer(VertexBuffer* inVB, IndexBuffer* inIB) {
