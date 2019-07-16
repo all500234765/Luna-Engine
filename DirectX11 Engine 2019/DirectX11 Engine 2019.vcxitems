@@ -49,6 +49,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2DArray.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\Font.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\Text.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\TextController.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\TextFactory.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\ReferenceCounter.h" />
@@ -96,6 +97,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2DArray.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\Font.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\Text.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\TextController.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\TextFactory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.cpp" />

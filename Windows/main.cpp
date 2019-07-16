@@ -6,9 +6,10 @@
 
 #pragma region Heap allocated instances
 // Text
+Text *tTest;
 Font *fRegular;
 TextFactory *gTextFactory;
-Text *tTest;
+TextController *gTextController;
 
 // Cameras
 Camera *cPlayer, *c2DScreen, *cLight;
@@ -595,6 +596,19 @@ void _DirectX::Tick(float fDeltaTime) {
         gPhysicsEngine->PushObject(sphereX);
     }
 
+    // Text alignment test
+    if( gKeyboard->IsPressed(VK_NUMPAD1) ) gTextFactory->SetAlignment(TextAlignment_H_Left   | TextAlignment_V_Bottom);
+    if( gKeyboard->IsPressed(VK_NUMPAD2) ) gTextFactory->SetAlignment(TextAlignment_H_Middle | TextAlignment_V_Bottom);
+    if( gKeyboard->IsPressed(VK_NUMPAD3) ) gTextFactory->SetAlignment(TextAlignment_H_Right  | TextAlignment_V_Bottom);
+
+    if( gKeyboard->IsPressed(VK_NUMPAD4) ) gTextFactory->SetAlignment(TextAlignment_H_Left   | TextAlignment_V_Center);
+    if( gKeyboard->IsPressed(VK_NUMPAD5) ) gTextFactory->SetAlignment(TextAlignment_H_Middle | TextAlignment_V_Center);
+    if( gKeyboard->IsPressed(VK_NUMPAD6) ) gTextFactory->SetAlignment(TextAlignment_H_Right  | TextAlignment_V_Center);
+
+    if( gKeyboard->IsPressed(VK_NUMPAD7) ) gTextFactory->SetAlignment(TextAlignment_H_Left   | TextAlignment_V_Top);
+    if( gKeyboard->IsPressed(VK_NUMPAD8) ) gTextFactory->SetAlignment(TextAlignment_H_Middle | TextAlignment_V_Top);
+    if( gKeyboard->IsPressed(VK_NUMPAD9) ) gTextFactory->SetAlignment(TextAlignment_H_Right  | TextAlignment_V_Top);
+
     // Toggle debug
     bIsWireframe ^= gKeyboard->IsPressed(VK_F1); // Toggle wireframe mode
     bDebugGUI    ^= gKeyboard->IsPressed(VK_F3); // Toggle debug gui mode
@@ -730,41 +744,11 @@ void _DirectX::ComposeUI() {
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 #endif
 
-    // 
-    auto DrawText_ = [](Text* text, float x=0.f, float y=0.f, float xs=1.f, float ys=1.f, float angle=0.f) {
-        c2DScreen->SetWorldMatrix(DirectX::XMMatrixTranslation(x, y, 0.f) * 
-                                  DirectX::XMMatrixScaling(xs, ys, 1.f) * 
-                                  DirectX::XMMatrixRotationAxis({ 0., 1., 0. }, angle));
-        c2DScreen->BuildConstantBuffer();
-        c2DScreen->BindBuffer(Shader::Vertex, 0);
-        gTextFactory->Draw(text);
-    };
-
-    // 
-    DrawText_(tTest, 10.f, 10.f);
-
-    //shGUI->Bind();
-
-
-
-    //CreateDeviceResources();
-
-    // Begin rendering
-    /*g2DRT->BeginDraw();
-
-    // Rendering code goes here
-    // ...
-    g2DRT->SetTransform(D2D1::IdentityMatrix());          // Reset transformation
-    g2DRT->Clear(D2D1::ColorF(D2D1::ColorF::Black, 1.f)); // Clear text output
+    // Set blendmode
+    pBlendState0->Bind();
 
     // Draw text
-    g2DRT->DrawTextLayout(D2D1::Point2F(5.f, 5.f), gTextLayout, gSolidLimeBrush);
-
-    // End rendering
-    g2DRT->EndDraw();*/
-
-    // 
-    //DiscardDeviceResources();
+    gTextController->Draw(tTest);
 }
 
 void _DirectX::Resize() {
@@ -1291,11 +1275,11 @@ void _DirectX::Load() {
     shSurfaceFurDepthOnly->SetNullShader(Shader::Pixel);
 
     // Text without effects
-    shTextSimple->AttachShader(shTexturedQuad, Shader::Vertex);
+    shTextSimple->LoadFile("shTexturedQuadInvVVS.cso", Shader::Vertex);
     shTextSimple->LoadFile("shTextSimplePS.cso", Shader::Pixel);
 
     // Text with effects
-    shTextEffects->AttachShader(shTexturedQuad, Shader::Vertex);
+    shTextEffects->AttachShader(shTextSimple, Shader::Vertex);
     shTextEffects->LoadFile("shTextEffectsPS.cso", Shader::Pixel);
 
     // Clean shaders
@@ -1323,13 +1307,16 @@ void _DirectX::Load() {
 
 #pragma region Text
     fRegular = new Font("Font0.fnt", sPoint);
+    fRegular->SetSpacing(.9f);
+    
     gTextFactory = new TextFactory(shTextSimple);
     gTextFactory->SetFont(fRegular);
     tTest = gTextFactory->Build(
-        R"(Test text line 1)"
-/*Test text line 2
-Something here too)"*/);
-
+        R"(Test text line 1
+Test text line 2
+Something here too)");
+    
+    gTextController = new TextController(gTextFactory, cfg.CurrentWidth, cfg.CurrentHeight2, 16.f);
 #pragma endregion
 
 #pragma region Load models

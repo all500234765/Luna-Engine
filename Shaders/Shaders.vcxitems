@@ -112,6 +112,9 @@
       <ShaderType>Vertex</ShaderType>
       <FileType>Document</FileType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadInvVVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>

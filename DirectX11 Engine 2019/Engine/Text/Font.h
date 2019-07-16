@@ -24,7 +24,7 @@ private:
         float xStep;
     };
 
-    int mHeight;
+    float mScale, mSpacing = 1.f, mHeight;
 
     Texture *tFont;
     Sampler *sFont;
@@ -36,21 +36,36 @@ public:
 
     inline void SetSampler(Sampler* s) { sFont = s; }
 
-    inline int GetWidth (char ch) const { return aChars[ch].sizeX; }
-    inline int GetHeight(char ch) const { return aChars[ch].sizeY; }
+    void Release();
 
-    inline int GetLineHeight() const { return mHeight; }
+    // Font settings
+    // Between [-inf; +inf]
+    inline float GetLineHeight() const { return mHeight; }
+    inline void SetLineHeight(float lh) { mHeight = lh; }
 
-    inline int GetCharU0(char ch) const { return aChars[ch].u0; } // UV 0
-    inline int GetCharV0(char ch) const { return aChars[ch].v0; }
+    // Between [0; 1]
+    inline float GetSpacing() const { return mSpacing; }
+    inline void SetSpacing(float v) { mSpacing = v; }
 
-    inline int GetCharU1(char ch) const { return aChars[ch].u1; } // UV 1
-    inline int GetCharV1(char ch) const { return aChars[ch].v1; }
+    // Original font size in texture
+    // Between [0; +inf]
+    inline float GetScale() const { return mScale; }
+
+    // Character
+    inline float GetWidth (char ch) const { return aChars[ch].sizeX; }
+    inline float GetHeight(char ch) const { return aChars[ch].sizeY; }
+
+    inline float GetCharU0(char ch) const { return aChars[ch].u0; } // UV 0
+    inline float GetCharV0(char ch) const { return aChars[ch].v0; }
+
+    inline float GetCharU1(char ch) const { return aChars[ch].u1; } // UV 1
+    inline float GetCharV1(char ch) const { return aChars[ch].v1; }
 
     inline DirectX::XMFLOAT2 GetCharUV0(char ch) const { return DirectX::XMFLOAT2(aChars[ch].u0, aChars[ch].v0); }
     inline DirectX::XMFLOAT2 GetCharUV1(char ch) const { return DirectX::XMFLOAT2(aChars[ch].u1, aChars[ch].v1); }
 
-    inline int GetAdvance(char ch) const { return aChars[ch].xStep; }
+    inline float GetAdvance(char ch) const { return aChars[ch].xStep; }
 
-    void Release();
+    inline float GetCharX(char ch) const { return aChars[ch].xOffset; }
+    inline float GetCharY(char ch) const { return aChars[ch].yOffset; }
 };

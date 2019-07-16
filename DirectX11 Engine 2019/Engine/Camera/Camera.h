@@ -56,4 +56,6 @@ public:
 
     void SetProjMatrix(DirectX::XMMATRIX proj);
     DirectX::XMMATRIX GetProjMatrix();
+
+    inline float GetAspect() const { return cfg.fAspect; }
 };

@@ -55,7 +55,7 @@ public:
     TextFactory(Shader* shader);
 
     inline UINT GetAligment()   const { return  TextAlignment; }
-    inline UINT GetHAlignment() const { return (TextAlignment & 0x38) >> 3; }
+    inline UINT GetHAlignment() const { return (TextAlignment & 0x38); }
     inline UINT GetVAlignment() const { return (TextAlignment & 0x07); }
 
     inline void SetAlignment(UINT align)      { TextAlignment  =  align; }
@@ -63,11 +63,11 @@ public:
     inline void DelAlignment(TextFlags align) { TextAlignment &= ~align; }
     inline void DelAlignment(bool hor)        { TextAlignment &= ~(7 << (hor ? 3 : 0)); } // TODO: Test
 
-    inline Font* GetFont(Font *fnt) const { return mFont; };
-    inline void SetFont(Font *fnt)        { mFont = fnt; };
+    inline Font* GetFont() const   { return mFont; };
+    inline void SetFont(Font *fnt) { mFont = fnt; };
 
-    Text* Build(const char* text, int maxWidth=-1);
-    Text* Build(Text* old, const char* text, int maxWidth=-1);
+    Text* Build(const char* text, float maxWidth=-1);
+    Text* Build(Text* old, const char* text, float maxWidth=-1);
 
     void Draw(Text* text);
 

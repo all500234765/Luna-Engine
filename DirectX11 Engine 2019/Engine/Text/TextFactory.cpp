@@ -4,17 +4,20 @@ TextFactory::TextFactory(Shader* shader) {
     mShader = shader;
 }
 
-Text* TextFactory::Build(const char* text, int maxWidth) {
+Text* TextFactory::Build(const char* text, float maxWidth) {
     // We have to have font for that
     if( mFont == nullptr ) { return nullptr; }
 
     using namespace DirectX; // So it won't be such pain in the ass
 
-    int length = strlen(text); // Text length
+    size_t length = strlen(text); // Text length
     float offsetX = 0.f,       // Character offset
           offsetY = 0.f;
 
     std::vector<Vertex_PT> vertices; // Vertex array
+
+    // Font scaling
+    float fScale = 1.f / static_cast<float>(mFont->GetScale());
 
     // Push single char
     auto PushChar = [&vertices, &offsetX, &offsetY](Font* mFont, char ch) {
@@ -33,33 +36,36 @@ Text* TextFactory::Build(const char* text, int maxWidth) {
                  uv1 /* Bottom-Right */ = mFont->GetCharUV1(ch);
 
         // Tri 1
-        PushVertex({ offsetX     , offsetY     , 0.f }, uv0);              // Top-Left
-        PushVertex({ offsetX + cW, offsetY     , 0.f }, { uv1.x, uv0.y }); // Top-Right
-        PushVertex({ offsetX + cW, offsetY + cH, 0.f }, uv1);              // Bottom-Right
+        PushVertex({ offsetX      + mFont->GetCharX(ch), offsetY      + mFont->GetCharY(ch), .5f }, uv0);              // Top-Left
+        PushVertex({ offsetX + cW + mFont->GetCharX(ch), offsetY      + mFont->GetCharY(ch), .5f }, { uv1.x, uv0.y }); // Top-Right
+        PushVertex({ offsetX + cW + mFont->GetCharX(ch), offsetY + cH + mFont->GetCharY(ch), .5f }, uv1);              // Bottom-Right
 
         // Tri 2
-        PushVertex({ offsetX     , offsetY     , 0.f }, uv0);              // Top-Left
-        PushVertex({ offsetX + cW, offsetY + cH, 0.f }, uv1);              // Bottom-Right
-        PushVertex({ offsetX     , offsetY + cH, 0.f }, { uv0.x, uv1.y }); // Bottom-Left
+        PushVertex({ offsetX      + mFont->GetCharX(ch), offsetY      + mFont->GetCharY(ch), .5f }, uv0);              // Top-Left
+        PushVertex({ offsetX + cW + mFont->GetCharX(ch), offsetY + cH + mFont->GetCharY(ch), .5f }, uv1);              // Bottom-Right
+        PushVertex({ offsetX      + mFont->GetCharX(ch), offsetY + cH + mFont->GetCharY(ch), .5f }, { uv0.x, uv1.y }); // Bottom-Left
 
         // Move caret to the right
-        offsetX += mFont->GetAdvance(ch);
+        offsetX += mFont->GetAdvance(ch) * mFont->GetSpacing();
     };
 
     // Process text
-    for( int i = 0; i < length; i++ ) {
+    maxWidth *= fScale;
+    for( size_t i = 0; i < length; i++ ) {
         char c = text[i]; // Get current char
 
-        if( offsetX >= maxWidth ) {
-            offsetX -= maxWidth;
-            offsetY += mFont->GetLineHeight();
+        // New line
+        if( maxWidth > -1 && offsetX >= maxWidth ) {
+            //offsetX -= maxWidth;
+            //offsetY += mFont->GetLineHeight() * fScale;
         }
 
         if( c == 32 ) {        // " "
-            offsetX += 3.f;
+            offsetX += 30.f * fScale * mFont->GetSpacing();
             continue;
         } else if( c == 10 ) { // "\n"
-            offsetY += 16.f;
+            offsetY += mFont->GetLineHeight() * fScale;
+            offsetX = 0.f;
             continue;
         }
 
@@ -71,14 +77,14 @@ Text* TextFactory::Build(const char* text, int maxWidth) {
     Mesh *mText = new Mesh();
     VertexBuffer *vb = new VertexBuffer();
 
-    vb->CreateDefault(vertices.size(), sizeof(Vertex_PT), &vertices[0]);
+    vb->CreateDefault(static_cast<UINT>(vertices.size()), sizeof(Vertex_PT), &vertices[0]);
     mText->SetBuffer(vb, nullptr);
 
     // Generate text
-    return new Text(mText, offsetX + mFont->GetAdvance(text[length - 1]), offsetY + mFont->GetLineHeight());
+    return new Text(mText, offsetX + mFont->GetAdvance(text[length - 1]) * mFont->GetSpacing(), offsetY + mFont->GetLineHeight() * fScale);
 }
 
-Text* TextFactory::Build(Text* old, const char* text, int maxWidth) {
+Text* TextFactory::Build(Text* old, const char* text, float maxWidth) {
     old->Release();
     return Build(text, maxWidth);
 }
