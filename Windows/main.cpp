@@ -18,7 +18,8 @@ Shader *shSurface, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly,
        *shSkybox, *shTexturedQuad, *shPostProcess, *shSSLR, *shDeferred, 
        *shDeferredFinal, *shDeferredPointLight, *shScreenSpaceShadows, 
        *shUnitSphere, *shUnitSphereDepthOnly, *shUnitSphereFur, 
-       *shUnitSphereFurDepthOnly, *shSurfaceFur, *shSurfaceFurDepthOnly;
+       *shUnitSphereFurDepthOnly, *shSurfaceFur, *shSurfaceFurDepthOnly, 
+       *shTextSimple, *shTextEffects;
 
 // Models
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
@@ -43,7 +44,7 @@ Query *pQuery;
 
 // Audio
 SoundEffect *sfxShotSingle, *sfxGunReload, *sfxWalk1, *sfxWalk2;
-Music* mscMainTheme;
+Music *mscMainTheme;
 
 // States
 BlendState *pBlendState0;
@@ -729,6 +730,19 @@ void _DirectX::ComposeUI() {
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 #endif
 
+    // 
+    auto DrawText_ = [](Text* text, float x=0.f, float y=0.f, float xs=1.f, float ys=1.f, float angle=0.f) {
+        c2DScreen->SetWorldMatrix(DirectX::XMMatrixTranslation(x, y, 0.f) * 
+                                  DirectX::XMMatrixScaling(xs, ys, 1.f) * 
+                                  DirectX::XMMatrixRotationAxis({ 0., 1., 0. }, angle));
+        c2DScreen->BuildConstantBuffer();
+        c2DScreen->BindBuffer(Shader::Vertex, 0);
+        gTextFactory->Draw(text);
+    };
+
+    // 
+    DrawText_(tTest, 10.f, 10.f);
+
     //shGUI->Bind();
 
 
@@ -887,6 +901,8 @@ void _DirectX::Load() {
     shUnitSphereFurDepthOnly = new Shader();
     shSurfaceFur             = new Shader();
     shSurfaceFurDepthOnly    = new Shader();
+    shTextSimple             = new Shader();
+    shTextEffects            = new Shader();
 
     cPlayer   = new Camera(DirectX::XMFLOAT3(-24.6163, 14.3178, 24.5916));
     c2DScreen = new Camera();
@@ -1274,6 +1290,14 @@ void _DirectX::Load() {
     shSurfaceFurDepthOnly->AttachShader(shSurfaceFur, Shader::Geometry);
     shSurfaceFurDepthOnly->SetNullShader(Shader::Pixel);
 
+    // Text without effects
+    shTextSimple->AttachShader(shTexturedQuad, Shader::Vertex);
+    shTextSimple->LoadFile("shTextSimplePS.cso", Shader::Pixel);
+
+    // Text with effects
+    shTextEffects->AttachShader(shTexturedQuad, Shader::Vertex);
+    shTextEffects->LoadFile("shTextEffectsPS.cso", Shader::Pixel);
+
     // Clean shaders
     shSurface->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
@@ -1294,7 +1318,19 @@ void _DirectX::Load() {
     shUnitSphereFurDepthOnly->ReleaseBlobs();
     shSurfaceFur->ReleaseBlobs();
     shSurfaceFurDepthOnly->ReleaseBlobs();
+    shTextSimple->ReleaseBlobs();
 #pragma endregion 
+
+#pragma region Text
+    fRegular = new Font("Font0.fnt", sPoint);
+    gTextFactory = new TextFactory(shTextSimple);
+    gTextFactory->SetFont(fRegular);
+    tTest = gTextFactory->Build(
+        R"(Test text line 1)"
+/*Test text line 2
+Something here too)"*/);
+
+#pragma endregion
 
 #pragma region Load models
     // Create model
@@ -1458,6 +1494,8 @@ void _DirectX::Unload() {
     shUnitSphereFurDepthOnly->DeleteShaders();
     shSurfaceFur->DeleteShaders();
     shSurfaceFurDepthOnly->DeleteShaders();
+    shTextSimple->DeleteShaders();
+    shTextEffects->DeleteShaders();
 
     // Release models
     mModel1->Release();

@@ -75,6 +75,12 @@
       <ShaderType>Pixel</ShaderType>
       <FileType>Document</FileType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextEffectsPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextSimplePS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -112,5 +118,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\PS\fxaa.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextInclude.hlsli" />
   </ItemGroup>
 </Project>

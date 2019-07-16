@@ -75,14 +75,16 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
 }
 
 void Shader::DeleteShaders() {
-    if( ((Type & Vertex  ) == Vertex  ) && ((Linked & Vertex  ) == 0) && sVertex   ) { sVertex->Release(); }
-    if( ((Type & Pixel   ) == Pixel   ) && ((Linked & Pixel   ) == 0) && sPixel    ) { sPixel->Release(); }
+    // We can't release data that we don't own
+    if( ((Type & Vertex  ) == Vertex  ) && ((Linked & Vertex  ) == 0) && sVertex   ) { sVertex->Release();   }
+    if( ((Type & Pixel   ) == Pixel   ) && ((Linked & Pixel   ) == 0) && sPixel    ) { sPixel->Release();    }
     if( ((Type & Geometry) == Geometry) && ((Linked & Geometry) == 0) && sGeometry ) { sGeometry->Release(); }
-    if( ((Type & Hull    ) == Hull    ) && ((Linked & Hull    ) == 0) && sHull     ) { sHull->Release(); }
-    if( ((Type & Domain  ) == Domain  ) && ((Linked & Domain  ) == 0) && sDomain   ) { sDomain->Release(); }
-    if( ((Type & Compute ) == Compute ) && ((Linked & Compute ) == 0) && sCompute  ) { sCompute->Release(); }
+    if( ((Type & Hull    ) == Hull    ) && ((Linked & Hull    ) == 0) && sHull     ) { sHull->Release();     }
+    if( ((Type & Domain  ) == Domain  ) && ((Linked & Domain  ) == 0) && sDomain   ) { sDomain->Release();   }
+    if( ((Type & Compute ) == Compute ) && ((Linked & Compute ) == 0) && sCompute  ) { sCompute->Release();  }
 
-    pl->Release();
+    // Same for polygon layout
+    if( ((Type & Vertex) == Vertex) && ((Linked & Vertex) == 0) ) pl->Release();
 }
 
 void Shader::ReleaseBlobs() {
@@ -108,6 +110,7 @@ void Shader::AttachShader(Shader* origin, ShaderType type) {
         return;
     }
 
+    // Add ref to shader
     switch( type ) {
         case Vertex  : sVertex   = origin->sVertex  ; break;
         case Pixel   : sPixel    = origin->sPixel   ; break;
@@ -117,6 +120,12 @@ void Shader::AttachShader(Shader* origin, ShaderType type) {
         case Compute : sCompute  = origin->sCompute ; break;
     }
 
+    // Add ref to polygon layout class
+    if( type == Vertex ) {
+        pl->Assign(origin->pl->GetLayout());
+    }
+
+    // Add as linked
     Linked |= type;
     Type |= type;
 }
