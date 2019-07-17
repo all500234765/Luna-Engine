@@ -37,6 +37,7 @@ public:
     void BuildProj();
 
     void Translate(DirectX::XMFLOAT3 p);
+    void TranslateAbs(DirectX::XMFLOAT3 p);
     void TranslateLookAt(DirectX::XMFLOAT3 p);
     void TranslateLookAtAbs(DirectX::XMFLOAT3 p);
 

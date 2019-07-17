@@ -25,8 +25,6 @@ enum TextFlags {
     TextAlignment_H_Left   = 8,
     TextAlignment_H_Middle = 16,
     TextAlignment_H_Right  = 32,
-
-
 };
 
 class TextFactory: public DirectXChild {

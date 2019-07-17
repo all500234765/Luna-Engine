@@ -1,6 +1,6 @@
 #include "Font.h"
 
-Font::Font(const char* fontFile, Sampler* s): sFont(s) {
+Font::Font(const char* fontFile, Sampler* s, bool SDF): sFont(s), bSDF(SDF) {
     // Load font data
     std::ifstream file(std::string(FONT_DIRECTORY) + std::string(fontFile));
 
@@ -46,8 +46,10 @@ Font::Font(const char* fontFile, Sampler* s): sFont(s) {
 
     // Read char data
     float fScale  = 1.f / mScale;
-    float fWidth  = 1.f / static_cast<float>(tFont->GetWidth());
+    float fWidth  = 1.f / static_cast<float>(tFont->GetWidth ());
     float fHeight = 1.f / static_cast<float>(tFont->GetHeight());
+     
+    float UV_PADDING = SDF ? -0.f : 0.f;
 
     for( int i = 0; i < N; i++ ) {
         // Read data and fill structure
@@ -97,11 +99,11 @@ Font::Font(const char* fontFile, Sampler* s): sFont(s) {
         ch.xStep = static_cast<float>(atof(line.c_str())) * fScale;
 
         // Calculate UVs
-        ch.u0 = x * fWidth;
-        ch.v0 = y * fHeight;
+        ch.u0 = (x            + UV_PADDING) * fWidth;
+        ch.v0 = (y            + UV_PADDING) * fHeight;
 
-        ch.u1 = (x + ch.sizeX) * fWidth;
-        ch.v1 = (y + ch.sizeY) * fHeight;
+        ch.u1 = (x + ch.sizeX - UV_PADDING) * fWidth;
+        ch.v1 = (y + ch.sizeY - UV_PADDING) * fHeight;
 
         // Rescale character size
         ch.sizeX *= fScale;

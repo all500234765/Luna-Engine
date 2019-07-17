@@ -97,7 +97,7 @@ half4 main(PS In): SV_Target0 {
                            fxaaSubpix, fxaaEdgeThreshold, fxaaEdgeThresholdMin, 0, 0, 0, 0);
 
     //half3 Shadows  = _ShadowTexture.Sample(_ShadowSampler, In.Texcoord);
-    half3 Deferred = _DeferredTexture.Sample(_DeferredSampler, In.Texcoord);
+    //half3 Deferred = _DeferredTexture.Sample(_DeferredSampler, In.Texcoord);
 
     //Diff.rgb *= Shadows;
 
@@ -108,7 +108,7 @@ half4 main(PS In): SV_Target0 {
 
     // Tonemapping
     //Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
-    Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 1.5;
+    Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
 
     // 
     return Diff;

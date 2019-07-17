@@ -63,6 +63,12 @@ void Camera::Translate(DirectX::XMFLOAT3 p) {
     pPos.z += p.z;
 }
 
+void Camera::TranslateAbs(DirectX::XMFLOAT3 p) {
+    pPos.x = p.x;
+    pPos.y = p.y;
+    pPos.z = p.z;
+}
+
 void Camera::TranslateLookAt(DirectX::XMFLOAT3 p) {
     using namespace DirectX;
 
@@ -141,6 +147,7 @@ void Camera::BindBuffer(Shader::ShaderType type, UINT slot) {
     cb->Bind(type, slot);
 }
 
+// TODO: inline
 DirectX::XMFLOAT3 Camera::GetPosition() {
     return pPos;
 }

@@ -22,6 +22,9 @@ void TextController::Draw(Text* text, float x, float y, float xs, float ys, floa
         case TextFlags::TextAlignment_V_Center: y -= text->GetSizeH() * .5f; break;
         case TextFlags::TextAlignment_V_Bottom:                              break;
     }
+    
+    x -= mViewPort.Width / 1024.f;
+    //y -= mViewPort.Height;
 
     mCamera->SetWorldMatrix(DirectX::XMMatrixTranslation(x, y, 0.f) *
                             DirectX::XMMatrixScaling( xs * mInvWidth  * mScale * mCamera->GetAspect(),

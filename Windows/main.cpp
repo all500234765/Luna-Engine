@@ -20,7 +20,7 @@ Shader *shSurface, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly,
        *shDeferredFinal, *shDeferredPointLight, *shScreenSpaceShadows, 
        *shUnitSphere, *shUnitSphereDepthOnly, *shUnitSphereFur, 
        *shUnitSphereFurDepthOnly, *shSurfaceFur, *shSurfaceFurDepthOnly, 
-       *shTextSimple, *shTextEffects;
+       *shTextSimple, *shTextEffects, *shTextSimpleSDF, *shTextEffectsSDF;
 
 // Models
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
@@ -769,6 +769,9 @@ void _DirectX::Resize() {
     bShadows->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
     bZBuffer_Editor->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
 
+    // Resize text port
+    gTextController->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
+
     // Resize swapchain
     scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
     scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
@@ -785,6 +788,8 @@ void _DirectX::Resize() {
     BackBufferColor->Release(); // ?
 
     // Create depth texture
+    pTex2DDesc.Width  = cfg.CurrentWidth;
+    pTex2DDesc.Height = cfg.CurrentHeight;
     gDSVTex->Release();
     gDSV->Release();
     std::cout << (gDevice->CreateTexture2D(&pTex2DDesc, NULL, &gDSVTex) == S_OK) << std::endl;
@@ -887,6 +892,8 @@ void _DirectX::Load() {
     shSurfaceFurDepthOnly    = new Shader();
     shTextSimple             = new Shader();
     shTextEffects            = new Shader();
+    shTextSimpleSDF          = new Shader();
+    shTextEffectsSDF         = new Shader();
 
     cPlayer   = new Camera(DirectX::XMFLOAT3(-24.6163, 14.3178, 24.5916));
     c2DScreen = new Camera();
@@ -1282,6 +1289,14 @@ void _DirectX::Load() {
     shTextEffects->AttachShader(shTextSimple, Shader::Vertex);
     shTextEffects->LoadFile("shTextEffectsPS.cso", Shader::Pixel);
 
+    // SDF Text rendering w/o any effects
+    shTextSimpleSDF->AttachShader(shTextSimple, Shader::Vertex);
+    shTextSimpleSDF->LoadFile("shTextSimpleSDFPS.cso", Shader::Pixel);
+
+    // SDF Text rendering w/o any effects
+    shTextEffectsSDF->AttachShader(shTextSimple, Shader::Vertex);
+    shTextEffectsSDF->LoadFile("shTextEffectsSDFPS.cso", Shader::Pixel);
+
     // Clean shaders
     shSurface->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
@@ -1303,18 +1318,18 @@ void _DirectX::Load() {
     shSurfaceFur->ReleaseBlobs();
     shSurfaceFurDepthOnly->ReleaseBlobs();
     shTextSimple->ReleaseBlobs();
+    shTextEffects->ReleaseBlobs();
+    shTextSimpleSDF->ReleaseBlobs();
+    shTextEffectsSDF->ReleaseBlobs();
 #pragma endregion 
 
 #pragma region Text
-    fRegular = new Font("Font0.fnt", sPoint);
+    fRegular = new Font("fConsolasSDF.fnt", sPoint, true);
     fRegular->SetSpacing(.9f);
     
-    gTextFactory = new TextFactory(shTextSimple);
+    gTextFactory = new TextFactory(shTextSimpleSDF);
     gTextFactory->SetFont(fRegular);
-    tTest = gTextFactory->Build(
-        R"(Test text line 1
-Test text line 2
-Something here too)");
+    tTest = gTextFactory->Build("Test text line 1");
     
     gTextController = new TextController(gTextFactory, cfg.CurrentWidth, cfg.CurrentHeight2, 16.f);
 #pragma endregion
@@ -1483,6 +1498,8 @@ void _DirectX::Unload() {
     shSurfaceFurDepthOnly->DeleteShaders();
     shTextSimple->DeleteShaders();
     shTextEffects->DeleteShaders();
+    shTextSimpleSDF->DeleteShaders();
+    shTextEffectsSDF->DeleteShaders();
 
     // Release models
     mModel1->Release();
@@ -1499,6 +1516,10 @@ void _DirectX::Unload() {
     bShadows->Release();
     bSSLR->Release();
     bZBuffer_Editor->Release();
+    
+    // Text engine
+    fRegular->Release();
+    tTest->Release();
 }
 
 #if USE_ANSEL
@@ -1615,10 +1636,10 @@ int main() {
     winCFG.Borderless  = false;
     winCFG.Windowed    = true;
     winCFG.ShowConsole = true;
-    winCFG.Width = 1024;
-    winCFG.Height = 540;
-    winCFG.Title = L"Editor - Luna Engine";
-    winCFG.Icon = L"Engine/Assets/Engine.ico";
+    winCFG.Width       = 1024;
+    winCFG.Height      = 540;
+    winCFG.Title       = L"Editor - Luna Engine";
+    winCFG.Icon        = L"Engine/Assets/Engine.ico";
 
     // Create window
     gWindow->Create(winCFG);

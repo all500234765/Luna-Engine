@@ -25,13 +25,14 @@ private:
     };
 
     float mScale, mSpacing = 1.f, mHeight;
+    bool bSDF;
 
     Texture *tFont;
     Sampler *sFont;
     std::vector<Character> aChars;
 
 public:
-    Font(const char* file, Sampler *s);
+    Font(const char* file, Sampler *s, bool SDF=false);
     void Bind(UINT slot=0);
 
     inline void SetSampler(Sampler* s) { sFont = s; }
@@ -39,6 +40,9 @@ public:
     void Release();
 
     // Font settings
+    inline bool IsSDF() const { return bSDF; }
+    inline void SetSDF(bool vl) { bSDF = vl; }
+
     // Between [-inf; +inf]
     inline float GetLineHeight() const { return mHeight; }
     inline void SetLineHeight(float lh) { mHeight = lh; }
