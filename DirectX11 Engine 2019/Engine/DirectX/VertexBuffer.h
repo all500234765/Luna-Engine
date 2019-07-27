@@ -5,7 +5,7 @@
 
 class VertexBuffer: public Buffer {
 public:
-    void CreateDefault(UINT Num, UINT Stride, void* vertices);
-
+    void CreateDefault(UINT Num, UINT _Stride, void* vertices);
+    void Release() override;
 
 };

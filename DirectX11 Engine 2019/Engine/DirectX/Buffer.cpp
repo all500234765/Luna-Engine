@@ -10,7 +10,7 @@ void Buffer::Create(D3D11_BUFFER_DESC desc, D3D11_SUBRESOURCE_DATA data, UINT st
 
     HRESULT hr = gDirectX->gDevice->CreateBuffer(&desc, &data, &pBuff);
 
-    std::cout << "Buffer created (error=" << hr << ")" << std::endl;
+    //std::cout << "Buffer created (error=" << hr << ")" << std::endl;
 }
 
 void Buffer::Release() {

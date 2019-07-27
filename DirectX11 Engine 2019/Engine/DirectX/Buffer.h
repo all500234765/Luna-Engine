@@ -13,7 +13,7 @@ protected:
     void Create(D3D11_BUFFER_DESC desc, D3D11_SUBRESOURCE_DATA data, UINT stride, UINT offset);
 
 public:
-    void Release();
+    virtual void Release();
     ID3D11Buffer* GetBuffer();
     UINT GetNumber();
     void BindVertex(UINT Slot);

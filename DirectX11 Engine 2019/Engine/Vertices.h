@@ -12,18 +12,19 @@
 // Don't use this struct as Vertex type
 // Use Vertex_P instead
 struct Vertex {
-    DirectX::XMFLOAT3 Position;
-
     Vertex() {};
     Vertex(aiMesh* inMesh, size_t i);
 };
 
 struct Vertex_P: public Vertex {
+    DirectX::XMFLOAT3 Position;
+
     Vertex_P() {};
     Vertex_P(aiMesh* inMesh, size_t i);
 };
 
 struct Vertex_PT: public Vertex {
+    DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT2 Texcoord;
 
     Vertex_PT() {};
@@ -31,6 +32,7 @@ struct Vertex_PT: public Vertex {
 };
 
 struct Vertex_PNT: public Vertex {
+    DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT3 Normal;
     DirectX::XMFLOAT2 Texcoord;
 
@@ -39,6 +41,7 @@ struct Vertex_PNT: public Vertex {
 };
 
 struct Vertex_PNTC: public Vertex {
+    DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT3 Normal;
     DirectX::XMFLOAT2 Texcoord;
     DirectX::XMFLOAT3 Color;
@@ -48,6 +51,7 @@ struct Vertex_PNTC: public Vertex {
 };
 
 struct Vertex_PN: public Vertex {
+    DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT3 Normal;
 
     Vertex_PN() {};
@@ -55,6 +59,7 @@ struct Vertex_PN: public Vertex {
 };
 
 struct Vertex_PNT_TgBn: public Vertex {
+    DirectX::XMFLOAT3 Position;
     DirectX::XMFLOAT3 Normal;
     DirectX::XMFLOAT2 Texcoord;
     DirectX::XMFLOAT3 Tangent;

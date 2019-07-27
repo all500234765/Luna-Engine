@@ -20,3 +20,7 @@ void IndexBuffer::CreateDefault(UINT Num, void* indices) {
     // 
     __super::Create(desc, data, sizeof(unsigned long), 0);
 }
+
+void IndexBuffer::Release() {
+    __super::Release();
+}

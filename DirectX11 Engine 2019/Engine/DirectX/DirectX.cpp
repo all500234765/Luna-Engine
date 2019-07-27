@@ -240,40 +240,6 @@ int _DirectX::Create(const DirectXConfig& config) {
         gContext = t;
     }
 
-    // Setup 2D rendering
-    /*HRESULT hr = S_OK;
-
-    // Create 2D factory
-    hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &g2DFactory);
-
-    // Create DirectWrite factory
-    hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&g2DWriteFactory));
-
-    // Create text format
-    hr = g2DWriteFactory->CreateTextFormat(L"Arial", NULL, DWRITE_FONT_WEIGHT_REGULAR, 
-                                           DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 
-                                           ConvertPointSizeToDIP(12.f), L"en-us", &gTextFormat_Arial);
-
-    // Set text alignment
-    gTextFormat_Arial->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-
-    // Create render target
-    D2D1_SIZE_U size = D2D1::SizeU(config.Width, config.Height);
-    g2DFactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), 
-                                       D2D1::HwndRenderTargetProperties(config.m_hwnd, size), 
-                                       &g2DRT);
-
-    // Create brushie
-    g2DRT->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Lime), &gSolidLimeBrush);
-
-    // Create text layout
-    std::wstring text = L"YA YEBAL V ROT ETOGO KAZINO!";
-    g2DWriteFactory->CreateTextLayout(text.c_str(), text.length(), gTextFormat_Arial, size.width, size.height, &gTextLayout);
-
-    // Set font size
-    DWRITE_TEXT_RANGE range = {28, 4};
-    gTextLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);*/
-
     // No errors
     return 0;
 }

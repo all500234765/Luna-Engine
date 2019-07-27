@@ -56,13 +56,13 @@ void Window::Create(const WindowConfig& config) {
         if( !config.Height ) cfg.CurrentHeight = screenHeight; else cfg.CurrentHeight = config.Height;
 
         // Place the window in the middle of the screen.
-        posX = max((GetSystemMetrics(SM_CXSCREEN) - cfg.CurrentWidth) / 2, 0);
-        posY = max((GetSystemMetrics(SM_CYSCREEN) - cfg.CurrentHeight) / 2, 0);
+        posX = max((screenWidth  - cfg.CurrentWidth ) / 2, 0);
+        posY = max((screenHeight - cfg.CurrentHeight) / 2, 0);
     } else {
         // If full screen set the screen to maximum size of the users desktop and 32bit.
         memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
-        dmScreenSettings.dmSize = sizeof(dmScreenSettings);
-        dmScreenSettings.dmPelsWidth = (unsigned long)screenWidth;
+        dmScreenSettings.dmSize       = sizeof(dmScreenSettings);
+        dmScreenSettings.dmPelsWidth  = (unsigned long)screenWidth;
         dmScreenSettings.dmPelsHeight = (unsigned long)screenHeight;
         dmScreenSettings.dmBitsPerPel = 32;
         dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;

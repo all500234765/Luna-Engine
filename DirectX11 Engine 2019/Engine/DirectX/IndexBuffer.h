@@ -6,6 +6,6 @@
 class IndexBuffer: public Buffer {
 public:
     void CreateDefault(UINT Num, void* indices);
-
+    void Release() override;
 
 };

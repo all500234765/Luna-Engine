@@ -552,6 +552,9 @@ float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
 
+    // Update GUI elements
+    tTest = gTextFactory->Build(tTest, (std::string("FPS: ") + std::to_string(1.f / fDeltaTime)).c_str());
+
     // Update physics
     if( !bPause ) {
         // Update physics N times
@@ -1329,7 +1332,7 @@ void _DirectX::Load() {
     
     gTextFactory = new TextFactory(shTextSimpleSDF);
     gTextFactory->SetFont(fRegular);
-    tTest = gTextFactory->Build("Test text line 1");
+    tTest = gTextFactory->Build((std::string("FPS: ") + std::to_string(60)).c_str());
     
     gTextController = new TextController(gTextFactory, cfg.CurrentWidth, cfg.CurrentHeight2, 16.f);
 #pragma endregion
@@ -1666,7 +1669,7 @@ int main() {
     dxCFG.Width = winCFG.CurrentWidth;
     dxCFG.Height = winCFG.CurrentHeight2;
     dxCFG.m_hwnd = gWindow->GetHWND();
-    dxCFG.RefreshRate = 60;
+    dxCFG.RefreshRate = 120;// 60;
     dxCFG.UseHDR = true;
     dxCFG.DeferredContext = false;
     dxCFG.Windowed = winCFG.Windowed;

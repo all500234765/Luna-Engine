@@ -43,3 +43,7 @@ void ConstantBuffer::Bind(Shader::ShaderType type, UINT slot) {
         case Shader::Compute : gDirectX->gContext->CSSetConstantBuffers(slot, 1, &pBuff); break;
     }
 }
+
+void ConstantBuffer::Release() {
+    __super::Release();
+}
