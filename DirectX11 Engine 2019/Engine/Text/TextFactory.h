@@ -27,6 +27,28 @@ enum TextFlags {
     TextAlignment_H_Right  = 32,
 };
 
+struct TextEffects {
+    // Glow
+
+
+    // Outline
+
+
+    // Color
+    DirectX::XMFLOAT4 _Color;
+
+    // Etc...
+
+
+};
+
+struct SDFSettings {
+    float _CharWidth   = .4f;
+    float _Softening   = .1f;
+    float _BorderWidth = .5f;
+    float _BorderSoft  = .1f;
+};
+
 class TextFactory: public DirectXChild {
 private:
     UINT TextAlignment = TextAlignment_V_Top | TextAlignment_H_Left;
@@ -34,21 +56,7 @@ private:
     Shader *mShader;
     Font *mFont = nullptr;
 
-    struct TextEffects {
-        // Glow
-
-
-        // Outline
-
-
-        // Color
-
-
-        // Etc...
-
-
-    };
-
+    ConstantBuffer *cbTextEffects, *cbSDFSettings;
 public:
     TextFactory(Shader* shader);
 
@@ -70,4 +78,10 @@ public:
     void Draw(Text* text);
 
     void Release();
+
+    inline TextEffects* MapTextEffects() const { return (TextEffects*)cbTextEffects->Map(); };
+    inline void UnmapTextEffects() const { cbTextEffects->Unmap(); }
+
+    inline SDFSettings* MapSDFSettings() const { return (SDFSettings*)cbSDFSettings->Map(); };
+    inline void UnmapSDFSettings() const { cbSDFSettings->Unmap(); }
 };

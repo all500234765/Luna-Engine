@@ -1,5 +1,4 @@
 #include "ConstantBuffer.h"
-#include "Buffer.h"
 #include <iostream>
 
 void ConstantBuffer::CreateDefault(UINT size) {
@@ -42,8 +41,4 @@ void ConstantBuffer::Bind(Shader::ShaderType type, UINT slot) {
         case Shader::Domain  : gDirectX->gContext->DSSetConstantBuffers(slot, 1, &pBuff); break;
         case Shader::Compute : gDirectX->gContext->CSSetConstantBuffers(slot, 1, &pBuff); break;
     }
-}
-
-void ConstantBuffer::Release() {
-    __super::Release();
 }

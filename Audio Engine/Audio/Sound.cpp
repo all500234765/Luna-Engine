@@ -182,8 +182,8 @@ float Sound::GetVolume() {
 // Load Vorbis(.ogg) audio
 bool Sound::LoadOGG(const char* fname) {
     // Load Vorbis file
-    int channels, rate;
-    short* data;
+    //int channels, rate;
+    //short* data;
     //int q = stb_vorbis_decode_filename(fname, &channels, &rate, &data);
 
     return false;

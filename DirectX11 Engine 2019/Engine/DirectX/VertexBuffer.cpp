@@ -1,6 +1,4 @@
 #include "VertexBuffer.h"
-#include "Buffer.h"
-#include <d3d11.h>
 
 void VertexBuffer::CreateDefault(UINT Num, UINT _Stride, void* vertices) {
     // Create default index buffer
@@ -18,9 +16,5 @@ void VertexBuffer::CreateDefault(UINT Num, UINT _Stride, void* vertices) {
     data.SysMemSlicePitch = 0*desc.ByteWidth;
 
     // 
-    __super::Create(desc, data, _Stride, 0);
-}
-
-void VertexBuffer::Release() {
-    __super::Release();
+    Create(desc, data, _Stride, 0);
 }

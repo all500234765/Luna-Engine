@@ -6,7 +6,7 @@
 
 class ModelInstance: public DirectXChild {
 private:
-    Model *mModel;
+    Model  *mModel;
     Shader *shShader;
 
     DirectX::XMMATRIX World = DirectX::XMMatrixIdentity();

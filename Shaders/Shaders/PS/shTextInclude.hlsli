@@ -6,7 +6,7 @@ cbuffer EffectBuffer : register(b0) {
 
 
     // Color
-
+    float4 _Color;
 
     // Etc...
 
@@ -14,12 +14,12 @@ cbuffer EffectBuffer : register(b0) {
 };
 
 // SDF Settings
-static const float _CharWidth = .4f;
-static const float _Softening = .1f;
-static const float _BorderWidth = .5f;
-static const float _BorderSoft  = .1f;
-
-
+cbuffer SDFSettings : register(b1) {
+    float _CharWidth;
+    float _Softening;
+    float _BorderWidth;
+    float _BorderSoft;
+}
 
 Texture2D _FontAtlas      : register(t0);
 SamplerState _FontSampler : register(s0);
@@ -43,4 +43,9 @@ float SDF(float2 uv) {
 
     // lerp(_OutlineColor, _Color, val / total);
     return val /*/ total*/;
+}
+
+float4 Effects(float4 sampled) {
+    if( _Color.a < .2 ) { discard; }
+    return _Color * sampled;
 }

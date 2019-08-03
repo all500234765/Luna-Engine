@@ -18,6 +18,7 @@
 
 #include "Engine/Models/Mesh.h"
 #include "Engine/Materials/Texture.h"
+#include "Engine/DirectX/Buffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"
 
 class Model: public DirectXChild {
@@ -231,11 +232,11 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
 
             if( index == FNB_Diffuse.end() ) {
                 // This texture wasn't loaded prev.
-                DiffuseMapIndex.push_back(FNB_Diffuse.size());
+                DiffuseMapIndex.push_back(static_cast<int>(FNB_Diffuse.size()));
                 FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Diffuse));
                 FNB_Diffuse.push_back(tFname);
             } else {
-                DiffuseMapIndex.push_back(std::distance(FNB_Diffuse.begin(), index));
+                DiffuseMapIndex.push_back(static_cast<int>(std::distance(FNB_Diffuse.begin(), index)));
             }
         }
 
@@ -249,11 +250,11 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
 
             if( index == FNB_Normal.end() ) {
                 // This texture wasn't loaded prev.
-                NormalMapIndex.push_back(FNB_Normal.size());
+                NormalMapIndex.push_back(static_cast<int>(FNB_Normal.size()));
                 FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Normal));
                 FNB_Normal.push_back(tFname);
             } else {
-                NormalMapIndex.push_back(std::distance(FNB_Normal.begin(), index));
+                NormalMapIndex.push_back(static_cast<int>(std::distance(FNB_Normal.begin(), index)));
             }
         }
 
@@ -267,11 +268,11 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
 
             if( index == FNB_Opacity.end() ) {
                 // This texture wasn't loaded prev.
-                OpacityMapIndex.push_back(FNB_Opacity.size());
+                OpacityMapIndex.push_back(static_cast<int>(FNB_Opacity.size()));
                 FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Opacity));
                 FNB_Opacity.push_back(tFname);
             } else {
-                OpacityMapIndex.push_back(std::distance(FNB_Opacity.begin(), index));
+                OpacityMapIndex.push_back(static_cast<int>(std::distance(FNB_Opacity.begin(), index)));
             }
         }
         
@@ -285,11 +286,11 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
 
             if( index == FNB_Specular.end() ) {
                 // This texture wasn't loaded prev.
-                SpecularMapIndex.push_back(FNB_Specular.size());
+                SpecularMapIndex.push_back(static_cast<int>(FNB_Specular.size()));
                 FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Specular));
                 FNB_Specular.push_back(tFname);
             } else {
-                SpecularMapIndex.push_back(std::distance(FNB_Specular.begin(), index));
+                SpecularMapIndex.push_back(static_cast<int>(std::distance(FNB_Specular.begin(), index)));
             }
         }
     }

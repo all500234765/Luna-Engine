@@ -9,5 +9,5 @@ public:
     void* Map();
     void Unmap();
     void Bind(Shader::ShaderType type, UINT slot);
-    void Release() override;
+
 };

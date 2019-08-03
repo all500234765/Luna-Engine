@@ -334,7 +334,7 @@ bool _DirectX::FrameFunction() {
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 
     // Build & Bind Constant buffer
-    DirectX::XMFLOAT4 LightPos = { 1.62895, 5.54253, 2.93616/*60.4084, 22.6733, 2.3704*/, 100 };
+    DirectX::XMFLOAT4 LightPos = { 1.62895f, 5.54253f, 2.93616f/*60.4084, 22.6733, 2.3704*/, 100.f };
     cPlayer->SetWorldMatrix(
         //DirectX::XMMatrixScaling(LightPos.w, LightPos.w, LightPos.w) *
         DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z));
@@ -345,7 +345,7 @@ bool _DirectX::FrameFunction() {
     float FOV = cPlayer->GetParams().FOV;
     float fFar = cPlayer->GetParams().fFar;
     DirectX::XMMATRIX mProjTmp = cPlayer->GetProjMatrix();
-    float fHalfTanFov = tanf(DirectX::XMConvertToRadians(FOV * .5)); // dtan(fov * .5)
+    float fHalfTanFov = tanf(DirectX::XMConvertToRadians(FOV * .5f)); // dtan(fov * .5)
     cbDeferredGlobal* data = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
     data->_mInvView   = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
     data->_TanAspect = { fHalfTanFov * fAspect, -fHalfTanFov };
@@ -500,7 +500,7 @@ bool _DirectX::FrameFunction() {
         sPoint->Bind(Shader::Pixel);
 
         // 
-        int   size   = pDebugTextures.size();
+        size_t size   = pDebugTextures.size();
         float width  = (cfg.Width / static_cast<float>(size));
         float height = width * .5f;
         
@@ -509,18 +509,18 @@ bool _DirectX::FrameFunction() {
         height /= cfg.Height;
 
         // Right to Left offset and 2 * Width
-        float left = width * static_cast<float>(size) * .5;
+        float left = width * static_cast<float>(size) * .5f;
         float w2   = width * 2.f;
-        float h    = height * .5 + height * (size - 1.) - .1;
+        float h    = height * .5f + height * (size - 1.f) - .1f;
 
         // 
-        for( int i = 0; i < size; i++ ) {
+        for( size_t i = 0; i < size; i++ ) {
             if( pDebugTextures[i] == nullptr ) { continue; }
 
             // 
             //DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(.67f - width * i * 2.f, .67f, 0.f);
             //DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(w2 * (i - w2) - left, h, 0.);
-            DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(w2 * i - width * size * .75, h, 0.f);
+            DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(w2 * i - width * size * .75f, h, 0.f);
             c2DScreen->SetWorldMatrix(DirectX::XMMatrixScaling(width, height, 1.f) * mOffset);
             c2DScreen->BuildConstantBuffer();
             c2DScreen->BindBuffer(Shader::Vertex, 0);
@@ -553,7 +553,9 @@ void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
 
     // Update GUI elements
-    tTest = gTextFactory->Build(tTest, (std::string("FPS: ") + std::to_string(1.f / fDeltaTime)).c_str());
+    using namespace std::string_literals;
+
+    tTest = gTextFactory->Build(tTest, ("FPS: " + std::to_string(std::trunc(1.f / fDeltaTime))).c_str());
 
     // Update physics
     if( !bPause ) {
@@ -573,10 +575,10 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsPressed(VK_F5) ) {
         PhysicsObjectSphere *sphereX = new PhysicsObjectSphere(pColliderSphere);
         sphereX->SetPosition(cPlayer->GetPosition());
-        sphereX->SetRadius(rand() % 3);
-        sphereX->SetMass(1);
+        sphereX->SetRadius(static_cast<pFloat>(rand() % 3));
+        sphereX->SetMass(1.f);
 
-        const pFloat3 p = { 1., 1., 0. };
+        const pFloat3 p = { 1.f, 1.f, 0.f };
         pFloat3 pRot = cPlayer->GetRotation();
         float pr = DirectX::XMConvertToRadians(pRot.x);
         float yr = DirectX::XMConvertToRadians(pRot.y);
@@ -665,12 +667,12 @@ void _DirectX::Tick(float fDeltaTime) {
         }
 
         if( abs(dy) <= .1 ) {
-            fPitch += (float(gMouse->GetY() - winCFG.CurrentHeight2 * .5f) * fSensetivityY * fDeltaTime);
+            fPitch += (float(gMouse->GetY() - winCFG.CurrentHeight * .5f) * fSensetivityY * fDeltaTime);
             b = true;
             //std::cout << winCFG.CurrentHeight2 * .5f << " " << gMouse->GetY() << std::endl;
         }
 
-        if( b ) gMouse->SetAt(int(winCFG.CurrentWidth * .5f), int(winCFG.CurrentHeight2 * .5f));
+        if( b ) gMouse->SetAt(int(winCFG.CurrentWidth * .5f), int(winCFG.CurrentHeight * .5f));
     }
 
     // Walk SFX
@@ -773,7 +775,7 @@ void _DirectX::Resize() {
     bZBuffer_Editor->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
 
     // Resize text port
-    gTextController->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
+    gTextController->SetSize(static_cast<float>(cfg.CurrentWidth), static_cast<float>(cfg.CurrentHeight));
 
     // Resize swapchain
     scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
@@ -842,27 +844,27 @@ void _DirectX::Load() {
     sphere2 = new PhysicsObjectSphere(pColliderSphere);
     plane1  = new PhysicsObjectPlane(pColliderPlane);
 
-    sphere1->SetPosition({ 0., 20., 0. });
-    sphere1->SetVelocity({ 0., 0., +1. });
-    sphere1->SetRadius(1.);
-    sphere1->SetMass(1);
+    sphere1->SetPosition({ 0.f, 20.f, 0.f });
+    sphere1->SetVelocity({ 0.f, 0.f, +1.f });
+    sphere1->SetRadius(1.f);
+    sphere1->SetMass(1.f);
 
-    sphere2->SetPosition({ 2, 20., +10. });
-    sphere2->SetVelocity({ 0., 0., -1. });
-    sphere2->SetRadius(2.);
-    sphere1->SetMass(2);
+    sphere2->SetPosition({ 2.f, 20.f, +10.f });
+    sphere2->SetVelocity({ 0.f, 0.f, -1.f });
+    sphere2->SetRadius(2.f);
+    sphere1->SetMass(2.f);
 
-    plane1->SetNormal({ 0., 1., 0. });
-    plane1->SetDistance(2.4);
+    plane1->SetNormal({ 0.f, 1.f, 0.f });
+    plane1->SetDistance(2.4f);
     plane1->SetFixed(true);
 
-    //gPhysicsEngine->PushObject(sphere1);
-    //gPhysicsEngine->PushObject(sphere2);
-    //gPhysicsEngine->PushObject(plane1);
+    gPhysicsEngine->PushObject(sphere1);
+    gPhysicsEngine->PushObject(sphere2);
+    gPhysicsEngine->PushObject(plane1);
 
-    gPhysicsEngine->SetGravity({0., -9.8 * 20., 0.});
-    gPhysicsEngine->SetAirResistance({0., .5, 0.});
-    gPhysicsEngine->SetFriction(.98);
+    gPhysicsEngine->SetGravity({0.f, -9.8f * 20.f, 0.f});
+    gPhysicsEngine->SetAirResistance({0.f, .5f, 0.f});
+    gPhysicsEngine->SetFriction(.98f);
 #pragma endregion
 
     // Temp Bug fix
@@ -898,9 +900,9 @@ void _DirectX::Load() {
     shTextSimpleSDF          = new Shader();
     shTextEffectsSDF         = new Shader();
 
-    cPlayer   = new Camera(DirectX::XMFLOAT3(-24.6163, 14.3178, 24.5916));
+    cPlayer   = new Camera(DirectX::XMFLOAT3(-24.6163f, 14.3178f, 24.5916f));
     c2DScreen = new Camera();
-    cLight    = new Camera(DirectX::XMFLOAT3(-64.1149, 60.3294, 56.2415), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
+    cLight    = new Camera(DirectX::XMFLOAT3(-64.1149f, 60.3294f, 56.2415f), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
 
     tDefault         = new Texture();
     tBlueNoiseRG     = new Texture();
@@ -1113,7 +1115,7 @@ void _DirectX::Load() {
 
     // Setup cameras
     CameraConfig cfg2;
-    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight2);
+    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
     cfg2.FOV = 100.f;
     cfg2.fNear = .1f;
     cfg2.fFar = 10000.f;
@@ -1125,10 +1127,10 @@ void _DirectX::Load() {
     vpMain.MaxDepth = cfg2.fFar;*/
     vpMain.MinDepth = 0.f;
     vpMain.MaxDepth = 1.f;
-    vpMain.TopLeftX = 0;
-    vpMain.TopLeftY = 0;
-    vpMain.Width    = cfg.CurrentWidth;
-    vpMain.Height   = cfg.CurrentHeight2;
+    vpMain.TopLeftX = 0.f;
+    vpMain.TopLeftY = 0.f;
+    vpMain.Width    = static_cast<float>(cfg.CurrentWidth);
+    vpMain.Height   = static_cast<float>(cfg.CurrentHeight);
 
     // Save aspect for further use
     fAspect = cfg2.fAspect;
@@ -1139,11 +1141,11 @@ void _DirectX::Load() {
     
     // Don't forget to update buffer
     DirectX::XMMATRIX mProjTmp = cPlayer->GetProjMatrix();
-    float fHalfTanFov = tanf(DirectX::XMConvertToRadians(cfg2.FOV * .5)); // dtan(fov * .5)
+    float fHalfTanFov = tanf(DirectX::XMConvertToRadians(cfg2.FOV * .5f)); // dtan(fov * .5)
     dgData->_TanAspect  = { fHalfTanFov * fAspect, -fHalfTanFov };
-    dgData->_Texel      = { 1.f / cfg.CurrentWidth, 1.f / cfg.CurrentHeight2};
+    dgData->_Texel      = { 1.f / cfg.CurrentWidth, 1.f / cfg.CurrentHeight};
     dgData->_Far        = cfg2.fFar;
-    dgData->PADDING0    = 0;
+    dgData->PADDING0    = 0.f;
     dgData->_ProjValues = { 1.f / mProjTmp.r[0].m128_f32[0], 1.f / mProjTmp.r[1].m128_f32[1], mProjTmp.r[3].m128_f32[2], -mProjTmp.r[2].m128_f32[2] };
     dgData->_mInvView   = DirectX::XMMatrixIdentity();
 
@@ -1157,7 +1159,7 @@ void _DirectX::Load() {
     dlData->_LightData    = { 8.f, 1.5f };
     dlData->PADDING1      = 0.f;
     dlData->PADDING2      = { 0.f, 0.f };
-    dlData->vPosition     = { 1.62895, 5.54253, 2.93616, 0 };
+    dlData->vPosition     = { 1.62895f, 5.54253f, 2.93616f, 0.f };
 
     cbDeferredLightInst->Unmap();
 
@@ -1182,10 +1184,10 @@ void _DirectX::Load() {
     vpDepth.MaxDepth = cfg2.fFar;*/
     vpDepth.MinDepth = 0.f;
     vpDepth.MaxDepth = 1.f;
-    vpDepth.TopLeftX = 0;
-    vpDepth.TopLeftY = 0;
-    vpDepth.Width    = bDepth->GetWidth();
-    vpDepth.Height   = bDepth->GetHeight();
+    vpDepth.TopLeftX = 0.f;
+    vpDepth.TopLeftY = 0.f;
+    vpDepth.Width    = static_cast<float>(bDepth->GetWidth());
+    vpDepth.Height   = static_cast<float>(bDepth->GetHeight());
 #pragma endregion
 
 #pragma region Load Shaders
@@ -1334,7 +1336,19 @@ void _DirectX::Load() {
     gTextFactory->SetFont(fRegular);
     tTest = gTextFactory->Build((std::string("FPS: ") + std::to_string(60)).c_str());
     
-    gTextController = new TextController(gTextFactory, cfg.CurrentWidth, cfg.CurrentHeight2, 16.f);
+    gTextController = new TextController(gTextFactory, static_cast<float>(cfg.CurrentWidth), static_cast<float>(cfg.CurrentHeight2), 16.f);
+
+
+    TextEffects* data1 = gTextFactory->MapTextEffects();
+        data1->_Color = { .7, .9, 0.f, 1.f };
+    gTextFactory->UnmapTextEffects();
+
+    SDFSettings* data2 = gTextFactory->MapSDFSettings();
+        data2->_CharWidth = .4f;
+        data2->_Softening = .1f;
+        data2->_BorderWidth = .5f;
+        data2->_BorderSoft = .1f;
+    gTextFactory->UnmapSDFSettings();
 #pragma endregion
 
 #pragma region Load models

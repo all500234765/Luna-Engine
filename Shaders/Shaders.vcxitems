@@ -55,6 +55,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shGUIPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shLinePS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shPostProcessPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -87,6 +90,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextSimpleSDFPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadNoFXPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -97,6 +103,9 @@
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shGUIVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shLineVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shNullVertexVS.hlsl">
@@ -117,6 +126,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shSurfaceVS.hlsl">
       <ShaderType>Vertex</ShaderType>
       <FileType>Document</FileType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadAutoVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadInvVVS.hlsl">
       <ShaderType>Vertex</ShaderType>

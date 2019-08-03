@@ -15,16 +15,19 @@ class Text: public DirectXChild {
 private:
     Mesh *data = nullptr;
     float mWidth, mHeight;
+    const char* mText;
 
 public:
-    Text(Mesh* in, float w, float h): data(in), mWidth(w), mHeight(h) {};
+    Text(Mesh* in, float w, float h, const char* txt): data(in), mWidth(w), mHeight(h), mText(txt) {};
 
     inline void SetMesh(Mesh *in) { data    = in; }
-    inline void SetSizeW(float w)   { mWidth  = w ; }
-    inline void SetSizeH(float h)   { mHeight = h ; }
+    inline void SetSizeW(float w) { mWidth  = w ; }
+    inline void SetSizeH(float h) { mHeight = h ; }
 
     inline float GetSizeW() const { return mWidth ; }
     inline float GetSizeH() const { return mHeight; }
+
+    inline const char* GetText() const { return mText; }
 
     void Clear();
     void Release(); // Reserved for future

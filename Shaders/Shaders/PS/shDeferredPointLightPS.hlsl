@@ -49,8 +49,8 @@ struct PS {
 };
 
 half3 PointLight(float3 p, float3 n) {
-    float3 lDir = vPosition  - p;
-    float3 eyeD = vCameraPos - p;
+    float3 lDir = vPosition.xyz  - p;
+    float3 eyeD = vCameraPos.xyz - p;
     float dist = length(lDir);
 
     // Lambertian

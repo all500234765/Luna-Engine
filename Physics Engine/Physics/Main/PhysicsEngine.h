@@ -24,7 +24,7 @@ public:
     virtual void Release();
 
     inline const PhysicsObject* GetObjectP(unsigned int index) const { return objects[index]; }
-    inline int GetNumObjects() const { return objects.size(); }
+    inline size_t GetNumObjects() const { return objects.size(); }
 
     inline const pFloat3& GetGravity() const { return mGravity; }
     inline void SetGravity(const pFloat3& g) { mGravity = g; }

@@ -1,6 +1,4 @@
 #include "IndexBuffer.h"
-#include "Buffer.h"
-#include <d3d11.h>
 
 void IndexBuffer::CreateDefault(UINT Num, void* indices) {
     // Create default index buffer
@@ -18,9 +16,5 @@ void IndexBuffer::CreateDefault(UINT Num, void* indices) {
     data.SysMemSlicePitch = 0;
 
     // 
-    __super::Create(desc, data, sizeof(unsigned long), 0);
-}
-
-void IndexBuffer::Release() {
-    __super::Release();
+    Create(desc, data, sizeof(unsigned long), 0);
 }

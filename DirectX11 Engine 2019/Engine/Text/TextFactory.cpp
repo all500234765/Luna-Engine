@@ -2,6 +2,12 @@
 
 TextFactory::TextFactory(Shader* shader) {
     mShader = shader;
+
+    cbTextEffects = new ConstantBuffer();
+    cbTextEffects->CreateDefault(sizeof(TextEffects));
+
+    cbSDFSettings = new ConstantBuffer();
+    cbSDFSettings->CreateDefault(sizeof(SDFSettings));
 }
 
 Text* TextFactory::Build(const char* text, float maxWidth) {
@@ -44,13 +50,12 @@ Text* TextFactory::Build(const char* text, float maxWidth) {
         PushVertex({ offsetX      + mFont->GetCharX(ch), offsetY      + mFont->GetCharY(ch), .5f }, uv0);              // Top-Left
         PushVertex({ offsetX + cW + mFont->GetCharX(ch), offsetY + cH + mFont->GetCharY(ch), .5f }, uv1);              // Bottom-Right
         PushVertex({ offsetX      + mFont->GetCharX(ch), offsetY + cH + mFont->GetCharY(ch), .5f }, { uv0.x, uv1.y }); // Bottom-Left
-
-        // Move caret to the right
-        offsetX += mFont->GetAdvance(ch) * mFont->GetSpacing();
     };
 
     // Process text
     maxWidth *= fScale;
+    //int iSpaces = 0;
+    float offsetX2 = 0.f;
     for( size_t i = 0; i < length; i++ ) {
         char c = text[i]; // Get current char
 
@@ -62,15 +67,21 @@ Text* TextFactory::Build(const char* text, float maxWidth) {
 
         if( c == 32 ) {        // " "
             offsetX += 30.f * fScale * mFont->GetSpacing();
+            //paces++;
             continue;
         } else if( c == 10 ) { // "\n"
             offsetY += mFont->GetLineHeight() * fScale;
             offsetX = 0.f;
+            //iSpaces = 0;
             continue;
         }
 
         // Push single char
         PushChar(mFont, c);
+
+        // Move caret to the right
+        offsetX += mFont->GetAdvance(c) * mFont->GetSpacing();
+        if( i + 1 < length || length == 1 ) offsetX2 += mFont->GetCharX(c) + mFont->GetAdvance(c) * mFont->GetSpacing();
     }
 
     // Build vertex buffer and create mesh
@@ -81,11 +92,14 @@ Text* TextFactory::Build(const char* text, float maxWidth) {
     mText->SetBuffer(vb, nullptr);
 
     // Generate text
-    return new Text(mText, offsetX + mFont->GetAdvance(text[length - 1]) * mFont->GetSpacing(), offsetY + mFont->GetLineHeight() * fScale);
+    return new Text(mText, offsetX2, offsetY + mFont->GetLineHeight() * fScale, text);
 }
 
 Text* TextFactory::Build(Text* old, const char* text, float maxWidth) {
+    //if( strcmp(old->GetText(), text) == 0 ) { return old; }
+
     old->Release();
+    delete old;
     return Build(text, maxWidth);
 }
 
@@ -96,6 +110,12 @@ void TextFactory::Draw(Text* text) {
     gDirectX->gContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     mShader->Bind();
 
+    // Bind effects buffer
+    cbTextEffects->Bind(Shader::Pixel, 0);
+
+    // Bind SDF Settings buffer
+    cbSDFSettings->Bind(Shader::Pixel, 1);
+
     // Bind font
     mFont->Bind();
 
@@ -104,5 +124,9 @@ void TextFactory::Draw(Text* text) {
 }
 
 void TextFactory::Release() {
+    cbTextEffects->Release();
+    cbSDFSettings->Release();
 
+    delete cbSDFSettings;
+    delete cbTextEffects;
 }

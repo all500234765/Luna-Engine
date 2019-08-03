@@ -136,11 +136,17 @@ struct pFloat3 {
     template<typename T>
     pFloat3 operator+(T rhs) const { return pFloat3(x + rhs, y + rhs, z + rhs); }
 
-    // 
+    // Unary
+    pFloat3 operator-() const { return pFloat3(-x, -y, -z); }
+    pFloat3 operator+() const { return pFloat3(+x, +y, +z); }
+
+    // Functions
     pFloat length()  const { return std::sqrtf(length2()); };
     pFloat length2() const { return (x * x + y * y + z * z); };
     pFloat max() const { return std::max(std::max(x, y), z); }
-    
+    pFloat direction2D(pFloat3 to) const { return atan2f(to.y - y, to.x - x); }
+    pFloat3 unitstep(pFloat3 to)   const { pFloat d = direction2D(to); return pFloat3(cosf(d), sinf(d), 0.f); }
+
     const pFloat3& normalize() {
         *this /= length();
         return *this;

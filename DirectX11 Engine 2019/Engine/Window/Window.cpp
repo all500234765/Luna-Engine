@@ -87,15 +87,15 @@ void Window::Create(const WindowConfig& config) {
     else                    flags |= WS_OVERLAPPEDWINDOW;
 
     // Adjust window size and position
-    cfg.CurrentHeight2 = cfg.CurrentHeight - 1;
+    cfg.CurrentHeight2 = cfg.CurrentHeight;// -1;
 
-    //RECT rect = {posX, posY, posX + cfg.CurrentWidth, posY + cfg.CurrentHeight};
-    //AdjustWindowRectEx(&rect, flags, false, WS_EX_APPWINDOW);
+    RECT rect = {posX, posY, posX + cfg.CurrentWidth, posY + cfg.CurrentHeight};
+    AdjustWindowRectEx(&rect, flags, false, WS_EX_APPWINDOW);
     
-    //posX = rect.left;
-    //posY = rect.top;
-    //cfg.CurrentWidth   = rect.right  - posX;
-    //cfg.CurrentHeight  = rect.bottom - posY;
+    posX = rect.left;
+    posY = rect.top;
+    cfg.CurrentWidth   = rect.right  - posX;
+    cfg.CurrentHeight  = rect.bottom - posY;
 
     // Create the window with the screen settings and get the handle to it.
     m_hwnd = CreateWindowEx(WS_EX_APPWINDOW, config.Title, config.Title, flags,

@@ -10,13 +10,13 @@ class TextController: public DirectXChild {
 private:
     TextFactory *mFactory;
     Camera *mCamera;
-    float mScale, mInvWidth, mInvHeight;
+    float mScale, mInvWidth, mInvHeight, mXScale, mYScale;
     CameraConfig mCameraCfg;
     D3D11_VIEWPORT mViewPort;
 
 public:
     TextController(TextFactory* fac, float w=1024.f, float h=540.f, float scale=24.f): 
-            mFactory(fac), mScale(scale) {
+            mFactory(fac), mScale(scale*1000.f) {
         mCamera = new Camera();
         SetSize(w, h);
     };
@@ -26,9 +26,12 @@ public:
 
     void SetSize(float w, float h) {
         mCameraCfg.fAspect = w / h;
-        mCameraCfg.FOV = 90.f;
-        mCameraCfg.fNear = .1f;
-        mCameraCfg.fFar = 1.f;
+        mCameraCfg.FOV     = 90.f;
+        mCameraCfg.fNear   = .1f;
+        mCameraCfg.fFar    = 1.f;
+        mCameraCfg.Ortho   = true;
+        mCameraCfg.ViewW   = w;
+        mCameraCfg.ViewH   = h;
 
         mCamera->SetParams(mCameraCfg);
         mCamera->BuildProj();
@@ -45,6 +48,9 @@ public:
 
         mInvWidth  = 1.f / w;
         mInvHeight = 1.f / h;
+
+        mXScale = w / 1024.f;
+        mYScale = h / 540.f;
     }
 
     inline void SetFactory(TextFactory* f) { mFactory = f; }

@@ -5,6 +5,8 @@
 
 struct CameraConfig {
     float FOV /* X */, fAspect, fNear, fFar;
+    bool Ortho=false;
+    float ViewW, ViewH;
 };
 
 class Camera: public DirectXChild {
