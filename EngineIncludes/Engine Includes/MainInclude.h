@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Engine/Extensions/Default.h"
+
 // Core engine includes
 #include "Core.h"
 #include "Models.h"

@@ -39,7 +39,7 @@ PS main(uint index : SV_VertexID) {
     float2 Pos = arrPos[index];
 
     PS Out;
-        Out.Position  = mul(mWorld, float4(Pos, 1., 1.));
+        Out.Position  = mul(mProj, mul(mView, mul(mWorld, float4(Pos, 1., 1.))));
         Out.Texcoord  = UV;
     return Out;
 }

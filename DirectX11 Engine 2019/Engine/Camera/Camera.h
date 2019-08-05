@@ -32,8 +32,8 @@ public:
 
     void Init();
 
-    void SetParams(CameraConfig config);
-    CameraConfig GetParams();
+    inline void SetParams(CameraConfig config) { cfg = config; };
+    inline CameraConfig GetParams() const { return cfg; };
 
     void BuildView();
     void BuildProj();
@@ -46,19 +46,24 @@ public:
     void Rotate(DirectX::XMFLOAT3 r);
     void RotateAbs(DirectX::XMFLOAT3 r);
 
-    void SetWorldMatrix(DirectX::XMMATRIX w);
     const ConstantBuffer& BuildConstantBuffer(float wparam=1.f);
     const ConstantBuffer& BuildConstantBuffer(DirectX::XMVECTOR wparam);
     void BindBuffer(Shader::ShaderType type, UINT slot);
 
-    DirectX::XMFLOAT3 GetPosition();
-    DirectX::XMFLOAT3 GetRotation();
+    inline DirectX::XMFLOAT3 GetPosition() const { return pPos; };
+    inline void SetPosition(DirectX::XMFLOAT3 p) { pPos = p; };
 
-    void SetViewMatrix(DirectX::XMMATRIX view);
-    DirectX::XMMATRIX GetViewMatrix();
+    inline DirectX::XMFLOAT3 GetRotation() const { return pRot; }
+    inline void SetRotation(DirectX::XMFLOAT3 r) { pRot = r; };
 
-    void SetProjMatrix(DirectX::XMMATRIX proj);
-    DirectX::XMMATRIX GetProjMatrix();
+    inline void SetWorldMatrix(DirectX::XMMATRIX w) { mWorld = w; }
+    inline DirectX::XMMATRIX GetWorldMatrix(DirectX::XMMATRIX w) const { return mWorld; }
+
+    inline void SetViewMatrix(DirectX::XMMATRIX view) { mView = view; }
+    inline DirectX::XMMATRIX GetViewMatrix() const { return mView; }
+
+    inline void SetProjMatrix(DirectX::XMMATRIX proj) { mProj = proj; }
+    inline DirectX::XMMATRIX GetProjMatrix() const { return mProj; }
 
     inline float GetAspect() const { return cfg.fAspect; }
 };

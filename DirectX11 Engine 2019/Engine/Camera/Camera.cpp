@@ -18,14 +18,6 @@ void Camera::Init() {
     cb->SetName("Matrix Constant Buffer");
 }
 
-void Camera::SetParams(CameraConfig config) {
-    cfg = config;
-}
-
-CameraConfig Camera::GetParams() {
-    return cfg;
-}
-
 void Camera::BuildView() {
     using namespace DirectX;
 
@@ -115,10 +107,6 @@ void Camera::RotateAbs(DirectX::XMFLOAT3 r) {
     pRot.z = r.z;
 }
 
-void Camera::SetWorldMatrix(DirectX::XMMATRIX w) {
-    mWorld = w;
-}
-
 const ConstantBuffer& Camera::BuildConstantBuffer(float wparam) {
     // Map buffer
     BufferMatrix* ptr = (BufferMatrix*)cb->Map();
@@ -149,29 +137,4 @@ const ConstantBuffer& Camera::BuildConstantBuffer(DirectX::XMVECTOR wparam) {
 
 void Camera::BindBuffer(Shader::ShaderType type, UINT slot) {
     cb->Bind(type, slot);
-}
-
-// TODO: inline
-DirectX::XMFLOAT3 Camera::GetPosition() {
-    return pPos;
-}
-
-DirectX::XMFLOAT3 Camera::GetRotation() {
-    return pRot;
-}
-
-void Camera::SetViewMatrix(DirectX::XMMATRIX view) {
-    mView = view;
-}
-
-DirectX::XMMATRIX Camera::GetViewMatrix() {
-    return mView;
-}
-
-void Camera::SetProjMatrix(DirectX::XMMATRIX proj) {
-    mProj = proj;
-}
-
-DirectX::XMMATRIX Camera::GetProjMatrix() {
-    return mProj;
 }

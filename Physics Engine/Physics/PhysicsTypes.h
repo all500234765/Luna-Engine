@@ -40,6 +40,14 @@ struct pFloat3 {
         return { std::max(x, rhs.x), std::max(y, rhs.y), std::max(z, rhs.z) };
     }
 
+    pFloat3 min(const pFloat3& rhs) const {
+        return { std::max(x, rhs.x), std::max(y, rhs.y), std::max(z, rhs.z) };
+    }
+
+    pFloat3 clamp(pFloat3 _min, pFloat3 _max) const {
+        return { max(_min).min(_max) };
+    }
+
     pFloat dot(const pFloat3& other) const {
         return x * other.x + y * other.y + z * other.z;
     }
@@ -141,11 +149,20 @@ struct pFloat3 {
     pFloat3 operator+() const { return pFloat3(+x, +y, +z); }
 
     // Functions
-    pFloat length()  const { return std::sqrtf(length2()); };
-    pFloat length2() const { return (x * x + y * y + z * z); };
-    pFloat max() const { return std::max(std::max(x, y), z); }
-    pFloat direction2D(pFloat3 to) const { return atan2f(to.y - y, to.x - x); }
-    pFloat3 unitstep(pFloat3 to)   const { pFloat d = direction2D(to); return pFloat3(cosf(d), sinf(d), 0.f); }
+    inline pFloat length()  const { return std::sqrtf(length2()); };
+    inline pFloat length2() const { return (x * x + y * y + z * z); };
+    inline pFloat max() const { return std::max(std::max(x, y), z); }
+    inline pFloat min() const { return std::min(std::min(x, y), z); }
+    inline pFloat direction2D(pFloat3 to) const { return atan2f(to.y - y, to.x - x); }
+    inline pFloat3 unitstep(pFloat3 to)   const { pFloat d = direction2D(to); return pFloat3(cosf(d), sinf(d), 0.f); }
+
+#ifdef _LUNA_ENGINE_DX11_
+    inline DirectX::XMFLOAT3 DirectX() const { return { x, y, z }; }
+#endif
+
+    pFloat3 lerp(const pFloat3& to, float t) {
+        return *this + (to - *this) * t;
+    }
 
     const pFloat3& normalize() {
         *this /= length();

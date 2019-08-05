@@ -54,7 +54,7 @@ public:
     void Resize(int w, int h);
     void Scale(int sx, int sy);
 
-    int Add(int w, int h);
+    size_t Add(int w, int h);
 
     void Release();
 };

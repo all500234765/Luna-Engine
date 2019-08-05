@@ -1,8 +1,8 @@
 #include "Atlas.h"
 
-int Atlas::Add(int w, int h) {
+size_t Atlas::Add(int w, int h) {
     // Try adding image
-    int ImageID = mUVMap.size();
+    size_t ImageID = mUVMap.size();
     Node* res = mRoot->Insert(w, h, ImageID);
 
     // Done

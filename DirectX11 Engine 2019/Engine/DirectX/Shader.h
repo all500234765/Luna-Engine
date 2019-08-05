@@ -49,6 +49,7 @@ public:
 
     bool LoadFile(std::string fname, ShaderType type);
     void DeleteShaders();
+
     void ReleaseBlobs();
     ID3DBlob* GetBlob(ShaderType type);
 
@@ -69,4 +70,6 @@ public:
     HRESULT CreateInputLayoutDescFromVertexShaderSignature(ID3D11InputLayout ** pInputLayout, int * inputLayoutByteLength, std::vector<D3D11_INPUT_ELEMENT_DESC> elements);
     bool CreatePolygonLayout();
     bool CreatePolygonLayout(std::vector<D3D11_INPUT_ELEMENT_DESC> elements);
+
+    void Release() { DeleteShaders(); }
 };

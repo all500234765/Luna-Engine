@@ -29,8 +29,10 @@ typedef enum {
     ShoulderL, ShoulderR,
     ThumbstickL, ThumbstickR,
 
-    Start, Back
-} ButtonState;
+    Start, Back, 
+
+    _StickL, _StickR
+} GamepadButtonState;
 
 class Gamepad {
 private:
@@ -56,7 +58,7 @@ public:
         }
     };
 
-    Gamepad(int index): Index(index - 1) {
+    Gamepad(int index): Index(index) {
         for( int i = 0; i < ButtonCount; i++ ) {
             PrevState[i] = false;
             CurrState[i] = false;
@@ -85,6 +87,6 @@ public:
 
     void Vibrate(float value, bool isRight);
     void Vibrate(float left, float right);
-    bool IsButtonPressed(ButtonState button);
-    bool IsButtonDown(ButtonState button);
+    bool IsButtonPressed(GamepadButtonState button);
+    bool IsButtonDown(GamepadButtonState button);
 };

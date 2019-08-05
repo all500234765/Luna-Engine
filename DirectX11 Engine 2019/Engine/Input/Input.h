@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Engine/Extensions/Default.h"
-
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include "Defines.h"
+
 #if USE_GAMEPADS
 #pragma comment(lib, "Xinput.lib")
-#include <Xinput.h>
 
 #include "Gamepad.h"
 #endif
@@ -18,7 +17,7 @@
 class Input {
 private:
 #if USE_GAMEPADS
-    Gamepad iGamepads[NUM_GAMEPAD];
+    Gamepad* iGamepads[NUM_GAMEPAD];
 #endif
 
     Keyboard iKeyboard;

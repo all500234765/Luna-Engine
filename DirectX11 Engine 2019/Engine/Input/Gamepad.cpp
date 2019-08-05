@@ -10,7 +10,7 @@ void Gamepad::Update() {
 
     // Update buttons
     for( int i = 0; i < ButtonCount; i++ ) {
-        CurrState[i] = IsButtonDown(ButtonState(i));
+        CurrState[i] = IsButtonDown(GamepadButtonState(i));
         DownState[i] = (!PrevState[i] && CurrState[i]);
     }
 }
@@ -77,14 +77,14 @@ float Gamepad::TriggerL() {
     BYTE Trig = mState.Gamepad.bLeftTrigger;
 
     if( Trig > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ) return (static_cast<float>(Trig) / 255.f);
-    return 0.0f;
+    return 0.f;
 }
 
 float Gamepad::TriggerR() {
     BYTE Trig = mState.Gamepad.bRightTrigger;
 
     if( Trig > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ) return (static_cast<float>(Trig) / 255.f);
-    return 0.0f;
+    return 0.f;
 }
 
 void Gamepad::Vibrate(float left, float right) {
@@ -105,10 +105,10 @@ void Gamepad::Vibrate(float value, bool isRight) {
     XInputSetState(Index, &mVibState);
 }
 
-bool Gamepad::IsButtonPressed(ButtonState button) {
+bool Gamepad::IsButtonPressed(GamepadButtonState button) {
     return DownState[button];
 }
 
-bool Gamepad::IsButtonDown(ButtonState button) {
+bool Gamepad::IsButtonDown(GamepadButtonState button) {
     return ((mState.Gamepad.wButtons & XINPUT_GamepadButtons[button]) == XINPUT_GamepadButtons[button]);
 }
