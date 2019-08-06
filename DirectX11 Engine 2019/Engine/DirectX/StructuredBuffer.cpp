@@ -1,8 +1,9 @@
 #include "StructuredBuffer.h"
 
-void StructuredBuffer::CreateDefault(UINT num, UINT size, void* data) {
+template<typename T>
+void StructuredBuffer<T>::CreateDefault(UINT num, void* data) {
     HRESULT hr = S_OK;
-    Stride = size;
+    Stride = sizeof(T);
     Number = num;
 
     // Create buffer
@@ -37,7 +38,8 @@ void StructuredBuffer::CreateDefault(UINT num, UINT size, void* data) {
     std::cout << "Successfully created SRV for StructuredBuffer" << std::endl;
 }
 
-void StructuredBuffer::Bind(Shader::ShaderType type, UINT slot) {
+template<typename T>
+void StructuredBuffer<T>::Bind(Shader::ShaderType type, UINT slot) {
     if( !pSRV ) { return; }
     switch( type ) {
         case Shader::Vertex  : gDirectX->gContext->VSSetShaderResources(slot, 1, &pSRV); break;
