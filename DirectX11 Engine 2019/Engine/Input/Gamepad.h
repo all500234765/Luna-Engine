@@ -43,7 +43,8 @@ private:
     int Index = 0;
 
     // Gamepad state
-    XINPUT_STATE mState;
+    XINPUT_BATTERY_INFORMATION mBatteryInfo = {};
+    XINPUT_STATE mState = {};
 
     bool PrevState[ButtonCount];
     bool CurrState[ButtonCount];
@@ -89,4 +90,7 @@ public:
     void Vibrate(float left, float right);
     bool IsButtonPressed(GamepadButtonState button);
     bool IsButtonDown(GamepadButtonState button);
+
+    bool HasBattery();
+    BYTE BatteryLevel();
 };

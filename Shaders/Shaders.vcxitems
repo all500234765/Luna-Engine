@@ -114,6 +114,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shPostProcessVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shRectangleVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shSimpleVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
@@ -139,6 +142,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\PS\fxaa.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\PS\shRectanglePS.hlsl">
+      <FileType>Document</FileType>
+    </None>
     <None Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextInclude.hlsli" />
   </ItemGroup>
 </Project>

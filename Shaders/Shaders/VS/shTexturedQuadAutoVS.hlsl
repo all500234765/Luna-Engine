@@ -34,9 +34,9 @@ static const float2 arrUV[6] = {
     float2(0., 1.)  // Bottom Left
 };
 
-PS main(uint index : SV_VertexID) {
+PS main(uint index : SV_VertexID, uint instance : SV_InstanceID) {
     float2 UV  = arrUV[index];
-    float2 Pos = arrPos[index];
+    float2 Pos = arrPos[index] + instance * vPosition.xy;
 
     PS Out;
         Out.Position  = mul(mProj, mul(mView, mul(mWorld, float4(Pos, 1., 1.))));

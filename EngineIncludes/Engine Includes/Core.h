@@ -10,6 +10,7 @@
 #include "Engine/DirectX/IndexBuffer.h"
 #include "Engine/DirectX/VertexBuffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/DirectX/Query.h"
 
 #include "Engine/RendererFlags.h"

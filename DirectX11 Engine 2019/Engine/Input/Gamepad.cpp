@@ -112,3 +112,14 @@ bool Gamepad::IsButtonPressed(GamepadButtonState button) {
 bool Gamepad::IsButtonDown(GamepadButtonState button) {
     return ((mState.Gamepad.wButtons & XINPUT_GamepadButtons[button]) == XINPUT_GamepadButtons[button]);
 }
+
+bool Gamepad::HasBattery() {
+    XInputGetBatteryInformation(Index, BATTERY_DEVTYPE_GAMEPAD, &mBatteryInfo);
+
+    return (mBatteryInfo.BatteryType != BATTERY_TYPE_WIRED) && 
+           (mBatteryInfo.BatteryType != BATTERY_TYPE_DISCONNECTED);
+}
+
+BYTE Gamepad::BatteryLevel() {
+    return mBatteryInfo.BatteryLevel;
+}
