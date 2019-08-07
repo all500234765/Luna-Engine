@@ -1,4 +1,4 @@
-#include "StructuredBuffer.h"
+/*#include "StructuredBuffer.h"
 
 template<typename T>
 void StructuredBuffer<T>::CreateDefault(UINT num, void* data) {
@@ -49,4 +49,4 @@ void StructuredBuffer<T>::Bind(Shader::ShaderType type, UINT slot) {
         case Shader::Domain  : gDirectX->gContext->DSSetShaderResources(slot, 1, &pSRV); break;
         case Shader::Compute : gDirectX->gContext->CSSetShaderResources(slot, 1, &pSRV); break;
     }
-}
+}*/

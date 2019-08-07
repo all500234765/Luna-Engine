@@ -303,6 +303,7 @@ Vendor/Vendor/Bullet3/
 # Some compilation dirs
 Compiled/Windows_Build/Intermediate/
 Compiled/WindowsGame1_Build/Intermediate/
+Compiled/ParticlesTest_Build/Intermediate/
 
 # (un)Paid resources
 Compiled/Windows_Build/Sounds/Paid/

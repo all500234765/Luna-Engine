@@ -16,4 +16,7 @@
     <LocalDebuggerWorkingDirectory>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup>
+    <ShowAllFiles>true</ShowAllFiles>
+  </PropertyGroup>
 </Project>
