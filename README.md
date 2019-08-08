@@ -50,6 +50,7 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
     * Multiple Fonts
     * Real-Time text generation
     * Text alignment
+    * SDF Rendering
 * Material system
     * Support for loading and using those texture types:
       * Diffuse
