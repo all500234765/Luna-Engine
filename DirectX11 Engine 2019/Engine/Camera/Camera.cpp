@@ -135,6 +135,6 @@ const ConstantBuffer& Camera::BuildConstantBuffer(DirectX::XMVECTOR wparam) {
     return *cb;
 }
 
-void Camera::BindBuffer(Shader::ShaderType type, UINT slot) {
+void Camera::BindBuffer(UINT type, UINT slot) {
     cb->Bind(type, slot);
 }

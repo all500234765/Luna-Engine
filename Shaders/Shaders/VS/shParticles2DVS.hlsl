@@ -5,7 +5,7 @@ cbuffer MatrixBuffer : register(b0) {
     float4   vPosition;
 };
 
-struct PS {
+struct GS {
     float4 Position : SV_Position;
     float3 Color    : COLOR0;
 };
@@ -18,11 +18,11 @@ struct Particle {
 
 StructuredBuffer<Particle> _Particles : register(t0);
 
-PS main(uint index : SV_VertexID) {
+GS main(uint index : SV_VertexID) {
     float2 Pos = _Particles[index].Position;
 
-    PS Out;
-        Out.Position  = mul(mProj, mul(mView, mul(mWorld, float4(Pos, 1., 1.))));
+    GS Out;
+        Out.Position  = mul(mView, float4(Pos, 1.f, 1.f));
         Out.Color     = _Particles[index].Color;
     return Out;
 }

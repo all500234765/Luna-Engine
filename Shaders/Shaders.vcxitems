@@ -22,6 +22,12 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shParticles2DCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shParticles3DCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shHemisphereDS.hlsl">
       <ShaderType>Domain</ShaderType>
     </FxCompile>
@@ -32,6 +38,9 @@
       <ShaderType>Domain</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shFurGS.hlsl">
+      <ShaderType>Geometry</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shParticles2DGS.hlsl">
       <ShaderType>Geometry</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shParticles3DGS.hlsl">

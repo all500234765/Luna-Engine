@@ -11,17 +11,19 @@ void ConstantBuffer::CreateDefault(UINT size) {
     desc.StructureByteStride = 0;
 
     HRESULT hr = gDirectX->gDevice->CreateBuffer(&desc, NULL, &pBuff);
-    std::cout << "cBuffer created (error=" << hr << ", size=" << size << ")" << std::endl;
+    std::cout << "ConstantBuffer created (error=" << hr << ", size=" << size << ")" << std::endl;
 }
 
 void* ConstantBuffer::Map() {
+    if( !pBuff ) { return nullptr; }
+
     D3D11_MAPPED_SUBRESOURCE res;
     HRESULT hr;
     
     // Try to get mapped resource
     hr = gDirectX->gContext->Map(pBuff, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
     if( FAILED(hr) ) {
-        std::cout << "Can't receive constant buffer." << std::endl;
+        std::cout << "Can't map ConstantBuffer." << std::endl;
         return NULL;
     }
 
@@ -29,16 +31,17 @@ void* ConstantBuffer::Map() {
 }
 
 void ConstantBuffer::Unmap() {
+    if( !pBuff ) { return; }
     gDirectX->gContext->Unmap(pBuff, 0);
 }
 
-void ConstantBuffer::Bind(Shader::ShaderType type, UINT slot) {
-    switch( type ) {
-        case Shader::Vertex  : gDirectX->gContext->VSSetConstantBuffers(slot, 1, &pBuff); break;
-        case Shader::Pixel   : gDirectX->gContext->PSSetConstantBuffers(slot, 1, &pBuff); break;
-        case Shader::Geometry: gDirectX->gContext->GSSetConstantBuffers(slot, 1, &pBuff); break;
-        case Shader::Hull    : gDirectX->gContext->HSSetConstantBuffers(slot, 1, &pBuff); break;
-        case Shader::Domain  : gDirectX->gContext->DSSetConstantBuffers(slot, 1, &pBuff); break;
-        case Shader::Compute : gDirectX->gContext->CSSetConstantBuffers(slot, 1, &pBuff); break;
-    }
+void ConstantBuffer::Bind(UINT type, UINT slot) {
+    if( !pBuff ) { return; }
+
+    if( type & Shader::Vertex   ) gDirectX->gContext->VSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Pixel    ) gDirectX->gContext->PSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Geometry ) gDirectX->gContext->GSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Hull     ) gDirectX->gContext->HSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Domain   ) gDirectX->gContext->DSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Compute  ) gDirectX->gContext->CSSetConstantBuffers(slot, 1, &pBuff);
 }

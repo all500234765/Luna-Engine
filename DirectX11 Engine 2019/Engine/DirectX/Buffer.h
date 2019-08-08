@@ -20,9 +20,9 @@ protected:
     }
 
 public:
-    virtual ID3D11Buffer* GetBuffer() { return pBuff; }
-    virtual UINT GetNumber()          { return Number; }
-    virtual void Release()            { if( pBuff ) pBuff->Release(); pBuff = 0; }
+    virtual ID3D11Buffer* GetBuffer() const { return pBuff; }
+    virtual UINT GetNumber() const          { return Number; }
+    virtual void Release()                  { if( pBuff ) pBuff->Release(); pBuff = 0; }
 
     // Set the vertex buffer to active in the input assembler so it can be rendered.
     virtual void BindVertex(UINT Slot) {

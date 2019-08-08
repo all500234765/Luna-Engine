@@ -23,8 +23,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsGame1", "WindowsGame
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ParticlesTest", "ParticlesTest\ParticlesTest.vcxproj", "{74B1D08A-E23A-4D44-A5F5-D59A379373B6}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SnowTest", "SnowTest\SnowTest.vcxproj", "{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Audio Engine\Audio Engine.vcxitems*{168d65b6-fefa-44f2-ac7a-051c3883c6ab}*SharedItemsImports = 4
+		DirectX11 Engine 2019\DirectX11 Engine 2019.vcxitems*{168d65b6-fefa-44f2-ac7a-051c3883c6ab}*SharedItemsImports = 4
+		EngineIncludes\EngineIncludes.vcxitems*{168d65b6-fefa-44f2-ac7a-051c3883c6ab}*SharedItemsImports = 4
+		Physics Engine\Physics Engine.vcxitems*{168d65b6-fefa-44f2-ac7a-051c3883c6ab}*SharedItemsImports = 4
+		Renderers\Renderers.vcxitems*{168d65b6-fefa-44f2-ac7a-051c3883c6ab}*SharedItemsImports = 4
+		Shaders\Shaders.vcxitems*{168d65b6-fefa-44f2-ac7a-051c3883c6ab}*SharedItemsImports = 4
+		Vendor\Vendor.vcxitems*{168d65b6-fefa-44f2-ac7a-051c3883c6ab}*SharedItemsImports = 4
 		Shaders\Shaders.vcxitems*{1b756e0e-719d-49b2-ac1d-c57c6d2780ef}*SharedItemsImports = 9
 		Physics Engine\Physics Engine.vcxitems*{2109fbf7-2188-4eb1-aa6e-4efe3e5fe29c}*SharedItemsImports = 9
 		EngineIncludes\EngineIncludes.vcxitems*{479577c0-029a-4ea8-bbd0-53e56b3faaa4}*SharedItemsImports = 9
@@ -85,6 +94,14 @@ Global
 		{74B1D08A-E23A-4D44-A5F5-D59A379373B6}.Release|x64.Build.0 = Release|x64
 		{74B1D08A-E23A-4D44-A5F5-D59A379373B6}.Release|x86.ActiveCfg = Release|Win32
 		{74B1D08A-E23A-4D44-A5F5-D59A379373B6}.Release|x86.Build.0 = Release|Win32
+		{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}.Debug|x64.ActiveCfg = Debug|x64
+		{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}.Debug|x64.Build.0 = Debug|x64
+		{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}.Debug|x86.ActiveCfg = Debug|Win32
+		{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}.Debug|x86.Build.0 = Debug|Win32
+		{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}.Release|x64.ActiveCfg = Release|x64
+		{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}.Release|x64.Build.0 = Release|x64
+		{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}.Release|x86.ActiveCfg = Release|Win32
+		{168D65B6-FEFA-44F2-AC7A-051C3883C6AB}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

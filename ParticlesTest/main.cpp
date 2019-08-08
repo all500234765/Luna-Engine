@@ -49,7 +49,7 @@ Shader *shGUI, *shTexturedQuad, *shPostProcess, *shParticles3D,
 
 
 // Textures and materials
-Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault, *tTestTex;
+Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault, *tGradient;
 DiffuseMap *mDefaultDiffuse;
 Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougness;
 
@@ -72,10 +72,17 @@ struct Particle {
     DirectX::XMFLOAT3 Velocity;
 };
 
+struct DataBuffer {
+    INT _GroupDim;
+    UINT _ParticleNum;
+    FLOAT _DeltaTime;
+    FLOAT _Dummy;
+};
+
+ConstantBuffer *cbDataBuffer;
 StructuredBuffer<Particle> *sbParticles;
 
-const int _Num = 10000;
-std::vector<Particle> _Particles;
+const int _Num = 100000;
 #pragma endregion
 
 float fAspect = 1024.f / 540.f;
@@ -116,15 +123,20 @@ bool _DirectX::FrameFunction() {
     }
 
     // Particle test
-    pBlendStateAdditive->Bind();
     shParticles3D->Bind();
+    pBlendStateAdditive->Bind();
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
     cPlayer->BuildConstantBuffer();
     cPlayer->BindBuffer(Shader::Vertex, 0);
+    cPlayer->BindBuffer(Shader::Geometry, 0);
+    
+    sbParticles->Bind(Shader::Vertex, 0, false);
 
-    sbParticles->Bind(Shader::Vertex, 0);
+    tGradient->Bind(Shader::Pixel, 0);
+    sPoint->Bind(Shader::Pixel, 0);
 
+    // Draw call for particles
     gContext->Draw(sbParticles->GetNumber(), 0);
 
     // Set defaults
@@ -144,6 +156,37 @@ float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f
 float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
+
+    // Integrate particles
+    if( !bPause ) {
+        shParticles3D->Bind();
+
+        const UINT dimX = 32;
+        const UINT dimY = 24;
+        const UINT dim = dimX * dimY;
+
+        const UINT NumGroups = (_Num % dim != 0) ? ((_Num / dim) + 1) : (_Num / dim);
+        double sqroot = ceil(sqrt(double(NumGroups)));
+
+        UINT gx = sqroot;
+        UINT gy = sqroot;
+
+        DataBuffer *dbInst = (DataBuffer*)cbDataBuffer->Map();
+            dbInst->_DeltaTime = fDeltaTime * 2.f;
+            dbInst->_GroupDim = gx;
+            dbInst->_ParticleNum = _Num;
+        cbDataBuffer->Unmap();
+
+        cbDataBuffer->Bind(Shader::Compute, 0);
+        sbParticles->Bind(Shader::Compute, 0, true);
+
+        // Dispatch
+        shParticles3D->Dispatch(gx, gy, 1);
+
+        // Unbind UAVs
+        ID3D11UnorderedAccessView *pEmpty = nullptr;
+        gContext->CSSetUnorderedAccessViews(0, 1, &pEmpty, 0);
+    }
 
     // Update GUI elements
     tTest = gTextFactory->Build(tTest, (std::string("FPS: ") + std::to_string(1.f / fDeltaTime)).c_str());
@@ -355,7 +398,7 @@ void _DirectX::Load() {
     tClearPixel      = new Texture();
     tOpacityDefault  = new Texture();
     tSpecularDefault = new Texture();
-    tTestTex         = new Texture();
+    tGradient        = new Texture();
 
     sPoint             = new Sampler();
     sMipLinear         = new Sampler();
@@ -405,7 +448,22 @@ void _DirectX::Load() {
     pDesc_.AlphaToCoverageEnable = false;
     pDesc_.IndependentBlendEnable = false;
 
-    pBlendState0->Create(pDesc_, {1.f, 1.f, 1.f, 1.f});
+    pBlendState0->Create(pDesc_, { 1.f, 1.f, 1.f, 1.f }, 0xFFFFFFFF);
+
+    pBlendStateAdditive = new BlendState();
+    pDesc_.RenderTarget[0].BlendEnable = true;
+    pDesc_.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    pDesc_.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    pDesc_.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+    pDesc_.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+    pDesc_.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+    pDesc_.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    pDesc_.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+    pDesc_.AlphaToCoverageEnable = false;
+    pDesc_.IndependentBlendEnable = false;
+
+    pBlendStateAdditive->Create(pDesc_, { 1.f, 1.f, 1.f, 1.f }, 0xFFFFFFFF);
 #pragma endregion
 
 #pragma region Load textures
@@ -419,9 +477,9 @@ void _DirectX::Load() {
 
     //tClearPixel->Load("../Textures/ClearPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
     tOpacityDefault->Load("../Textures/ClearPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
-    tSpecularDefault->Load("../Textures/DarkPixel.png", DXGI_FORMAT_B8G8R8A8_UNORM);
+    tSpecularDefault->Load("../Textures/DarkPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
 
-    tTestTex->Load("../Textures/Tex_Beer_ScaleDown.PNG", DXGI_FORMAT_B8G8R8A8_UNORM);
+    tGradient->Load("../Textures/Gradient.png", DXGI_FORMAT_R8G8B8A8_UNORM);
 #pragma endregion 
 
     // Set default textures
@@ -542,8 +600,9 @@ void _DirectX::Load() {
 
     // 3D Particles
     shParticles3D->LoadFile("shParticles3DVS.cso", Shader::Vertex);
-    //shParticles3D->LoadFile("shParticles3DGS.cso", Shader::Geometry);
+    shParticles3D->LoadFile("shParticles3DGS.cso", Shader::Geometry);
     shParticles3D->LoadFile("shParticles3DPS.cso", Shader::Pixel);
+    shParticles3D->LoadFile("shParticles3DCS.cso", Shader::Compute);
 
     // Clean shaders
     shGUI->ReleaseBlobs();
@@ -580,6 +639,7 @@ void _DirectX::Load() {
 
     // Particles
     std::cout << "[ParticleTest]: Generating " << _Num << " particles..." << std::endl;
+    std::vector<Particle> _Particles;
     for( int i = 0; i < _Num; i++ ) {
         float x = (float(rand() % 60) - 30.f) * 1.f;
         float y = (float(rand() % 60) - 30.f) * 1.f;
@@ -593,7 +653,10 @@ void _DirectX::Load() {
         _Particles.push_back(p);
     }
 
-    sbParticles->CreateDefault(_Num, &_Particles[0]);
+    cbDataBuffer = new ConstantBuffer();
+    cbDataBuffer->CreateDefault(sizeof(DataBuffer));
+
+    sbParticles->CreateDefault(_Num, &_Particles[0], true);
 
 #pragma region Load models
     // Create model
@@ -619,7 +682,7 @@ void _DirectX::Unload() {
     tBlueNoiseRG->Release();
     tClearPixel->Release();
     //tDefault->Release(); // Material will delete it
-    tTestTex->Release();
+    tGradient->Release();
 
     // Release shaders
     shGUI->DeleteShaders();

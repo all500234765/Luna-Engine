@@ -8,6 +8,7 @@ public:
     void CreateDefault(UINT size);
     void* Map();
     void Unmap();
-    void Bind(Shader::ShaderType type, UINT slot);
+    void Bind(UINT type, UINT slot);
+    void Bind(Shader::ShaderType type, UINT slot) { Bind(static_cast<UINT>(type), slot); }
 
 };

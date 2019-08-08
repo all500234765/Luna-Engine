@@ -13,9 +13,9 @@ Font::Font(const char* fontFile, Sampler* s, bool SDF): sFont(s), bSDF(SDF) {
     std::string line, fullLine;
 
     // GB
-    auto EraseGarbage = [&line](const char* begin, const char* end, int offset=0) {
+    auto EraseGarbage = [&line](const char* begin, const char* end, size_t offset=0) {
         line.erase(0, offset + strlen(begin));
-        int p0 = line.find(end);
+        size_t p0 = line.find(end);
         if( p0 == -1 ) { return; }
         line.erase(p0, line.length() - p0);
     };

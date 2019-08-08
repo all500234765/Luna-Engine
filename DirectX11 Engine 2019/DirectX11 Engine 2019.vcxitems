@@ -73,7 +73,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Query.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Shader.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\ShaderTrace.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\StructuredBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\Gamepad.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\GamepadNew.h" />

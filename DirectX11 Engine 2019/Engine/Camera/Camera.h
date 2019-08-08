@@ -48,7 +48,8 @@ public:
 
     const ConstantBuffer& BuildConstantBuffer(float wparam=1.f);
     const ConstantBuffer& BuildConstantBuffer(DirectX::XMVECTOR wparam);
-    void BindBuffer(Shader::ShaderType type, UINT slot);
+    void BindBuffer(UINT type, UINT slot);
+    void BindBuffer(Shader::ShaderType type, UINT slot) { BindBuffer(static_cast<UINT>(type), slot); }
 
     inline DirectX::XMFLOAT3 GetPosition() const { return pPos; };
     inline void SetPosition(DirectX::XMFLOAT3 p) { pPos = p; };

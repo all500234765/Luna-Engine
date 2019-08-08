@@ -5,8 +5,9 @@ cbuffer MatrixBuffer : register(b0) {
     float4   vPosition;
 };
 
-struct PS {
+struct VS {
     float4 Position : SV_Position0;
+    float3 Velocity : TEXCOORD0;
 };
 
 struct Particle {
@@ -16,12 +17,13 @@ struct Particle {
 
 StructuredBuffer<Particle> _Particles : register(t0);
 
-PS main(uint index : SV_VertexID) {
+VS main(uint index : SV_VertexID) {
     Particle p = _Particles[index];
 
     float3 Pos = p.Position;
 
-    PS Out;
-        Out.Position = mul(mProj, mul(mView, float4(Pos, 1.)));
+    VS Out;
+        Out.Position = mul(mView, float4(Pos, 1.));
+        Out.Velocity = p.Velocity;
     return Out;
 }
