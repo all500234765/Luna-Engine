@@ -5,8 +5,20 @@ Made a trello, so you can see what i want, done and what i am working on atm.
 https://trello.com/b/T8T6vkBN/directx-11-engine-2019
 
 # Version 0.1.080
-Million particles test
+* Million particles test
+
 ![1kk Particles](Misc/1kkParticles.gif)
+
+# Requirements
+* MSVS 2017+ 
+   * 2019+ might ask about upgrading to newer tools, it's should still work. I haven't checked it in a while
+* Platform Toolset v141+
+* x86 / x64-bit system
+* Windows SDK Version - 10.0.17763+
+* Videocard with DX 11 support
+* Target platform is Windows 10
+   * It might not work on older versions
+   * I plan on adding DX 12 with DXR support, so stay tuned!
 
 # Features
 * x86 / x64 builds
