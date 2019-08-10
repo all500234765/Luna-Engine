@@ -52,12 +52,12 @@ class RenderBufferBase: public DirectXChild {
 protected:
     int Width, Height, Depth;
 
-public:
     sRenderBuffer* CreateRTV2D(int W, int H, DXGI_FORMAT format);
     sRenderBuffer* CreateDSV2D(int W, int H, UINT bpp=32);
     sRenderBuffer* CreateRTV3D(int W, int H, int D, DXGI_FORMAT format);
     sRenderBuffer* CreateDSV3D(int W, int H, int D, UINT bpp=32);
 
+public:
     void BindResource(sRenderBuffer* data, Shader::ShaderType type, UINT slot = 0);
     void SetSize(int w, int h);
     int GetWidth();

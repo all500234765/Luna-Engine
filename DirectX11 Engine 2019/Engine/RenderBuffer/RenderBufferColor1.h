@@ -14,5 +14,7 @@ public:
     void Resize(int w, int h);
     void Clear(const FLOAT Color0[4]);
 
+    void SetName(const char* name) { _SetName(sColor0->pTexture2D, name); }
+
     sRenderBuffer* GetColor0();
 };

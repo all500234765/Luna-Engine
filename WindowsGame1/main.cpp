@@ -128,7 +128,7 @@ bool _DirectX::FrameFunction() {
         sPoint->Bind(Shader::Pixel);
 
         // 
-        int   size   = pDebugTextures.size();
+        size_t size  = pDebugTextures.size();
         float width  = (cfg.Width / static_cast<float>(size));
         float height = width * .5f;
         
@@ -137,18 +137,18 @@ bool _DirectX::FrameFunction() {
         height /= cfg.Height;
 
         // Right to Left offset and 2 * Width
-        float left = width * static_cast<float>(size) * .5;
+        float left = width * static_cast<float>(size) * .5f;
         float w2   = width * 2.f;
-        float h    = height * .5 + height * (size - 1.) - .1;
+        float h    = height * .5f + height * (size - 1.f) - .1f;
 
         // 
-        for( int i = 0; i < size; i++ ) {
+        for( size_t i = 0; i < size; i++ ) {
             if( pDebugTextures[i] == nullptr ) { continue; }
 
             // 
             //DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(.67f - width * i * 2.f, .67f, 0.f);
             //DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(w2 * (i - w2) - left, h, 0.);
-            DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(w2 * i - width * size * .75, h, 0.f);
+            DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(w2 * i - width * size * .75f, h, 0.f);
             c2DScreen->SetWorldMatrix(DirectX::XMMatrixScaling(width, height, 1.f) * mOffset);
             c2DScreen->BuildConstantBuffer();
             c2DScreen->BindBuffer(Shader::Vertex, 0);
@@ -274,7 +274,7 @@ void _DirectX::Resize() {
 
 
     // Resize text port
-    gTextController->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
+    gTextController->SetSize((float)cfg.CurrentWidth, (float)cfg.CurrentHeight);
 
     // Resize swapchain
     scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
@@ -455,22 +455,18 @@ void _DirectX::Load() {
 
     // Point sampler
     sPoint->Create(pDesc);
-    sPoint->SetName("Point sampler");
 
     // Linear mip opacity sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sMipLinearOpacity->Create(pDesc);
-    sMipLinearOpacity->SetName("Linear mip opacity sampler");
 
     // Linear mip rougness sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = 0.;
     sMipLinearRougness->Create(pDesc);
-    sMipLinearRougness->SetName("Linear mip rougness sampler");
 
     // Anisotropic mip sampler
     pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
     sMipLinear->Create(pDesc);
-    sMipLinear->SetName("Anisotropic mip sampler");
 
     // Clamped point sampler
     pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
@@ -480,7 +476,6 @@ void _DirectX::Load() {
     pDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sPointClamp->Create(pDesc);
-    sPointClamp->SetName("Clamp point sampler");
 
     // Create maps
     mDefaultDiffuse->mTexture = tDefault;
@@ -488,7 +483,6 @@ void _DirectX::Load() {
     // Create materials
     mDefault->SetDiffuse(mDefaultDiffuse);
     mDefault->SetSampler(sMipLinear);
-    mDefault->SetName("Default material");
 
     // Setup cameras
     CameraConfig cfg2;
@@ -506,8 +500,8 @@ void _DirectX::Load() {
     vpMain.MaxDepth = 1.f;
     vpMain.TopLeftX = 0;
     vpMain.TopLeftY = 0;
-    vpMain.Width    = cfg.CurrentWidth;
-    vpMain.Height   = cfg.CurrentHeight2;
+    vpMain.Width    = (float)cfg.CurrentWidth;
+    vpMain.Height   = (float)cfg.CurrentHeight2;
 
     // Save aspect for further use
     fAspect = cfg2.fAspect;
@@ -572,7 +566,7 @@ void _DirectX::Load() {
     gTextFactory->SetFont(fRegular);
     tTest = gTextFactory->Build((std::string("FPS: ") + std::to_string(60)).c_str());
     
-    gTextController = new TextController(gTextFactory, cfg.CurrentWidth, cfg.CurrentHeight2, 16.f);
+    gTextController = new TextController(gTextFactory, (float)cfg.CurrentWidth, (float)cfg.CurrentHeight2, 16.f);
 #pragma endregion
 
 #pragma region Load models

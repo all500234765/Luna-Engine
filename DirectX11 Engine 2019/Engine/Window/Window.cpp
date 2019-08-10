@@ -143,7 +143,7 @@ void Window::Loop() {
 
     // Create new clock
     std::chrono::high_resolution_clock Clock;
-    fTimeDelay = 1000.f / gDirectX->GetConfig().RefreshRate;
+    fTimeDelay = 1000.f / (float)gDirectX->GetConfig().RefreshRate;
     std::chrono::time_point<std::chrono::steady_clock> tLast;
     auto tp1 = Clock.now();
     auto tp2 = tp1;

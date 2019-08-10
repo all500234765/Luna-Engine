@@ -172,7 +172,7 @@ void _DirectX::Tick(float fDeltaTime) {
         UINT gy = sqroot;
 
         DataBuffer *dbInst = (DataBuffer*)cbDataBuffer->Map();
-            dbInst->_DeltaTime = fDeltaTime * 2.f;
+            dbInst->_DeltaTime = fDeltaTime * (2.f + 18.f * gKeyboard->IsDown(VK_F));
             dbInst->_GroupDim = gx;
             dbInst->_ParticleNum = _Num;
         cbDataBuffer->Unmap();
@@ -503,22 +503,18 @@ void _DirectX::Load() {
 
     // Point sampler
     sPoint->Create(pDesc);
-    sPoint->SetName("Point sampler");
 
     // Linear mip opacity sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sMipLinearOpacity->Create(pDesc);
-    sMipLinearOpacity->SetName("Linear mip opacity sampler");
 
     // Linear mip rougness sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = 0.;
     sMipLinearRougness->Create(pDesc);
-    sMipLinearRougness->SetName("Linear mip rougness sampler");
 
     // Anisotropic mip sampler
     pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
     sMipLinear->Create(pDesc);
-    sMipLinear->SetName("Anisotropic mip sampler");
 
     // Clamped point sampler
     pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
@@ -528,7 +524,6 @@ void _DirectX::Load() {
     pDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sPointClamp->Create(pDesc);
-    sPointClamp->SetName("Clamp point sampler");
 
     // Create maps
     mDefaultDiffuse->mTexture = tDefault;
@@ -536,7 +531,6 @@ void _DirectX::Load() {
     // Create materials
     mDefault->SetDiffuse(mDefaultDiffuse);
     mDefault->SetSampler(sMipLinear);
-    mDefault->SetName("Default material");
 
     // Setup cameras
     CameraConfig cfg2;

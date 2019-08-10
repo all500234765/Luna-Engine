@@ -6,16 +6,15 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 
+//#include "HighLevel/DirectX/HighLevel.h"
+
 #pragma comment(lib, "dxgi.lib")
+
+#ifndef _BUILD_DX12_
 #pragma comment(lib, "d3d11.lib")
-
-// 2D Rendering
-/*#include <d2d1.h>
-#include <dwrite.h>
-#include <comdef.h>
-
-#pragma comment(lib, "d2d1.lib")
-#pragma comment(lib, "dwrite.lib") */
+#else
+#pragma comment(lib, "d3d12.lib")
+#endif
 
 #ifndef ConvertPointSizeToDIP
 #define ConvertPointSizeToDIP(x) ((x) * 1.3333333333333333333333333333333f)
@@ -63,6 +62,7 @@ private:
     D3D11_TEXTURE2D_DESC pTex2DDesc;
     D3D11_DEPTH_STENCIL_DESC pDSD;
     DXGI_SWAP_CHAIN_DESC scd;
+
 public:
     // Globals
     // 3D Rendering
@@ -108,4 +108,6 @@ public:
 
     void AnselEnable(DirectX::XMMATRIX view);
     void AnselSession();
+
+    friend class HighLevel;
 };

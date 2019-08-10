@@ -1,6 +1,5 @@
 // Extensions
 #include "Engine/Extensions/Default.h"
-#include "Engine/Input/Gamepad.h"
 
 #pragma region Engine includes
 // Core engine includes
@@ -8,6 +7,9 @@
 #include "Engine Includes/Models.h"
 #include "Engine Includes/RenderBuffers.h"
 #include "Engine Includes/Textures.h"
+
+// 
+#include "Engine/Extensions/Safe.h"
 
 // Audio engine using XAudio2
 #include "Engine Includes/Audio.h"
@@ -18,6 +20,9 @@
 // External
 #include "Engine Includes/ImGui.h"
 
+// High Level
+#include "HighLevel/DirectX/HighLevel.h"
+
 // Global game instances
 static _DirectX      *gDirectX     = 0;
 static Window        *gWindow      = 0;
@@ -25,6 +30,8 @@ static Input         *gInput       = 0;
 static Mouse         *gMouse       = 0;
 static Keyboard      *gKeyboard    = 0;
 static AudioDevice   *gAudioDevice = 0;
+
+HighLevel *gHighLevel = new HighLevel();
 
 #if USE_GAMEPADS
 static Gamepad* gGamepad[NUM_GAMEPAD] = {};
@@ -39,7 +46,7 @@ TextFactory *gTextFactory;
 TextController *gTextController;
 
 // Cameras
-Camera *cPlayer, *c2DScreen;
+Camera *cPlayer;
 
 // Shaders
 Shader *shGUI, *shTexturedQuad, *shPostProcess, *shSurface, *shSnow,
@@ -61,7 +68,6 @@ RenderBufferDepth2D *rtSnowDepth;
 // States
 BlendState *pBlendState0, *pBlendStateAdditive;
 RasterState *rsFrontCull;
-//ID3D11RasterizerState *rsFrontCull;
 
 // Viewports
 D3D11_VIEWPORT vpMain;
@@ -122,6 +128,8 @@ bool _DirectX::FrameFunction() {
 
 float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
 float fDir = 0.f, fPitch = 0.f;
+DirectX::XMFLOAT2 pLastPos = { 0, 0 }; // Last mouse pos
+
 void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
 
@@ -136,7 +144,6 @@ void _DirectX::Tick(float fDeltaTime) {
 
     // Update camera
     DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
-    static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
 
     // Camera
     if( gKeyboard->IsDown(VK_W) ) f3Move.x = +fSpeed * fDeltaTime;  // Forward / Backward
@@ -234,49 +241,18 @@ void _DirectX::ComposeUI() {
 }
 
 void _DirectX::Resize() {
-    const WindowConfig& cfg = gWindow->GetCFG();
+    WindowConfig cfg = gWindow->GetCFG();
     if( !cfg.Resized ) { return; }                                     // Window isn't resized
     if( cfg.CurrentWidth <= 0 && cfg.CurrentHeight2 <= 0 ) { return;  } // Window was minimazed
+    
+    // Resize default RTV and DSV
+    cfg = gHighLevel->DefaultResize();
 
+    // 
     std::cout << "Window/DirectX resize event (w=" << cfg.CurrentWidth << ", h=" << cfg.CurrentHeight << ")" << std::endl;
 
-    // Release targets
-    gContext->OMSetRenderTargets(0, 0, 0);
-    gRTV->Release();
-
-    // Resize buffers
-
-
     // Resize text port
-    gTextController->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
-
-    // Resize swapchain
-    scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
-    scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
-
-    gSwapchain->ResizeTarget(&scd.BufferDesc);
-
-    std::cout << (gSwapchain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0) == S_OK) << std::endl;
-
-    // Create RTV
-    ID3D11Texture2D *BackBufferColor;
-    gSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&BackBufferColor);
-
-    std::cout << (gDevice->CreateRenderTargetView(BackBufferColor, NULL, &gRTV) == S_OK) << std::endl;
-    BackBufferColor->Release(); // ?
-
-    // Create depth texture
-    pTex2DDesc.Width  = cfg.CurrentWidth;
-    pTex2DDesc.Height = cfg.CurrentHeight;
-    gDSVTex->Release();
-    gDSV->Release();
-    std::cout << (gDevice->CreateTexture2D(&pTex2DDesc, NULL, &gDSVTex) == S_OK) << std::endl;
-
-    // Create depth stencil view
-    std::cout << (gDevice->CreateDepthStencilView(gDSVTex, &pDesc2, &gDSV) == S_OK) << std::endl;
-
-    // Bind default targets
-    gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+    gTextController->SetSize((float)cfg.CurrentWidth, (float)cfg.CurrentHeight);
 
     // Recalculate camer's aspect ratio and projection matrix
     CameraConfig cfg2 = cPlayer->GetParams();
@@ -285,10 +261,6 @@ void _DirectX::Resize() {
 
     // Save aspect
     fAspect = cfg2.fAspect;
-
-    cfg2 = c2DScreen->GetParams();
-    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
-    c2DScreen->BuildProj();
 
     // Set up the viewport
     D3D11_VIEWPORT vp;
@@ -328,8 +300,7 @@ void _DirectX::Load() {
     shSurface                = new Shader();
     shSnow                   = new Shader();
 
-    cPlayer   = new Camera();
-    c2DScreen = new Camera();
+    cPlayer = new Camera();
 
     tDefault         = new Texture();
     tBlueNoiseRG     = new Texture();
@@ -439,22 +410,18 @@ void _DirectX::Load() {
 
     // Point sampler
     sPoint->Create(pDesc);
-    sPoint->SetName("Point sampler");
 
     // Linear mip opacity sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sMipLinearOpacity->Create(pDesc);
-    sMipLinearOpacity->SetName("Linear mip opacity sampler");
 
     // Linear mip rougness sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = 0.;
     sMipLinearRougness->Create(pDesc);
-    sMipLinearRougness->SetName("Linear mip rougness sampler");
 
     // Anisotropic mip sampler
     pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
     sMipLinear->Create(pDesc);
-    sMipLinear->SetName("Anisotropic mip sampler");
 
     // Clamped point sampler
     pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
@@ -464,7 +431,6 @@ void _DirectX::Load() {
     pDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sPointClamp->Create(pDesc);
-    sPointClamp->SetName("Clamp point sampler");
 
     // Create maps
     mDefaultDiffuse->mTexture = tDefault;
@@ -472,7 +438,6 @@ void _DirectX::Load() {
     // Create materials
     mDefault->SetDiffuse(mDefaultDiffuse);
     mDefault->SetSampler(sMipLinear);
-    mDefault->SetName("Default material");
 
     // Setup cameras
     CameraConfig cfg2;
@@ -490,19 +455,11 @@ void _DirectX::Load() {
     vpMain.MaxDepth = 1.f;
     vpMain.TopLeftX = 0;
     vpMain.TopLeftY = 0;
-    vpMain.Width    = cfg.CurrentWidth;
-    vpMain.Height   = cfg.CurrentHeight2;
+    vpMain.Width    = (float)cfg.CurrentWidth;
+    vpMain.Height   = (float)cfg.CurrentHeight2;
 
     // Save aspect for further use
     fAspect = cfg2.fAspect;
-
-    // 
-    cfg2.FOV = 90.f;
-    cfg2.fNear = .1f;
-    cfg2.fFar = 1.f;
-    c2DScreen->SetParams(cfg2);
-    c2DScreen->BuildProj();
-    c2DScreen->BuildView();
 #pragma endregion
 
 #pragma region Load Shaders
@@ -563,10 +520,10 @@ void _DirectX::Load() {
     gTextFactory->SetFont(fRegular);
     tTest = gTextFactory->Build((std::string("FPS: ") + std::to_string(60)).c_str());
     
-    gTextController = new TextController(gTextFactory, cfg.CurrentWidth, cfg.CurrentHeight2, 16.f);
+    gTextController = new TextController(gTextFactory, (float)cfg.CurrentWidth, (float)cfg.CurrentHeight2, 16.f);
 
     TextEffects* data1 = gTextFactory->MapTextEffects();
-        data1->_Color = { .7, .9, 0.f, 1.f };
+        data1->_Color = { .7f, .9f, 0.f, 1.f };
     gTextFactory->UnmapTextEffects();
 
     SDFSettings* data2 = gTextFactory->MapSDFSettings();
@@ -586,41 +543,38 @@ void _DirectX::Load() {
 
 void _DirectX::Unload() {
     // Release states
-    rsFrontCull->Release();
-    pBlendState0->Release();
-    pBlendStateAdditive->Release();
+    SAFE_RELEASE(rsFrontCull);
+    SAFE_RELEASE(pBlendState0);
+    SAFE_RELEASE(pBlendStateAdditive);
 
     // Release materials
-    mDefault->Release();
+    SAFE_RELEASE(mDefault);
+
+    // Release buffers
+    SAFE_RELEASE(rtSnowDepth);
 
     // Release textures
-    tBlueNoiseRG->Release();
-    tClearPixel->Release();
-    //tDefault->Release(); // Material will delete it
-    tGradient->Release();
+    SAFE_RELEASE(tBlueNoiseRG);
+    SAFE_RELEASE(tClearPixel);
+    SAFE_RELEASE(tGradient);
 
     // Release shaders
-    shGUI->DeleteShaders();
-    shTexturedQuad->DeleteShaders();
-    shPostProcess->DeleteShaders();
-    shTextSimple->DeleteShaders();
-    shTextEffects->DeleteShaders();
-    shTextSimpleSDF->DeleteShaders();
-    shTextEffectsSDF->DeleteShaders();
-    shSnow->DeleteShaders();
-    shSurface->DeleteShaders();
+    SAFE_RELEASE(shGUI);
+    SAFE_RELEASE(shTexturedQuad);
+    SAFE_RELEASE(shPostProcess);
+    SAFE_RELEASE(shTextSimple);
+    SAFE_RELEASE(shTextEffects);
+    SAFE_RELEASE(shTextSimpleSDF);
+    SAFE_RELEASE(shTextEffectsSDF);
+    SAFE_RELEASE(shSnow);
+    SAFE_RELEASE(shSurface);
     
     // Text engine
-    fRegular->Release();
-    tTest->Release();
+    SAFE_RELEASE(fRegular);
+    SAFE_RELEASE(tTest);
 }
 
 int main() {
-    // Create global engine objects
-    gWindow = new Window();
-    gDirectX = new _DirectX();
-    gAudioDevice = new AudioDevice();
-    
     // Window config
     WindowConfig winCFG;
     winCFG.Borderless  = false;
@@ -628,97 +582,57 @@ int main() {
     winCFG.ShowConsole = true;
     winCFG.Width       = 1024;
     winCFG.Height      = 540;
-    winCFG.Title       = L"Particles Test - Luna Engine";
+    winCFG.Title       = L"Snow Test - Luna Engine";
     winCFG.Icon        = L"Engine/Assets/Engine.ico";
 
     // Create window
-    gWindow->Create(winCFG);
-    winCFG = gWindow->GetCFG();
+    gWindow = gHighLevel->InitWindow(winCFG);
 
     // Get input devices
-    gInput = gWindow->GetInputDevice();
+    gInput = gHighLevel->InitInput();
     gKeyboard = gInput->GetKeyboard();
     gMouse = gInput->GetMouse();
+
 #if USE_GAMEPADS
     for( int i = 0; i < NUM_GAMEPAD; i++ ) gGamepad[i] = gInput->GetGamepad(i);
 #endif
 
     // Audio device config
-    AudioDeviceConfig adCFG;
-    adCFG.Flags = 0;
+    AudioDeviceConfig adCFG = { 0 };
 
     // Create audio device
-    gAudioDevice->Create(adCFG);
-
+    gAudioDevice = gHighLevel->InitAudio(adCFG);
+    
     // DirectX config
     DirectXConfig dxCFG;
-    dxCFG.BufferCount = 2;
-    dxCFG.Width = winCFG.CurrentWidth;
-    dxCFG.Height = winCFG.CurrentHeight2;
-    dxCFG.m_hwnd = gWindow->GetHWND();
-    dxCFG.RefreshRate = 60;// 60;
-    dxCFG.UseHDR = true;
+    dxCFG.BufferCount     = 2;
+    dxCFG.Width           = winCFG.CurrentWidth;
+    dxCFG.Height          = winCFG.CurrentHeight2;
+    dxCFG.m_hwnd          = gWindow->GetHWND();
+    dxCFG.RefreshRate     = 60;
+    dxCFG.UseHDR          = true;
     dxCFG.DeferredContext = false;
-    dxCFG.Windowed = winCFG.Windowed;
-    dxCFG.Ansel = USE_ANSEL;
+    dxCFG.Windowed        = winCFG.Windowed;
+    dxCFG.Ansel           = USE_ANSEL;
 
     // <strike>TODO: MSAA Support</strike>
     // TODO: Remove MSAA from here
     // TODO: Add TAA support
-    dxCFG.MSAA = false;
+    dxCFG.MSAA         = false;
     dxCFG.MSAA_Samples = 1;
     dxCFG.MSAA_Quality = 0;
 
-    // Create device and swap chain
-    if( gDirectX->ShowError(gDirectX->Create(dxCFG)) ) { return 1; }
+    // Init DirectX
+    gDirectX = gHighLevel->InitDirectX(dxCFG);
 
-    //std::cout << "Ansel avaliable: " << ansel::isAnselAvailable() << std::endl;
+    // Main Loop
+    gHighLevel->AppLoop();
 
-    // Debug report if we can
-#ifdef _DEBUG
-    if( gDirectX->gDebug ) gDirectX->gDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
-#endif
-
-    // Include ImGUI
-#if _DEBUG_BUILD
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui_ImplWin32_Init(gWindow->GetHWND());
-    ImGui_ImplDX11_Init(gDirectX->gDevice, gDirectX->gContext);
-    ImGui::StyleColorsDark();
-#endif
-
-    // Set frame function
-    bool(_DirectX::*gFrameFunction)(void);
-    gFrameFunction = &_DirectX::FrameFunction;
-
-    gWindow->SetFrameFunction(gFrameFunction); // Ref to function
-    gWindow->SetDirectX(gDirectX);             // Ref to global object
-    //gWindow->SetAudioDevice(0, gAudioDevice);  // Ref to global audio device[0]
-
-    // Set directx object
-    DirectXChild::SetDirectX(gDirectX);
-
-    // Set audio object
-    AudioDeviceChild::SetAudioDevice(gAudioDevice);
-
-    // Set physics object
-    //PhysicsEngineChild::SetPhysicsEngine(gPhysicsEngine);
-
-    // Load game data
-    gDirectX->Load();
-
-    // Start rendering loop
-    gWindow->Loop();
-
-    // Unload game
-#if _DEBUG_BUILD
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-#endif
-
-    gWindow->Destroy();
-    gDirectX->Unload();
-    gAudioDevice->Release();
+    // 
+    SAFE_DELETE(gHighLevel);
+    SAFE_DELETE(gWindow);
+    SAFE_DELETE(gDirectX);
+    SAFE_DELETE_N(gGamepad, NUM_GAMEPAD);
+    SAFE_DELETE(gInput);
+    SAFE_RELEASE(gAudioDevice);
 }

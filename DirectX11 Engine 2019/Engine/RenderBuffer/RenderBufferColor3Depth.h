@@ -19,6 +19,23 @@ public:
     void Clear(const FLOAT Color0[4], const FLOAT Color1[4], const FLOAT Color2[4], UINT flags=D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, FLOAT depth=1, UINT8 stencil=0);
 
     void Resize(int w, int h);
+    
+    // i=-1 Depth; i [0; 2] Color
+    void SetName(int i, const char* name) {
+        switch( i ) {
+            case -1: _SetName(sDepth->pTexture2D, name); break;
+            case 0: _SetName(sColor0->pTexture2D, name); break;
+            case 1: _SetName(sColor1->pTexture2D, name); break;
+            case 2: _SetName(sColor2->pTexture2D, name); break;
+        }
+    }
+
+    void SetName(const char* name) {
+        _SetName(sDepth->pTexture2D, name);
+        _SetName(sColor0->pTexture2D, name);
+        _SetName(sColor1->pTexture2D, name);
+        _SetName(sColor2->pTexture2D, name);
+    }
 
     sRenderBuffer* GetColor0();
     sRenderBuffer* GetColor1();

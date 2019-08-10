@@ -994,7 +994,10 @@ void _DirectX::Load() {
     bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
     bGBuffer->CreateColor1(DXGI_FORMAT_R16G16B16A16_FLOAT); // Normal
     bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
-    bGBuffer->SetName("GBuffer");
+    bGBuffer->SetName(0, "GBuffer Diffuse");
+    bGBuffer->SetName(1, "GBuffer Normal");
+    bGBuffer->SetName(2, "GBuffer Specular");
+    bGBuffer->SetName(-1, "GBuffer Depth");
 
     // 
     bZBuffer_Editor->Create(cfg.CurrentWidth, cfg.CurrentHeight, 32);
@@ -1078,22 +1081,18 @@ void _DirectX::Load() {
 
     // Point sampler
     sPoint->Create(pDesc);
-    sPoint->SetName("Point sampler");
 
     // Linear mip opacity sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sMipLinearOpacity->Create(pDesc);
-    sMipLinearOpacity->SetName("Linear mip opacity sampler");
 
     // Linear mip rougness sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = 0.;
     sMipLinearRougness->Create(pDesc);
-    sMipLinearRougness->SetName("Linear mip rougness sampler");
 
     // Anisotropic mip sampler
     pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
     sMipLinear->Create(pDesc);
-    sMipLinear->SetName("Anisotropic mip sampler");
 
     // Clamped point sampler
     pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
@@ -1103,7 +1102,6 @@ void _DirectX::Load() {
     pDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sPointClamp->Create(pDesc);
-    sPointClamp->SetName("Clamp point sampler");
 
     // Create maps
     mDefaultDiffuse->mTexture = tDefault;
@@ -1111,7 +1109,6 @@ void _DirectX::Load() {
     // Create materials
     mDefault->SetDiffuse(mDefaultDiffuse);
     mDefault->SetSampler(sMipLinear);
-    mDefault->SetName("Default material");
 
     // Setup cameras
     CameraConfig cfg2;
@@ -1340,7 +1337,7 @@ void _DirectX::Load() {
 
 
     TextEffects* data1 = gTextFactory->MapTextEffects();
-        data1->_Color = { .7, .9, 0.f, 1.f };
+        data1->_Color = { .7f, .9f, 0.f, 1.f };
     gTextFactory->UnmapTextEffects();
 
     SDFSettings* data2 = gTextFactory->MapSDFSettings();
@@ -1386,15 +1383,13 @@ void _DirectX::Load() {
     // Create model instances
     // Test level
     mLevel1 = new ModelInstance();
-    mLevel1->SetName("Level 1 Instance");
     mLevel1->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
     mLevel1->SetShader(shSurface);
     mLevel1->SetModel(mModel1);
 
     // Dunes
     mDunes = new ModelInstance();
-    /*mDunes->SetName("Dunes Instance");
-    mDunes->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
+    /*mDunes->SetWorldMatrix(DirectX::XMMatrixScaling(4, 4, 4));
     mDunes->SetShader(shTerrain);
     mDunes->SetModel(mModel2);
     mDunes->SetTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
@@ -1402,8 +1397,7 @@ void _DirectX::Load() {
 
     // Cornell box
     mCornellBox = new ModelInstance();
-    /*mCornellBox->SetName("Cornell box Instance");
-    mCornellBox->SetWorldMatrix(DirectX::XMMatrixScaling(1, 1, 1));
+    /*mCornellBox->SetWorldMatrix(DirectX::XMMatrixScaling(1, 1, 1));
     mCornellBox->SetShader(shTest);
     mCornellBox->SetModel(mModel3);*/
 

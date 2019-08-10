@@ -26,6 +26,8 @@ public:
     bool IsCreated();
     void Release();
 
+    void SetName(const char* name) { _SetName(pTexture, name); }
+
     int GetWidth();
     int GetHeight();
     ID3D11ShaderResourceView* GetSRV();

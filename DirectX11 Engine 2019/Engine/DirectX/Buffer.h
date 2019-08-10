@@ -34,4 +34,5 @@ public:
         gDirectX->gContext->IASetIndexBuffer(pBuff, Format, Off);
     }
 
+    virtual void SetName(const char* name) { _SetName(pBuff, name); }
 };

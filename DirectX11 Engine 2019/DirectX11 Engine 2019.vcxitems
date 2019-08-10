@@ -25,6 +25,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\StructuredBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Default.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Safe.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Input\Gamepad.h">
       <DeploymentContent>true</DeploymentContent>
     </ClInclude>
@@ -60,6 +61,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Vertices.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\Window.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Enums.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\HighLevel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.cpp" />

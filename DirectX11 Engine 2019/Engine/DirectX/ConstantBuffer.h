@@ -10,5 +10,4 @@ public:
     void Unmap();
     void Bind(UINT type, UINT slot);
     void Bind(Shader::ShaderType type, UINT slot) { Bind(static_cast<UINT>(type), slot); }
-
 };

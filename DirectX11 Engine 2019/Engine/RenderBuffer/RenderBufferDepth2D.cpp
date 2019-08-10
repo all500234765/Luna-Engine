@@ -14,10 +14,6 @@ void RenderBufferDepth2D::Bind() {
     BindTarget(sDepth);
 }
 
-void RenderBufferDepth2D::Release() {
-    sDepth->Release();
-}
-
 void RenderBufferDepth2D::Resize(int w, int h) {
     UINT bpp = sDepth->bpp;
     sDepth->Release();
