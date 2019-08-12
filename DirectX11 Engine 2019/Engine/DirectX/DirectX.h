@@ -1,7 +1,7 @@
 #pragma once
 
 // 3D Rendering (primarely)
-#include <dxgi.h>
+#include <dxgi1_2.h>
 #include <d3dcommon.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -40,8 +40,9 @@ struct DirectXConfig {
 class _DirectX {
 private:
     // Main
-    IDXGISwapChain *gSwapchain;
+    IDXGISwapChain1 *gSwapchain;
     ID3D11CommandList* pCommandList = NULL;
+    IDXGIOutput *gOutput;
 
     // RTVs
     ID3D11RenderTargetView *gRTV;
@@ -61,7 +62,8 @@ private:
     D3D11_DEPTH_STENCIL_VIEW_DESC pDesc2;
     D3D11_TEXTURE2D_DESC pTex2DDesc;
     D3D11_DEPTH_STENCIL_DESC pDSD;
-    DXGI_SWAP_CHAIN_DESC scd;
+    DXGI_SWAP_CHAIN_DESC1 scd;
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC pSCFDesc;
 
 public:
     // Globals

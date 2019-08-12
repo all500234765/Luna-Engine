@@ -778,10 +778,10 @@ void _DirectX::Resize() {
     gTextController->SetSize(static_cast<float>(cfg.CurrentWidth), static_cast<float>(cfg.CurrentHeight));
 
     // Resize swapchain
-    scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
-    scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
-
-    gSwapchain->ResizeTarget(&scd.BufferDesc);
+    //scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
+    //scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
+    //
+    //gSwapchain->ResizeTarget(&scd.BufferDesc);
 
     std::cout << (gSwapchain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0) == S_OK) << std::endl;
 
@@ -1650,7 +1650,7 @@ int main() {
     winCFG.Width       = 1024;
     winCFG.Height      = 540;
     winCFG.Title       = L"Editor - Luna Engine";
-    winCFG.Icon        = L"Engine/Assets/Engine.ico";
+    winCFG.Icon        = L"Engine/Assets/Luna48.ico";
 
     // Create window
     gWindow->Create(winCFG);

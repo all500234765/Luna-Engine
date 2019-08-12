@@ -25,20 +25,16 @@ void Mouse::Reset() {
     memset(&mState, 0, sizeof(State));
 }
 
-void Mouse::Refresh() {
-    auto currPtr = reinterpret_cast<const bool*>(&mState);
-    auto prevPtr = reinterpret_cast<const bool*>(&mLastState);
-    auto releasedPtr = reinterpret_cast<bool*>(&mReleased);
-    auto pressedPtr = reinterpret_cast<bool*>(&mPressed);
-    for( size_t j = 0; j < (Count / 1); ++j ) {
-        *pressedPtr = *currPtr & ~(*prevPtr);
-        *releasedPtr = ~(*currPtr) & *prevPtr;
+#ifndef UPDATE_BUTTON_STATE
+#define UPDATE_BUTTON_STATE(field) _mStates.field = static_cast<ButtonState>( ( !!mState.field ) | ( ( !!mState.field ^ !!mLastState.field ) << 1 ) );
+#endif
 
-        ++currPtr;
-        ++prevPtr;
-        ++releasedPtr;
-        ++pressedPtr;
-    }
+void Mouse::Refresh() {
+    UPDATE_BUTTON_STATE(mLeftButton);
+    UPDATE_BUTTON_STATE(mRightButton);
+    UPDATE_BUTTON_STATE(mMiddleButton);
+    UPDATE_BUTTON_STATE(mX1Button);
+    UPDATE_BUTTON_STATE(mX2Button);
 
     mLastState = mState;
 }
@@ -78,16 +74,15 @@ int Mouse::GetY() {
 }
 
 bool Mouse::IsPressed(MouseButton mkey) {
-    return mPressed.IsKeyDown(mkey);
+    return _mStates.KeyState(mkey) == ButtonState::PRESSED;
 }
 
 bool Mouse::IsDown(MouseButton mkey) {
-    return mState.IsKeyDown(mkey);
+    return _mStates.KeyState(mkey) == ButtonState::HELD;
 }
 
 bool Mouse::IsReleased(MouseButton mkey) {
-    // TODO: Somewhy not being registered
-    return mReleased.IsKeyDown(mkey);
+    return _mStates.KeyState(mkey) == ButtonState::RELEASED;
 }
 
 void Mouse::SetState(WPARAM w, bool Down) {
@@ -115,8 +110,8 @@ void Mouse::SetState(ULONG flags) {
 
     // Somewhy it's being called after LMB
     // TODO: Fix it
-    //if( flags & RI_MOUSE_BUTTON_1_DOWN ) SetState(X1, true);
-    //if( flags & RI_MOUSE_BUTTON_1_UP   ) SetState(X1, false);
+    if( flags & RI_MOUSE_BUTTON_1_DOWN ) SetState(X1, true);
+    if( flags & RI_MOUSE_BUTTON_1_UP   ) SetState(X1, false);
 
     if( flags & RI_MOUSE_BUTTON_2_DOWN ) SetState(X2, true);
     if( flags & RI_MOUSE_BUTTON_2_UP   ) SetState(X2, false);

@@ -19,44 +19,47 @@ typedef enum {
     Count
 } MouseButton;
 
+#include "ButtonStateEnum.h"
+
 typedef unsigned int uint32_t;
 
 class Mouse {
 private:
     struct State {
-        bool Left : 1;
-        bool Right : 1;
-        bool Middle : 1;
-        bool X1 : 1;
-        bool X2 : 1;
-
-        bool __cdecl IsKeyDown(MouseButton key) const {
-            if( key >= 0 && key <= 0xfe ) {
-                auto ptr = reinterpret_cast<const bool*>(this);
-                unsigned int bf = 1u << (key & 0x1f);
-                return (ptr[(key >> 5)] & bf) != 0;
-            }
-            return false;
-        }
-
-        bool __cdecl IsKeyUp(MouseButton key) const {
-            if( key >= 0 && key <= 0xfe ) {
-                auto ptr = reinterpret_cast<const bool*>(this);
-                unsigned int bf = 1u << (key & 0x1f);
-                return (ptr[(key >> 5)] & bf) == 0;
-            }
-            return false;
-        }
+        bool mLeftButton   : 1;
+        bool mRightButton  : 1;
+        bool mMiddleButton : 1;
+        bool mX1Button     : 1;
+        bool mX2Button     : 1;
     };
 
     State mState;
-    State mPressed;
-    State mReleased;
     State mLastState;
 
     bool bIsFocused;
     int x = 0, y = 0;
     HWND m_hwnd;
+
+    struct {
+        ButtonState mLeftButton;
+        ButtonState mRightButton;
+        ButtonState mMiddleButton;
+        ButtonState mX1Button;
+        ButtonState mX2Button;
+
+        ButtonState KeyState(MouseButton key) const {
+            switch( key ) {
+                case MouseButton::Left  : return mLeftButton;
+                case MouseButton::Right : return mRightButton;
+                case MouseButton::Middle: return mLeftButton;
+                case MouseButton::X1    : return mX1Button;
+                case MouseButton::X2    : return mX2Button;
+            }
+
+            return ButtonState::UP;
+        }
+    } _mStates;
+
 public:
     Mouse();
     Mouse(HWND q);

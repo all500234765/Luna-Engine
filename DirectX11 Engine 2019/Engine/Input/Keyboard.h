@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#pragma region Keys
 #define VK_0 0x30
 #define VK_1 0x31
 #define VK_2 0x32
@@ -39,6 +40,10 @@
 #define VK_X 0x58
 #define VK_Y 0x59
 #define VK_Z 0x5A
+#pragma endregion
+
+
+#include "ButtonStateEnum.h"
 
 namespace KeyboardUtils {
     enum Keys
@@ -228,24 +233,38 @@ class Keyboard {
 private:
     struct State
     {
-        bool Reserved0 : 8;
+        bool Reserved00 : 1;
+        bool Reserved01 : 1;
+        bool Reserved02 : 1;
+        bool Reserved03 : 1;
+        bool Reserved04 : 1;
+        bool Reserved05 : 1;
+        bool Reserved06 : 1;
+        bool Reserved07 : 1;
         bool Back : 1;              // VK_BACK, 0x8
         bool Tab : 1;               // VK_TAB, 0x9
-        bool Reserved1 : 3;
+        bool Reserved10 : 1;
+        bool Reserved11 : 1;
+        bool Reserved12 : 1;
         bool Enter : 1;             // VK_RETURN, 0xD
-        bool Reserved2 : 2;
-        bool Reserved3 : 3;
+        bool Reserved20 : 1;
+        bool Reserved21 : 1;
+        bool Reserved30 : 1;
+        bool Reserved31 : 1;
+        bool Reserved32 : 1;
         bool Pause : 1;             // VK_PAUSE, 0x13
         bool CapsLock : 1;          // VK_CAPITAL, 0x14
         bool Kana : 1;              // VK_KANA, 0x15
-        bool Reserved4 : 2;
-        bool Reserved5 : 1;
+        bool Reserved40 : 1;
+        bool Reserved41 : 1;
+        bool Reserved50 : 1;
         bool Kanji : 1;             // VK_KANJI, 0x19
-        bool Reserved6 : 1;
+        bool Reserved60 : 1;
         bool Escape : 1;            // VK_ESCAPE, 0x1B
         bool ImeConvert : 1;        // VK_CONVERT, 0x1C
         bool ImeNoConvert : 1;      // VK_NONCONVERT, 0x1D
-        bool Reserved7 : 2;
+        bool Reserved70 : 1;
+        bool Reserved71 : 1;
         bool Space : 1;             // VK_SPACE, 0x20
         bool PageUp : 1;            // VK_PRIOR, 0x21
         bool PageDown : 1;          // VK_NEXT, 0x22
@@ -272,8 +291,13 @@ private:
         bool D7 : 1;                // 0x37
         bool D8 : 1;                // 0x38
         bool D9 : 1;                // 0x39
-        bool Reserved8 : 6;
-        bool Reserved9 : 1;
+        bool Reserved80 : 1;
+        bool Reserved81 : 1;
+        bool Reserved82 : 1;
+        bool Reserved83 : 1;
+        bool Reserved84 : 1;
+        bool Reserved85 : 1;
+        bool Reserved90 : 1;
         bool A : 1;                 // 0x41
         bool B : 1;                 // 0x42
         bool C : 1;                 // 0x43
@@ -303,7 +327,7 @@ private:
         bool LeftWindows : 1;       // VK_LWIN, 0x5B
         bool RightWindows : 1;      // VK_RWIN, 0x5C
         bool Apps : 1;              // VK_APPS, 0x5D
-        bool Reserved10 : 1;
+        bool Reserved100 : 1;
         bool Sleep : 1;             // VK_SLEEP, 0x5F
         bool NumPad0 : 1;           // VK_NUMPAD0, 0x60
         bool NumPad1 : 1;           // VK_NUMPAD1, 0x61
@@ -345,11 +369,30 @@ private:
         bool F22 : 1;               // VK_F22, 0x85
         bool F23 : 1;               // VK_F23, 0x86
         bool F24 : 1;               // VK_F24, 0x87
-        bool Reserved11 : 8;
+        bool Reserved110 : 1;
+        bool Reserved111 : 1;
+        bool Reserved112 : 1;
+        bool Reserved113 : 1;
+        bool Reserved114 : 1;
+        bool Reserved115 : 1;
+        bool Reserved116 : 1;
+        bool Reserved117 : 1;
         bool NumLock : 1;           // VK_NUMLOCK, 0x90
         bool Scroll : 1;            // VK_SCROLL, 0x91
-        bool Reserved12 : 6;
-        bool Reserved13 : 8;
+        bool Reserved120 : 1;
+        bool Reserved121 : 1;
+        bool Reserved122 : 1;
+        bool Reserved123 : 1;
+        bool Reserved124 : 1;
+        bool Reserved125 : 1;
+        bool Reserved130 : 1;
+        bool Reserved131 : 1;
+        bool Reserved132 : 1;
+        bool Reserved133 : 1;
+        bool Reserved134 : 1;
+        bool Reserved135 : 1;
+        bool Reserved136 : 1;
+        bool Reserved137 : 1;
         bool LeftShift : 1;         // VK_LSHIFT, 0xA0
         bool RightShift : 1;        // VK_RSHIFT, 0xA1
         bool LeftControl : 1;       // VK_LCONTROL, 0xA2
@@ -374,7 +417,8 @@ private:
         bool SelectMedia : 1;       // VK_LAUNCH_MEDIA_SELECT, 0xB5
         bool LaunchApplication1 : 1;// VK_LAUNCH_APP1, 0xB6
         bool LaunchApplication2 : 1;// VK_LAUNCH_APP2, 0xB7
-        bool Reserved14 : 2;
+        bool Reserved140 : 1;
+        bool Reserved141 : 1;
         bool OemSemicolon : 1;      // VK_OEM_1, 0xBA
         bool OemPlus : 1;           // VK_OEM_PLUS, 0xBB
         bool OemComma : 1;          // VK_OEM_COMMA, 0xBC
@@ -382,60 +426,345 @@ private:
         bool OemPeriod : 1;         // VK_OEM_PERIOD, 0xBE
         bool OemQuestion : 1;       // VK_OEM_2, 0xBF
         bool OemTilde : 1;          // VK_OEM_3, 0xC0
-        bool Reserved15 : 7;
-        bool Reserved16 : 8;
-        bool Reserved17 : 8;
-        bool Reserved18 : 3;
+        bool Reserved150 : 1;
+        bool Reserved151 : 1;
+        bool Reserved152 : 1;
+        bool Reserved153 : 1;
+        bool Reserved154 : 1;
+        bool Reserved155 : 1;
+        bool Reserved156 : 1;
+        bool Reserved160 : 1;
+        bool Reserved161 : 1;
+        bool Reserved162 : 1;
+        bool Reserved163 : 1;
+        bool Reserved164 : 1;
+        bool Reserved165 : 1;
+        bool Reserved166 : 1;
+        bool Reserved167 : 1;
+        bool Reserved170 : 1;
+        bool Reserved171 : 1;
+        bool Reserved172 : 1;
+        bool Reserved173 : 1;
+        bool Reserved174 : 1;
+        bool Reserved175 : 1;
+        bool Reserved176 : 1;
+        bool Reserved177 : 1;
+        bool Reserved180 : 1;
+        bool Reserved181 : 1;
+        bool Reserved182 : 1;
         bool OemOpenBrackets : 1;   // VK_OEM_4, 0xDB
         bool OemPipe : 1;           // VK_OEM_5, 0xDC
         bool OemCloseBrackets : 1;  // VK_OEM_6, 0xDD
         bool OemQuotes : 1;         // VK_OEM_7, 0xDE
         bool Oem8 : 1;              // VK_OEM_8, 0xDF
-        bool Reserved19 : 2;
+        bool Reserved190 : 1;
+        bool Reserved191 : 1;
         bool OemBackslash : 1;      // VK_OEM_102, 0xE2
-        bool Reserved20 : 2;
+        bool Reserved200 : 1;
+        bool Reserved201 : 1;
         bool ProcessKey : 1;        // VK_PROCESSKEY, 0xE5
-        bool Reserved21 : 2;
-        bool Reserved22 : 8;
-        bool Reserved23 : 2;
+        bool Reserved210 : 1;
+        bool Reserved211 : 1;
+        bool Reserved220 : 1;
+        bool Reserved221 : 1;
+        bool Reserved222 : 1;
+        bool Reserved223 : 1;
+        bool Reserved224 : 1;
+        bool Reserved225 : 1;
+        bool Reserved226 : 1;
+        bool Reserved227 : 1;
+        bool Reserved230 : 1;
+        bool Reserved231 : 1;
+        bool Reserved232 : 1;
         bool OemCopy : 1;           // 0XF2
         bool OemAuto : 1;           // 0xF3
         bool OemEnlW : 1;           // 0xF4
-        bool Reserved24 : 1;
+        bool Reserved240 : 1;
         bool Attn : 1;              // VK_ATTN, 0xF6
         bool Crsel : 1;             // VK_CRSEL, 0xF7
         bool Exsel : 1;             // VK_EXSEL, 0xF8
         bool EraseEof : 1;          // VK_EREOF, 0xF9
         bool Play : 1;              // VK_PLAY, 0xFA
         bool Zoom : 1;              // VK_ZOOM, 0xFB
-        bool Reserved25 : 1;
+        bool Reserved250 : 1;
         bool Pa1 : 1;               // VK_PA1, 0xFD
         bool OemClear : 1;          // VK_OEM_CLEAR, 0xFE
-        bool Reserved26 : 1;
-
-        bool __cdecl IsKeyDown(KeyboardUtils::Keys key) const {
-            if( key >= 0 && key <= 0xfe ) {
-                auto ptr = reinterpret_cast<const uint32_t*>(this);
-                unsigned int bf = 1u << (key & 0x1f);
-                return (ptr[(key >> 5)] & bf) != 0;
-            }
-            return false;
-        }
-
-        bool __cdecl IsKeyUp(KeyboardUtils::Keys key) const {
-            if( key >= 0 && key <= 0xfe ) {
-                auto ptr = reinterpret_cast<const uint32_t*>(this);
-                unsigned int bf = 1u << (key & 0x1f);
-                return (ptr[(key >> 5)] & bf) == 0;
-            }
-            return false;
-        }
+        bool Reserved260 : 1;
     };
 
     State mState;
-    State mPressed;
-    State mReleased;
     State mLastState;
+
+    struct {
+        struct {
+            ButtonState Reserved00;
+            ButtonState Reserved01;
+            ButtonState Reserved02;
+            ButtonState Reserved03;
+            ButtonState Reserved04;
+            ButtonState Reserved05;
+            ButtonState Reserved06;
+            ButtonState Reserved07;
+            ButtonState Back;               // VK_BACK, 0x8
+            ButtonState Tab;                // VK_TAB, 0x9
+            ButtonState Reserved10;
+            ButtonState Reserved11;
+            ButtonState Reserved12;
+            ButtonState Enter;              // VK_RETURN, 0xD
+            ButtonState Reserved20;
+            ButtonState Reserved21;
+            ButtonState Reserved30;
+            ButtonState Reserved31;
+            ButtonState Reserved32;
+            ButtonState Pause;              // VK_PAUSE, 0x13
+            ButtonState CapsLock;           // VK_CAPITAL, 0x14
+            ButtonState Kana;               // VK_KANA, 0x15
+            ButtonState Reserved40;
+            ButtonState Reserved41;
+            ButtonState Reserved50;
+            ButtonState Kanji;              // VK_KANJI, 0x19
+            ButtonState Reserved60;
+            ButtonState Escape;             // VK_ESCAPE, 0x1B
+            ButtonState ImeConvert;         // VK_CONVERT, 0x1C
+            ButtonState ImeNoConvert;       // VK_NONCONVERT, 0x1D
+            ButtonState Reserved70;
+            ButtonState Reserved71;
+            ButtonState Space;              // VK_SPACE, 0x20
+            ButtonState PageUp;             // VK_PRIOR, 0x21
+            ButtonState PageDown;           // VK_NEXT, 0x22
+            ButtonState End;                // VK_END, 0x23
+            ButtonState Home;               // VK_HOME, 0x24
+            ButtonState Left;               // VK_LEFT, 0x25
+            ButtonState Up;                 // VK_UP, 0x26
+            ButtonState Right;              // VK_RIGHT, 0x27
+            ButtonState Down;               // VK_DOWN, 0x28
+            ButtonState Select;             // VK_SELECT, 0x29
+            ButtonState Print;              // VK_PRINT, 0x2A
+            ButtonState Execute;            // VK_EXECUTE, 0x2B
+            ButtonState PrintScreen;        // VK_SNAPSHOT, 0x2C
+            ButtonState Insert;             // VK_INSERT, 0x2D
+            ButtonState Delete;             // VK_DELETE, 0x2E
+            ButtonState Help;               // VK_HELP, 0x2F
+            ButtonState D0;                 // 0x30
+            ButtonState D1;                 // 0x31
+            ButtonState D2;                 // 0x32
+            ButtonState D3;                 // 0x33
+            ButtonState D4;                 // 0x34
+            ButtonState D5;                 // 0x35
+            ButtonState D6;                 // 0x36
+            ButtonState D7;                 // 0x37
+            ButtonState D8;                 // 0x38
+            ButtonState D9;                 // 0x39
+            ButtonState Reserved80;
+            ButtonState Reserved81;
+            ButtonState Reserved82;
+            ButtonState Reserved83;
+            ButtonState Reserved84;
+            ButtonState Reserved85;
+            ButtonState Reserved90;
+            ButtonState A;                  // 0x41
+            ButtonState B;                  // 0x42
+            ButtonState C;                  // 0x43
+            ButtonState D;                  // 0x44
+            ButtonState E;                  // 0x45
+            ButtonState F;                  // 0x46
+            ButtonState G;                  // 0x47
+            ButtonState H;                  // 0x48
+            ButtonState I;                  // 0x49
+            ButtonState J;                  // 0x4A
+            ButtonState K;                  // 0x4B
+            ButtonState L;                  // 0x4C
+            ButtonState M;                  // 0x4D
+            ButtonState N;                  // 0x4E
+            ButtonState O;                  // 0x4F
+            ButtonState P;                  // 0x50
+            ButtonState Q;                  // 0x51
+            ButtonState R;                  // 0x52
+            ButtonState S;                  // 0x53
+            ButtonState T;                  // 0x54
+            ButtonState U;                  // 0x55
+            ButtonState V;                  // 0x56
+            ButtonState W;                  // 0x57
+            ButtonState X;                  // 0x58
+            ButtonState Y;                  // 0x59
+            ButtonState Z;                  // 0x5A
+            ButtonState LeftWindows;        // VK_LWIN, 0x5B
+            ButtonState RightWindows;       // VK_RWIN, 0x5C
+            ButtonState Apps;               // VK_APPS, 0x5D
+            ButtonState Reserved100;
+            ButtonState Sleep;              // VK_SLEEP, 0x5F
+            ButtonState NumPad0;            // VK_NUMPAD0, 0x60
+            ButtonState NumPad1;            // VK_NUMPAD1, 0x61
+            ButtonState NumPad2;            // VK_NUMPAD2, 0x62
+            ButtonState NumPad3;            // VK_NUMPAD3, 0x63
+            ButtonState NumPad4;            // VK_NUMPAD4, 0x64
+            ButtonState NumPad5;            // VK_NUMPAD5, 0x65
+            ButtonState NumPad6;            // VK_NUMPAD6, 0x66
+            ButtonState NumPad7;            // VK_NUMPAD7, 0x67
+            ButtonState NumPad8;            // VK_NUMPAD8, 0x68
+            ButtonState NumPad9;            // VK_NUMPAD9, 0x69
+            ButtonState Multiply;           // VK_MULTIPLY, 0x6A
+            ButtonState Add;                // VK_ADD, 0x6B
+            ButtonState Separator;          // VK_SEPARATOR, 0x6C
+            ButtonState Subtract;           // VK_SUBTRACT, 0x6D
+            ButtonState Decimal;            // VK_DECIMANL, 0x6E
+            ButtonState Divide;             // VK_DIVIDE, 0x6F
+            ButtonState F1;                 // VK_F1, 0x70
+            ButtonState F2;                 // VK_F2, 0x71
+            ButtonState F3;                 // VK_F3, 0x72
+            ButtonState F4;                 // VK_F4, 0x73
+            ButtonState F5;                 // VK_F5, 0x74
+            ButtonState F6;                 // VK_F6, 0x75
+            ButtonState F7;                 // VK_F7, 0x76
+            ButtonState F8;                 // VK_F8, 0x77
+            ButtonState F9;                 // VK_F9, 0x78
+            ButtonState F10;                // VK_F10, 0x79
+            ButtonState F11;                // VK_F11, 0x7A
+            ButtonState F12;                // VK_F12, 0x7B
+            ButtonState F13;                // VK_F13, 0x7C
+            ButtonState F14;                // VK_F14, 0x7D
+            ButtonState F15;                // VK_F15, 0x7E
+            ButtonState F16;                // VK_F16, 0x7F
+            ButtonState F17;                // VK_F17, 0x80
+            ButtonState F18;                // VK_F18, 0x81
+            ButtonState F19;                // VK_F19, 0x82
+            ButtonState F20;                // VK_F20, 0x83
+            ButtonState F21;                // VK_F21, 0x84
+            ButtonState F22;                // VK_F22, 0x85
+            ButtonState F23;                // VK_F23, 0x86
+            ButtonState F24;                // VK_F24, 0x87
+            ButtonState Reserved110;
+            ButtonState Reserved111;
+            ButtonState Reserved112;
+            ButtonState Reserved113;
+            ButtonState Reserved114;
+            ButtonState Reserved115;
+            ButtonState Reserved116;
+            ButtonState Reserved117;
+            ButtonState NumLock;            // VK_NUMLOCK, 0x90
+            ButtonState Scroll;             // VK_SCROLL, 0x91
+            ButtonState Reserved120;
+            ButtonState Reserved121;
+            ButtonState Reserved122;
+            ButtonState Reserved123;
+            ButtonState Reserved124;
+            ButtonState Reserved125;
+            ButtonState Reserved130;
+            ButtonState Reserved131;
+            ButtonState Reserved132;
+            ButtonState Reserved133;
+            ButtonState Reserved134;
+            ButtonState Reserved135;
+            ButtonState Reserved136;
+            ButtonState Reserved137;
+            ButtonState LeftShift;          // VK_LSHIFT, 0xA0
+            ButtonState RightShift;         // VK_RSHIFT, 0xA1
+            ButtonState LeftControl;        // VK_LCONTROL, 0xA2
+            ButtonState RightControl;       // VK_RCONTROL, 0xA3
+            ButtonState LeftAlt;            // VK_LMENU, 0xA4
+            ButtonState RightAlt;           // VK_RMENU, 0xA5
+            ButtonState BrowserBack;        // VK_BROWSER_BACK, 0xA6
+            ButtonState BrowserForward;     // VK_BROWSER_FORWARD, 0xA7
+            ButtonState BrowserRefresh;     // VK_BROWSER_REFRESH, 0xA8
+            ButtonState BrowserStop;        // VK_BROWSER_STOP, 0xA9
+            ButtonState BrowserSearch;      // VK_BROWSER_SEARCH, 0xAA
+            ButtonState BrowserFavorites;   // VK_BROWSER_FAVORITES, 0xAB
+            ButtonState BrowserHome;        // VK_BROWSER_HOME, 0xAC
+            ButtonState VolumeMute;         // VK_VOLUME_MUTE, 0xAD
+            ButtonState VolumeDown;         // VK_VOLUME_DOWN, 0xAE
+            ButtonState VolumeUp;           // VK_VOLUME_UP, 0xAF
+            ButtonState MediaNextTrack;     // VK_MEDIA_NEXT_TRACK, 0xB0
+            ButtonState MediaPreviousTrack; // VK_MEDIA_PREV_TRACK, 0xB1
+            ButtonState MediaStop;          // VK_MEDIA_STOP, 0xB2
+            ButtonState MediaPlayPause;     // VK_MEDIA_PLAY_PAUSE, 0xB3
+            ButtonState LaunchMail;         // VK_LAUNCH_MAIL, 0xB4
+            ButtonState SelectMedia;        // VK_LAUNCH_MEDIA_SELECT, 0xB5
+            ButtonState LaunchApplication1; // VK_LAUNCH_APP1, 0xB6
+            ButtonState LaunchApplication2; // VK_LAUNCH_APP2, 0xB7
+            ButtonState Reserved140;
+            ButtonState Reserved141;
+            ButtonState OemSemicolon;       // VK_OEM_1, 0xBA
+            ButtonState OemPlus;            // VK_OEM_PLUS, 0xBB
+            ButtonState OemComma;           // VK_OEM_COMMA, 0xBC
+            ButtonState OemMinus;           // VK_OEM_MINUS, 0xBD
+            ButtonState OemPeriod;          // VK_OEM_PERIOD, 0xBE
+            ButtonState OemQuestion;        // VK_OEM_2, 0xBF
+            ButtonState OemTilde;           // VK_OEM_3, 0xC0
+            ButtonState Reserved150;
+            ButtonState Reserved151;
+            ButtonState Reserved152;
+            ButtonState Reserved153;
+            ButtonState Reserved154;
+            ButtonState Reserved155;
+            ButtonState Reserved156;
+            ButtonState Reserved160;
+            ButtonState Reserved161;
+            ButtonState Reserved162;
+            ButtonState Reserved163;
+            ButtonState Reserved164;
+            ButtonState Reserved165;
+            ButtonState Reserved166;
+            ButtonState Reserved167;
+            ButtonState Reserved170;
+            ButtonState Reserved171;
+            ButtonState Reserved172;
+            ButtonState Reserved173;
+            ButtonState Reserved174;
+            ButtonState Reserved175;
+            ButtonState Reserved176;
+            ButtonState Reserved177;
+            ButtonState Reserved180;
+            ButtonState Reserved181;
+            ButtonState Reserved182;
+            ButtonState OemOpenBrackets;    // VK_OEM_4, 0xDB
+            ButtonState OemPipe;            // VK_OEM_5, 0xDC
+            ButtonState OemCloseBrackets;   // VK_OEM_6, 0xDD
+            ButtonState OemQuotes;          // VK_OEM_7, 0xDE
+            ButtonState Oem8;               // VK_OEM_8, 0xDF
+            ButtonState Reserved190;
+            ButtonState Reserved191;
+            ButtonState OemBackslash;       // VK_OEM_102, 0xE2
+            ButtonState Reserved200;
+            ButtonState Reserved201;
+            ButtonState ProcessKey;         // VK_PROCESSKEY, 0xE5
+            ButtonState Reserved210;
+            ButtonState Reserved211;
+            ButtonState Reserved220;
+            ButtonState Reserved221;
+            ButtonState Reserved222;
+            ButtonState Reserved223;
+            ButtonState Reserved224;
+            ButtonState Reserved225;
+            ButtonState Reserved226;
+            ButtonState Reserved227;
+            ButtonState Reserved230;
+            ButtonState Reserved231;
+            ButtonState Reserved232;
+            ButtonState OemCopy;            // 0XF2
+            ButtonState OemAuto;            // 0xF3
+            ButtonState OemEnlW;            // 0xF4
+            ButtonState Reserved240;
+            ButtonState Attn;               // VK_ATTN, 0xF6
+            ButtonState Crsel;              // VK_CRSEL, 0xF7
+            ButtonState Exsel;              // VK_EXSEL, 0xF8
+            ButtonState EraseEof;           // VK_EREOF, 0xF9
+            ButtonState Play;               // VK_PLAY, 0xFA
+            ButtonState Zoom;               // VK_ZOOM, 0xFB
+            ButtonState Reserved250;
+            ButtonState Pa1;                // VK_PA1, 0xFD
+            ButtonState OemClear;           // VK_OEM_CLEAR, 0xFE
+            ButtonState Reserved260;
+        } __Member;
+
+        ButtonState KeyState(KeyboardUtils::Keys key) const {
+            const ButtonState* ptr = reinterpret_cast<const ButtonState*>(&__Member);
+            if( key >= 0x8 && key <= 0xFE ) {
+                return ptr[key];
+            }
+
+            return ButtonState::UP;
+        }
+    } _mStates;
 public:
     Keyboard();
 

@@ -77,6 +77,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Shader.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\ShaderTrace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\ButtonStateEnum.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\Gamepad.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\GamepadNew.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Input\Input.cpp" />

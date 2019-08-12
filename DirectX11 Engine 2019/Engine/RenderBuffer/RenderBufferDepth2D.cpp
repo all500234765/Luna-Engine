@@ -1,8 +1,6 @@
 #include "RenderBufferDepth2D.h"
 
 void RenderBufferDepth2D::Create(int w, int h, UINT bpp) {
-    Width = w;
-    Height = h;
     sDepth = CreateDSV2D(w, h, bpp);
 }
 

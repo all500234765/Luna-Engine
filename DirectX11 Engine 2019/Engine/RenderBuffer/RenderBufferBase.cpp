@@ -123,6 +123,9 @@ sRenderBuffer* RenderBufferBase::CreateDSV2D(int W, int H, UINT bpp) {
         std::cout << "Failed to create shader resource view." << std::endl;
     }
 
+    // 
+    SetSize(W, H);
+
     // Output
     sRenderBuffer *Out = new sRenderBuffer();
         Out->pDSV       = pDSV;
@@ -216,6 +219,13 @@ void RenderBufferBase::BindResource(sRenderBuffer* data, Shader::ShaderType type
 void RenderBufferBase::SetSize(int w, int h) {
     Width = w;
     Height = h;
+
+    mVP.TopLeftX = 0.f;
+    mVP.TopLeftY = 0.f;
+    mVP.MinDepth = 0.f;
+    mVP.MaxDepth = 1.f;
+    mVP.Width = w;
+    mVP.Height = h;
 }
 
 int RenderBufferBase::GetWidth() {

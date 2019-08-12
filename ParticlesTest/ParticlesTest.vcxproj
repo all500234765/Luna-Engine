@@ -56,13 +56,7 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
-    <Import Project="..\Audio Engine\Audio Engine.vcxitems" Label="Shared" />
-    <Import Project="..\DirectX11 Engine 2019\DirectX11 Engine 2019.vcxitems" Label="Shared" />
-    <Import Project="..\EngineIncludes\EngineIncludes.vcxitems" Label="Shared" />
-    <Import Project="..\Physics Engine\Physics Engine.vcxitems" Label="Shared" />
-    <Import Project="..\Renderers\Renderers.vcxitems" Label="Shared" />
     <Import Project="..\Shaders\Shaders.vcxitems" Label="Shared" />
-    <Import Project="..\Vendor\Vendor.vcxitems" Label="Shared" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -114,7 +108,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(SolutionDir)DirectX11 Engine 2019\;$(SolutionDir)Audio Engine\;$(SolutionDir)Physics Engine\;$(SolutionDir)EngineIncludes\;$(SolutionDir)Vendor\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,7 +130,7 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(SolutionDir)DirectX11 Engine 2019\;$(SolutionDir)Audio Engine\;$(SolutionDir)Physics Engine\;$(SolutionDir)EngineIncludes\;$(SolutionDir)Vendor\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -160,7 +154,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(SolutionDir)DirectX11 Engine 2019\;$(SolutionDir)Audio Engine\;$(SolutionDir)Physics Engine\;$(SolutionDir)EngineIncludes\;$(SolutionDir)Vendor\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -185,7 +179,7 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(SolutionDir)DirectX11 Engine 2019\;$(SolutionDir)Audio Engine\;$(SolutionDir)Physics Engine\;$(SolutionDir)EngineIncludes\;$(SolutionDir)Vendor\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -210,6 +204,11 @@
   <ItemGroup>
     <ClInclude Include="Defines.h" />
     <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Target_Windows\Target_Windows.vcxproj">
+      <Project>{080a6368-0dbf-454e-8793-1b0261d0d227}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -76,6 +76,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shParticles3DPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shPBRPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shPostProcessPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>

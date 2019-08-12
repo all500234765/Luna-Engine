@@ -118,10 +118,16 @@ public:
         //gTextController->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
 
         // Resize swapchain
-        gDirectX->scd.BufferDesc.Width = (UINT)cfg.CurrentWidth;
-        gDirectX->scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
+        DXGI_MODE_DESC pModeDesc = {};
+        pModeDesc.Format = gDirectX->scd.Format;
+        pModeDesc.Width = gDirectX->scd.Width;
+        pModeDesc.Height = gDirectX->scd.Height;
+        pModeDesc.RefreshRate = gDirectX->pSCFDesc.RefreshRate;
+        pModeDesc.Scaling = gDirectX->pSCFDesc.Scaling;
+        pModeDesc.ScanlineOrdering = gDirectX->pSCFDesc.ScanlineOrdering;
+        //pModeDesc.Stereo = scd.Stereo;
 
-        gDirectX->gSwapchain->ResizeTarget(&gDirectX->scd.BufferDesc);
+        gDirectX->gSwapchain->ResizeTarget(&pModeDesc);
         gDirectX->gSwapchain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
 
         // Create RTV

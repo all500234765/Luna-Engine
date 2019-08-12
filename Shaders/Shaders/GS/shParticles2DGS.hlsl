@@ -7,13 +7,13 @@ cbuffer MatrixBuffer : register(b0) {
 
 struct VS {
     float4 Position : SV_Position0;
-    float3 Color    : COLOR0;
+    float4 Color    : COLOR0;
 };
 
 struct PS {
     float4 Position : SV_Position0;
     float2 Texcoord : TEXCOORD0;
-    float3 Color    : COLOR0;
+    float4 Color    : COLOR0;
 };
 
 PS Project(VS In, float2 off, float2 uv) {

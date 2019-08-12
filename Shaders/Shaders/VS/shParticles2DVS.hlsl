@@ -7,13 +7,14 @@ cbuffer MatrixBuffer : register(b0) {
 
 struct GS {
     float4 Position : SV_Position;
-    float3 Color    : COLOR0;
+    float4 Color    : COLOR0;
 };
 
 struct Particle {
     float2 Position;
     float2 Velocity;
     float3 Color;
+    float1 Life;
 };
 
 StructuredBuffer<Particle> _Particles : register(t0);
@@ -23,6 +24,6 @@ GS main(uint index : SV_VertexID) {
 
     GS Out;
         Out.Position  = mul(mView, float4(Pos, 1.f, 1.f));
-        Out.Color     = _Particles[index].Color;
+        Out.Color     = float4(_Particles[index].Color, _Particles[index].Life);
     return Out;
 }

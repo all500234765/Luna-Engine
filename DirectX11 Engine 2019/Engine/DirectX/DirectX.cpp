@@ -17,7 +17,16 @@ int _DirectX::Create(const DirectXConfig& config) {
     // Temp variables
     D3D_FEATURE_LEVEL level;
     HRESULT res;
-    D3D_FEATURE_LEVEL pFeatureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
+    D3D_FEATURE_LEVEL pFeatureLevels[] = {
+        D3D_FEATURE_LEVEL_11_1,
+        D3D_FEATURE_LEVEL_11_0
+    };
+
+    D3D_DRIVER_TYPE DXDriverType[] = {
+        D3D_DRIVER_TYPE_HARDWARE,
+        D3D_DRIVER_TYPE_WARP,
+        D3D_DRIVER_TYPE_REFERENCE
+    };
 
     DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
     if( config.UseHDR ) {
@@ -39,22 +48,22 @@ int _DirectX::Create(const DirectXConfig& config) {
         //else               
         format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     }
-    
+
     // Create swapchain
     SecureZeroMemory(&scd, sizeof(scd));
-    scd.BufferDesc.Width = config.Width;
-    scd.BufferDesc.Height = config.Height;
-    scd.BufferDesc.Format = format;
-    scd.BufferDesc.RefreshRate.Numerator = config.RefreshRate;
-    scd.BufferDesc.RefreshRate.Denominator = 1;
+    scd.Width = config.Width;
+    scd.Height = config.Height;
+    scd.Format = format;
+    //scd.BufferDesc.RefreshRate.Numerator = config.RefreshRate;
+    //scd.BufferDesc.RefreshRate.Denominator = 1;
 
-    scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-    scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+    //scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+    //scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
     scd.BufferCount = config.BufferCount;
     scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    scd.OutputWindow = config.m_hwnd;
-    scd.Windowed = config.Windowed;
+    //scd.OutputWindow = config.m_hwnd;
+    //scd.Windowed = config.Windowed;
     scd.Flags = 0;
     scd.SwapEffect = (config.BufferCount >= 2) ? DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL : DXGI_SWAP_EFFECT_SEQUENTIAL;
 
@@ -63,7 +72,7 @@ int _DirectX::Create(const DirectXConfig& config) {
 #ifdef _DEBUG
     DeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
-    
+
     if( config.MSAA ) {
         scd.SampleDesc.Count = config.MSAA_Samples;
         scd.SampleDesc.Quality = config.MSAA_Quality;
@@ -72,10 +81,46 @@ int _DirectX::Create(const DirectXConfig& config) {
         scd.SampleDesc.Quality = 0;
     }
 
-    // Create device and swapchain
-    res = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, DeviceFlags, pFeatureLevels, 
-                                        1, D3D11_SDK_VERSION, &scd, &gSwapchain, &gDevice, &level, &gContext);
+    pSCFDesc.RefreshRate.Numerator = config.RefreshRate;
+    pSCFDesc.RefreshRate.Denominator = 1;
+    pSCFDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+    pSCFDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+    pSCFDesc.Windowed = config.Windowed;
+
+    // Create device
+    for( int i = 0; i < 3; i++ ) {
+        res = D3D11CreateDevice(NULL, DXDriverType[i], NULL, DeviceFlags, pFeatureLevels, 2,
+                                D3D11_SDK_VERSION, &gDevice, &level, &gContext);
+
+        if( SUCCEEDED(res) ) { break; }
+    }
+    
+    //res = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, DeviceFlags, pFeatureLevels, 
+    //                                    1, D3D11_SDK_VERSION, &scd, &gSwapchain, &gDevice, &level, &gContext);
     if( FAILED(res) ) { return 1; }
+
+    // Get factory // Prob just IDXGIDevice
+    IDXGIDevice2 *pDXGIDevice = nullptr;
+    res = gDevice->QueryInterface(__uuidof(IDXGIDevice2), (void **)&pDXGIDevice);
+    if( FAILED(res) ) { return 10; } // Failed to retrieve DXGI Device
+
+    IDXGIAdapter *pDXGIAdapter = nullptr;
+    res = pDXGIDevice->GetAdapter(&pDXGIAdapter);
+    if( FAILED(res) ) { return 11; } // Failed to retrieve DXGI Adapter
+
+    IDXGIFactory2 *pIDXGIFactory = nullptr;
+    res = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory2), (void **)&pIDXGIFactory);
+    if( FAILED(res) ) { return 12; } // Failed to retrieve DXGI Factory
+    
+    // Enumerate adapters
+    pDXGIAdapter->EnumOutputs(1, &gOutput);
+
+    // Create swapchain
+    res = pIDXGIFactory->CreateSwapChainForHwnd(gDevice, config.m_hwnd, &scd, &pSCFDesc, gOutput, &gSwapchain);
+    if( FAILED(res) ) { return 13; } // Failed to create swapchain
+
+    // 
+
 
     // Check MSAA levels
     /*UINT maxQuality;
@@ -100,7 +145,7 @@ int _DirectX::Create(const DirectXConfig& config) {
 
     // Create RTV
     D3D11_RENDER_TARGET_VIEW_DESC pDesc;
-    pDesc.Format = scd.BufferDesc.Format;
+    pDesc.Format = scd.Format;
     pDesc.ViewDimension = (D3D11_RTV_DIMENSION)(D3D11_RTV_DIMENSION_TEXTURE2D + 2 * cfg.MSAA);
     pDesc.Texture2D.MipSlice = 0;
 

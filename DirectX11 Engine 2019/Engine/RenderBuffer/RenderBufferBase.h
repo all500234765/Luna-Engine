@@ -51,6 +51,7 @@ struct sRenderBuffer {
 class RenderBufferBase: public DirectXChild {
 protected:
     int Width, Height, Depth;
+    D3D11_VIEWPORT mVP;
 
     sRenderBuffer* CreateRTV2D(int W, int H, DXGI_FORMAT format);
     sRenderBuffer* CreateDSV2D(int W, int H, UINT bpp=32);

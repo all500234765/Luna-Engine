@@ -35,6 +35,7 @@ private:
 
     bool isBeginEnabled  = true;
     ValueType mValueType = Integer;
+
 public:
     void Create(D3D11_QUERY type, D3D11_QUERY_MISC_FLAG misc=(D3D11_QUERY_MISC_FLAG)0);
 
