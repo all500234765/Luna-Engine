@@ -7,7 +7,7 @@ Mouse::Mouse() {
 }
 
 Mouse::Mouse(HWND q): m_hwnd(q) {
-    Mouse();
+    Reset();
 
     RAWINPUTDEVICE rid[1];
     rid[0].dwFlags = 0;

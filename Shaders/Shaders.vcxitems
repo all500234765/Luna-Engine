@@ -92,6 +92,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shSSLRPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shSSPBRPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTerrainPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>

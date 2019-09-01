@@ -3,7 +3,6 @@
 #include "Shader.h"
 #include "DirectXChild.h"
 
-#include <d3d11.h>
 #include <vector>
 
 class PolygonLayout: public DirectXChild {

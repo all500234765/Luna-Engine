@@ -52,6 +52,7 @@ void main(uint GroupIndex : SV_GroupIndex, uint3 GroupID : SV_GroupID) {
             // No! Just reset it!
             float1 t = p.Life - sin(_DeltaTime * 3.14159f) * 3.14159f * .5f;
             float2 dir = 0.f * float2(cos(t), sin(t));
+
             p.Position = _EmitterPosition - 10.f * dir;
             p.Velocity = -dir * 100.f;
 

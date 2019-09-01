@@ -12,11 +12,44 @@ Texture::Texture(std::string fname, DXGI_FORMAT format) {
 }
 
 void Texture::Load(std::string fname, UINT bpc) {
+    // TODO: Move to Filemanager class
+    auto GetFileExtension = [](const std::string& FileName) {
+        if( FileName.find_last_of(".") != std::string::npos )
+            return FileName.substr(FileName.find_last_of(".") + 1);
+        return std::string("");
+    };
+
     // Load texture
-    void* data = stbi_load(fname.c_str(), &w, &h, &channels, 0);
-    if( !data ) {
-        std::cout << "Failed to load texture. (" << fname.c_str() << ")" << std::endl;
-        return;
+    std::string ext = GetFileExtension(fname);
+
+    void* data;
+    bool bStbi = true;
+    if( ext == "dds" ) {
+        bStbi = false;
+
+        // Load DDS Separatly
+        using namespace tinyddsloader;
+        DDSFile dds;
+        
+        auto res = dds.Load(fname.c_str());
+        if( res != Result::Success ) {
+            std::cout << "Failed to load texture. (" << fname.c_str() << ")" << std::endl;
+            return;
+        }
+
+        auto data_1 = dds.GetImageData(0, 0);
+
+        w = data_1->m_width;
+        h = data_1->m_height;
+        data = data_1->m_mem;
+        channels = 4;
+    } else {
+        // Load PNG, BMP, JPG, JPEG, HDR, GIF, TGA and etc...
+        data = stbi_load(fname.c_str(), &w, &h, &channels, 0);
+        if( !data ) {
+            std::cout << "Failed to load texture. (" << fname.c_str() << ")" << std::endl;
+            return;
+        }
     }
 
     // Select format
@@ -57,26 +90,67 @@ void Texture::Load(std::string fname, UINT bpc) {
     }
 
     // Create Texture and SRV
-    Create(data, format, channels * bpc);
+    Create(data, format, channels * bpc, 0);
 
-    stbi_image_free(data);
+    if( bStbi ) {
+        stbi_image_free(data);
+    }
 }
 
 void Texture::Load(std::string fname, DXGI_FORMAT format) {
+    // TODO: Move to Filemanager class
+    auto GetFileExtension = [](const std::string& FileName) {
+        if( FileName.find_last_of(".") != std::string::npos )
+            return FileName.substr(FileName.find_last_of(".") + 1);
+        return std::string("");
+    };
+
     // Load texture
-    void* data = stbi_load(fname.c_str(), &w, &h, &channels, 0);
-    if( !data ) {
-        std::cout << "Failed to load texture. (" << fname.c_str() << ")" << std::endl;
-        return;
+    std::string ext = GetFileExtension(fname);
+
+    void* data;
+    bool bStbi = true;
+    UINT SlicePitch = 0;
+    if( ext == "dds" ) {
+        bStbi = false;
+
+        // Load DDS Separatly
+        using namespace tinyddsloader;
+        DDSFile dds;
+        
+        auto res = dds.Load(fname.c_str());
+        if( res != Result::Success ) {
+            std::cout << "Failed to load texture. (" << fname.c_str() << ")" << std::endl;
+            return;
+        }
+
+        auto data_1 = dds.GetImageData(0, 0);
+
+        format = (DXGI_FORMAT)dds.GetFormat();
+
+        w = data_1->m_width;
+        h = data_1->m_height;
+        data = data_1->m_mem;
+        SlicePitch = data_1->m_memSlicePitch;
+        channels = Format2BPP(format) / 8;
+    } else {
+        // Load PNG, BMP, JPG, JPEG, HDR, GIF, TGA and etc...
+        data = stbi_load(fname.c_str(), &w, &h, &channels, 0);
+        if( !data ) {
+            std::cout << "Failed to load texture. (" << fname.c_str() << ")" << std::endl;
+            return;
+        }
     }
 
     // Create Texture and SRV
-    Create(data, format, Format2BPP(format));
+    Create(data, format, Format2BPP(format), SlicePitch);
 
-    stbi_image_free(data);
+    if( bStbi ) {
+        stbi_image_free(data);
+    }
 }
 
-void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
+void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch) {
     bool bGenMips = true;
 
     // Create texture
@@ -95,11 +169,11 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp) {
     
     D3D11_SUBRESOURCE_DATA pData;
     pData.pSysMem = data;
-    pData.SysMemPitch = channels * w; // UINT(bpp * w / 8);
-    pData.SysMemSlicePitch = 0;
+    pData.SysMemPitch = UINT(bpp * w / 8);
+    pData.SysMemSlicePitch = SlicePitch;
 
     // Create texture
-    auto res = gDirectX->gDevice->CreateTexture2D(&pDesc, bGenMips ? nullptr : (&pData), &pTexture);
+    auto res = gDirectX->gDevice->CreateTexture2D(&pDesc, bGenMips ? nullptr : &pData, &pTexture);
     if( FAILED(res) ) {
         std::cout << "Failed to create texture!" << std::endl;
         return;

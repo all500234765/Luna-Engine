@@ -21,6 +21,17 @@
 #include "Engine/DirectX/Buffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"
 
+struct BaseTexturePreset {
+    bool bDiffuse;
+    bool bNormals;
+    bool bOpacity;
+    bool bSpecular;
+
+    BaseTexturePreset(): bDiffuse(true), bNormals(true), bOpacity(true), bSpecular(true) {};
+    BaseTexturePreset(bool diff, bool norm=false, bool opac=false, bool spec=false): 
+        bDiffuse(diff), bNormals(norm), bOpacity(opac), bSpecular(spec) {};
+};
+
 class Model: public DirectXChild {
 protected:
     static Texture *gDefaultTexture, *gDefaultTextureOpacity, *gDefaultTextureSpecular;
@@ -71,7 +82,7 @@ public:
     void Render();
     void Render(UINT num);
 
-    template<typename VertexT=Vertex_PNT> void  LoadModel(std::string fname);
+    template<typename VertexT=Vertex_PNT/*, TexturesT=DefaultTexturePreset*/> void  LoadModel(std::string fname);
     template<typename VertexT=Vertex_PNT> void  ProcessNode(aiNode* node, const aiScene* scene);
     template<typename VertexT=Vertex_PNT> Mesh* ProcessMesh(aiMesh* mesh, const aiScene* scene);
 
@@ -97,7 +108,7 @@ void Model::LoadModel(std::string fname) {
     ProcessNode<VertexT>(scene->mRootNode, scene);
 
     // Load textures
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(1);
     int i = 0, j = 0, k = 0, l = 0;
     for( tTuple* f : FilenameBuffer ) {
         // Load texture
@@ -159,7 +170,7 @@ void Model::LoadModel(std::string fname) {
         }
     }
 
-    stbi_set_flip_vertically_on_load(false);
+    stbi_set_flip_vertically_on_load(0);
 
     // Clear buffer
     //FilenameBuffer.clear();
@@ -194,7 +205,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
     //Vertex* vertices = (Vertex*)malloc(sizeof(Vertex_PNT) * inMesh->mNumVertices);
 
     // Data size
-    int IndexNum = 0;
+    unsigned int IndexNum = 0;
 
     // Load mesh data
     // Process Vertices
@@ -225,7 +236,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
         // Load diffuse textures
         tFname = " ";
         mat->GetTexture(aiTextureType_DIFFUSE, 0, &tFname);
-        if( tFname.C_Str() == "" || tFname.C_Str() == " " || tFname.length == 0 || tFname.length == 1 ) {
+        if( !strcmp(tFname.C_Str(), "") || !strcmp(tFname.C_Str(), " ") || tFname.length == 0 || tFname.length == 1 ) {
             DiffuseMapIndex.push_back(-1);
         } else {
             auto index = std::find(FNB_Diffuse.begin(), FNB_Diffuse.end(), tFname);
@@ -243,7 +254,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
         // Load normal textures
         tFname = " ";
         mat->GetTexture(aiTextureType_HEIGHT, 0, &tFname);
-        if( tFname.C_Str() == "" || tFname.C_Str() == " " || tFname.length == 0 || tFname.length == 1 ) {
+        if( !strcmp(tFname.C_Str(), "") || !strcmp(tFname.C_Str(), " ") || tFname.length == 0 || tFname.length == 1 ) {
             NormalMapIndex.push_back(-1);
         } else {
             auto index = std::find(FNB_Normal.begin(), FNB_Normal.end(), tFname);
@@ -261,7 +272,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
         // Load opacity textures
         tFname = " ";
         mat->GetTexture(aiTextureType_OPACITY, 0, &tFname);
-        if( tFname.C_Str() == "" || tFname.C_Str() == " " || tFname.length == 0 || tFname.length == 1 ) {
+        if( !strcmp(tFname.C_Str(), "") || !strcmp(tFname.C_Str(), " ") || tFname.length == 0 || tFname.length == 1 ) {
             OpacityMapIndex.push_back(-1);
         } else {
             auto index = std::find(FNB_Opacity.begin(), FNB_Opacity.end(), tFname);
@@ -279,7 +290,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
         // Load specular textures
         tFname = " ";
         mat->GetTexture(aiTextureType_SPECULAR, 0, &tFname);
-        if( tFname.C_Str() == "" || tFname.C_Str() == " " || tFname.length == 0 || tFname.length == 1 ) {
+        if( !strcmp(tFname.C_Str(), "") || !strcmp(tFname.C_Str(), " ") || tFname.length == 0 || tFname.length == 1 ) {
             SpecularMapIndex.push_back(-1);
         } else {
             auto index = std::find(FNB_Specular.begin(), FNB_Specular.end(), tFname);

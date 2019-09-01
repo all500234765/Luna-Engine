@@ -279,7 +279,7 @@ void Keyboard::Refresh() {
 }
 
 Keyboard::Keyboard(HWND q) {
-    Keyboard();
+    this->Keyboard::Keyboard();
 
     RAWINPUTDEVICE rid[1];
     rid[0].dwFlags = 0;

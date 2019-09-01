@@ -42,16 +42,17 @@ TextController *gTextController;
 Camera *cPlayer, *c2DScreen;
 
 // Shaders
-Shader *shGUI, *shTexturedQuad, *shPostProcess, *shPBR, 
+Shader *shGUI, *shTexturedQuad, *shPostProcess, *shPBR, *shSSPBR, 
        *shTextSimple, *shTextEffects, *shTextSimpleSDF, *shTextEffectsSDF;
 
 // Models
 Model *mPBRTest0;
 
 // Textures and materials
-Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault, *tGradient;
+Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault, *tHeightmap;
+CubemapTexture *tEnv;
 DiffuseMap *mDefaultDiffuse;
-Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougness;
+Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougness, *sLinear;
 
 Material *mDefault;
 
@@ -65,6 +66,21 @@ RasterState *rsFrontCull;
 
 // Viewports
 D3D11_VIEWPORT vpMain;
+
+// 
+struct SSPBRSettings {
+    float _Metalness;
+    DirectX::XMFLOAT3 _LightPos;
+    float _Rougness;
+    float _Albedo;
+    DirectX::XMFLOAT2 _Texel;
+    DirectX::XMFLOAT3 _Repeats;
+    float _Exposure;
+    DirectX::XMFLOAT3 _LightDiffuse;
+    float _Dummy2;
+};
+
+ConstantBuffer *cbSSPBRSettings;
 #pragma endregion
 
 float fAspect = 1024.f / 540.f;
@@ -85,12 +101,12 @@ bool _DirectX::FrameFunction() {
 #pragma endregion
 
     // Bind and clear RTV
-    gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+    gContext->OMSetRenderTargets(1, &gRTV, nullptr);
 
     float Clear[4] = { .2f, .2f, .2f, 1.f }; // RGBA
     float Clear0[4] = { 0.f, 0.f, 0.f, 1.f }; // RGBA black
-    gContext->ClearRenderTargetView(gRTV, Clear0);
-    gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+    gContext->ClearRenderTargetView(gRTV, Clear);
+    //gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
     // Render scene and every thing else here
     {
@@ -107,12 +123,28 @@ bool _DirectX::FrameFunction() {
     // Shadow pre-pass
     //bDepth->Bind();
 
-
     // PBR test
-    shPBR->Bind();
+    shSSPBR->Bind();
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    tBlueNoiseRG->Bind(Shader::Pixel, 5);
+    // Bind textures
+    tHeightmap->Bind(Shader::Pixel, 0);
+    sLinear->Bind(Shader::Pixel, 0);
+
+    tEnv->Bind(Shader::Pixel, 1);
+    sLinear->Bind(Shader::Pixel, 1);
+    
+    // Bind settings
+    cbSSPBRSettings->Bind(Shader::Pixel, 0);
+
+    // Bind matrix buffer
+    cPlayer->SetWorldMatrix(DirectX::XMMatrixIdentity());
+    cPlayer->BuildConstantBuffer();
+    cPlayer->BindBuffer(Shader::Vertex, 0);
+
+    gContext->Draw(6, 0);
+
+    /*tBlueNoiseRG->Bind(Shader::Pixel, 5);
 
     sMipLinearRougness->Bind(Shader::Pixel, 1); // Norml sampler
     sMipLinearOpacity->Bind(Shader::Pixel, 2);  // Opact sampler
@@ -120,7 +152,7 @@ bool _DirectX::FrameFunction() {
     sPointClamp->Bind(Shader::Pixel, 4);        // Depth sampler
     sPoint->Bind(Shader::Pixel, 5);             // Noise sampler
 
-    mPBRTest0->Render();
+    mPBRTest0->Render();*/
 
     // Set defaults
     gContext->RSSetState(gRSDefault);
@@ -129,8 +161,8 @@ bool _DirectX::FrameFunction() {
     ComposeUI();
 
     // End of frame
-    DXGI_PRESENT_PARAMETERS pres = {};
-    gSwapchain->Present1(1, 0, &pres);
+    //DXGI_PRESENT_PARAMETERS pres = {};
+    gSwapchain->Present(1, 0);
     return false;
 }
 
@@ -140,38 +172,38 @@ void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
 
     // Update GUI elements
-    tTest = gTextFactory->Build(tTest, (std::string("FPS: ") + std::to_string(1.f / fDeltaTime)).c_str());
+    //tTest = gTextFactory->Build(tTest, (std::string("FPS: ") + std::to_string(1.f / fDeltaTime)).c_str());
 
     // Toggle debug
-    bIsWireframe ^= gKeyboard->IsPressed(VK_F1); // Toggle wireframe mode
-    bDebugGUI    ^= gKeyboard->IsPressed(VK_F3); // Toggle debug gui mode
-    bLookMouse   ^= gKeyboard->IsPressed(VK_F2); // Toggle release mouse
-    bPause       ^= gKeyboard->IsPressed(VK_F4); // Toggle world pause
-
-    // Update camera
-    DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
-    static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
-
-    // Camera
-    if( gKeyboard->IsDown(VK_W) ) f3Move.x = +fSpeed * fDeltaTime;  // Forward / Backward
-    if( gKeyboard->IsDown(VK_S) ) f3Move.x = -fSpeed * fDeltaTime;
-    if( gKeyboard->IsDown(VK_D) ) f3Move.z = +fSpeed * fDeltaTime;  // Strafe
-    if( gKeyboard->IsDown(VK_A) ) f3Move.z = -fSpeed * fDeltaTime;
-
-    if( !bLookMouse ) { return; }
-    float dx = 0.f, dy = 0.f;
+    //bIsWireframe ^= gKeyboard->IsPressed(VK_F1); // Toggle wireframe mode
+    //bDebugGUI    ^= gKeyboard->IsPressed(VK_F3); // Toggle debug gui mode
+    //bLookMouse   ^= gKeyboard->IsPressed(VK_F2); // Toggle release mouse
+    //bPause       ^= gKeyboard->IsPressed(VK_F4); // Toggle world pause
+    //
+    //// Update camera
+    //DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
+    //static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
+    //
+    //// Camera
+    //if( gKeyboard->IsDown(VK_W) ) f3Move.x = +fSpeed * fDeltaTime;  // Forward / Backward
+    //if( gKeyboard->IsDown(VK_S) ) f3Move.x = -fSpeed * fDeltaTime;
+    //if( gKeyboard->IsDown(VK_D) ) f3Move.z = +fSpeed * fDeltaTime;  // Strafe
+    //if( gKeyboard->IsDown(VK_A) ) f3Move.z = -fSpeed * fDeltaTime;
+    //
+    //if( !bLookMouse ) { return; }
+    //float dx = 0.f, dy = 0.f;
     
 #if USE_GAMEPADS
     // Use gamepad if we can and it's connected
-    if( gGamepad[0]->IsConnected() ) {
-        // Move around
-        if( !gGamepad[0]->IsDeadZoneL() ) {
-            f3Move.x = gGamepad[0]->LeftY() * fSpeed * fDeltaTime;
-            f3Move.z = gGamepad[0]->LeftX() * fSpeed * fDeltaTime;
-        }
-    }
+    //if( gGamepad[0]->IsConnected() ) {
+    //    // Move around
+    //    if( !gGamepad[0]->IsDeadZoneL() ) {
+    //        f3Move.x = gGamepad[0]->LeftY() * fSpeed * fDeltaTime;
+    //        f3Move.z = gGamepad[0]->LeftX() * fSpeed * fDeltaTime;
+    //    }
+    //}
 #endif
-    {
+    /*{
         // Use mouse
         bool b = false;
         if( abs(dx) <= .1 ) {
@@ -201,7 +233,7 @@ void _DirectX::Tick(float fDeltaTime) {
 
     // Look around
     cPlayer->TranslateLookAt(f3Move);
-    cPlayer->RotateAbs(DirectX::XMFLOAT3(fPitch, fDir, 0.));
+    cPlayer->RotateAbs(DirectX::XMFLOAT3(fPitch, fDir, 0.));*/
 }
 
 void _DirectX::ComposeUI() {
@@ -212,29 +244,46 @@ void _DirectX::ComposeUI() {
     ImGui::NewFrame();
 
     // Create debug window
-    ImGui::Begin("Debug");
+    ImGui::Begin("Settings");
     
-    ImGui::Button("Test button");
+    // 
+    static float Albedo    = 1.f;
+    static float Metalness = .01f;
+    static float Rougness  = 1.f;
+    static float LightZ    = 1.f;
+    static float Repeats[3] = { 2.f, 2.f, 1.f };
+    static float LightDiffuse[3] = { 1.f, 1.f, 1.f };
+    static float Exposure = 2.f;
 
-    // Console
-    static std::string buf;
-    if( buf.size() == 0 ) {
-        buf.resize(50, ' ');
-    }
+    ImGui::DragFloat("Exposure"      , &Exposure   , .01f ,  0.f  , 12.f);
+    ImGui::DragFloat("Albedo"        , &Albedo     , .005f,  .001f, 1.f);
+    ImGui::DragFloat("Metalness"     , &Metalness  , .005f,  .001f, 1.f);
+    ImGui::DragFloat("Rougness"      , &Rougness   , .005f,  .001f, 1.f);
+    ImGui::DragFloat("LightZ"        , &LightZ     , .005f, -2.f  , 2.f);
+    ImGui::DragFloat3("Repeats"      , Repeats     , .1f  ,  .5f  , 5.f);
+    ImGui::DragFloat3("Light Diffuse", LightDiffuse, .1f  ,  0.f  , 1.f);
+    
+    WindowConfig w_cfg = gWindow->GetCFG();
 
-    ImGui::InputText("", (char*)buf.data(), buf.size());
-    ImGui::SameLine();
-    if( ImGui::Button("Submit") ) {
-        std::cout << buf << std::endl;
-        // gDebugObject->ConsoleParse(buf);
-    }
+    SSPBRSettings *inst = (SSPBRSettings*)cbSSPBRSettings->Map();
+        inst->_Metalness    = Metalness;
+        inst->_Albedo       = Albedo;
+        inst->_Rougness     = Rougness;
+        inst->_LightPos     = DirectX::XMFLOAT3(static_cast<float>(gMouse->GetX()) / static_cast<float>(w_cfg.CurrentWidth), 
+                                                static_cast<float>(gMouse->GetY()) / static_cast<float>(w_cfg.CurrentHeight), 
+                                                LightZ);
+        inst->_Texel        = DirectX::XMFLOAT2(1.f / static_cast<float>(tHeightmap->GetWidth()), 
+                                                1.f / static_cast<float>(tHeightmap->GetHeight()));
+        inst->_Repeats      = { Repeats[0], Repeats[1], Repeats[2] };
+        inst->_LightDiffuse = { LightDiffuse[0], LightDiffuse[1], LightDiffuse[2] };
+        inst->_Exposure     = Exposure;
+        inst->_Dummy2       = 0.f;
+    cbSSPBRSettings->Unmap();
 
-    bIsWireframe ^= ImGui::Button("Wireframe");
-    bDebugGUI    ^= ImGui::Button("Debug buffers");
-
-
-
+    // End drawing window
     ImGui::End();
+
+    // 
     ImGui::Render();
 
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -244,7 +293,7 @@ void _DirectX::ComposeUI() {
     pBlendState0->Bind();
 
     // Draw text
-    gTextController->Draw(tTest);
+    //gTextController->Draw(tTest);
 }
 
 void _DirectX::Resize() {
@@ -259,7 +308,7 @@ void _DirectX::Resize() {
     gRTV->Release();
 
     // Resize buffers
-
+    
 
     // Resize text port
     gTextController->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
@@ -349,6 +398,7 @@ void _DirectX::Load() {
     shTextSimpleSDF          = new Shader();
     shTextEffectsSDF         = new Shader();
     shPBR                    = new Shader();
+    shSSPBR                  = new Shader();
 
     cPlayer   = new Camera();
     c2DScreen = new Camera();
@@ -358,9 +408,11 @@ void _DirectX::Load() {
     tClearPixel      = new Texture();
     tOpacityDefault  = new Texture();
     tSpecularDefault = new Texture();
-    tGradient        = new Texture();
+    tHeightmap       = new Texture();
+    tEnv             = new CubemapTexture();
 
     sPoint             = new Sampler();
+    sLinear            = new Sampler();
     sMipLinear         = new Sampler();
     sPointClamp        = new Sampler();
     sMipLinearOpacity  = new Sampler();
@@ -442,7 +494,9 @@ void _DirectX::Load() {
     tOpacityDefault->Load("../Textures/ClearPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
     tSpecularDefault->Load("../Textures/DarkPixel.png", DXGI_FORMAT_R8G8B8A8_UNORM);
 
-    tGradient->Load("../Textures/Gradient.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    //tEnv->CreateFromFiles("../Textures/Cubemaps/Industrial/", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+    tEnv->CreateFromDDS("../Textures/environment.dds", false);
+    tHeightmap->Load("../Textures/pebbles.png", DXGI_FORMAT_R8G8B8A8_UNORM);
 #pragma endregion 
 
     // Set default textures
@@ -478,6 +532,10 @@ void _DirectX::Load() {
     // Anisotropic mip sampler
     pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
     sMipLinear->Create(pDesc);
+
+    // Linear mip sampler
+    pDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    sLinear->Create(pDesc);
 
     // Clamped point sampler
     pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
@@ -559,6 +617,10 @@ void _DirectX::Load() {
     shPBR->LoadFile("shSurfaceVS.cso", Shader::Vertex);
     shPBR->LoadFile("shPBRPS.cso", Shader::Pixel);
 
+    // SSPBR
+    shSSPBR->AttachShader(shPostProcess, Shader::Vertex);
+    shSSPBR->LoadFile("shSSPBRPS.cso", Shader::Pixel);
+
     // Clean shaders
     shGUI->ReleaseBlobs();
     shTexturedQuad->ReleaseBlobs();
@@ -568,6 +630,7 @@ void _DirectX::Load() {
     shTextSimpleSDF->ReleaseBlobs();
     shTextEffectsSDF->ReleaseBlobs();
     shPBR->ReleaseBlobs();
+    shSSPBR->ReleaseBlobs();
 #pragma endregion 
 
 #pragma region Text
@@ -591,6 +654,9 @@ void _DirectX::Load() {
         data2->_BorderSoft = .1f;
     gTextFactory->UnmapSDFSettings();
 #pragma endregion
+
+    cbSSPBRSettings = new ConstantBuffer();
+    cbSSPBRSettings->CreateDefault(sizeof(SSPBRSettings));
 
 #pragma region Load models
     // Create model
@@ -619,7 +685,10 @@ void _DirectX::Unload() {
     tBlueNoiseRG->Release();
     tClearPixel->Release();
     //tDefault->Release(); // Material will delete it
-    tGradient->Release();
+    tHeightmap->Release();
+    tEnv->Release();
+
+    sLinear->Release();
 
     // Release shaders
     shGUI->DeleteShaders();
@@ -630,6 +699,7 @@ void _DirectX::Unload() {
     shTextSimpleSDF->DeleteShaders();
     shTextEffectsSDF->DeleteShaders();
     shPBR->DeleteShaders();
+    shSSPBR->DeleteShaders();
     
     // Text engine
     fRegular->Release();
@@ -646,10 +716,10 @@ int main() {
     WindowConfig winCFG;
     winCFG.Borderless  = false;
     winCFG.Windowed    = true;
-    winCFG.ShowConsole = true;
-    winCFG.Width       = 1024;
-    winCFG.Height      = 540;
-    winCFG.Title       = L"PBR Test - Luna Engine";
+    winCFG.ShowConsole = !false;
+    winCFG.Width       = 1366;
+    winCFG.Height      = 728;
+    winCFG.Title       = L"SS PBR Test - Luna Engine";
     winCFG.Icon        = L"Engine/Assets/Engine.ico";
 
     // Create window

@@ -254,6 +254,7 @@ LRESULT CALLBACK InputWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lp
 }
 
 // ImGUI
+#define _DEBUG_BUILD 1
 #if _DEBUG_BUILD
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam);
 #endif
@@ -315,11 +316,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
                 ApplicationHandle->gInput->GetMouse()->SetMouse(lp.x, lp.y);
                 
                 // Update buttons
-                if( raw->data.mouse.ulButtons > (ULONG)0 ) ApplicationHandle->gInput->GetMouse()->SetState(raw->data.mouse.ulButtons);
+                if( raw->data.mouse.ulButtons > (ULONG)0 ) 
+                    ApplicationHandle->gInput->GetMouse()->SetState(raw->data.mouse.ulButtons);
             }
 
             if( raw->header.dwType == RIM_TYPEKEYBOARD ) {
-                ApplicationHandle->gInput->GetKeyboard()->SetState(raw->data.keyboard.VKey, !(raw->data.keyboard.Flags & RI_KEY_BREAK));
+                ApplicationHandle->gInput->GetKeyboard()->SetState(raw->data.keyboard.VKey, 
+                                                                   !(raw->data.keyboard.Flags & RI_KEY_BREAK));
             }
 
             return DefWindowProc(hwnd, umessage, wparam, lparam);

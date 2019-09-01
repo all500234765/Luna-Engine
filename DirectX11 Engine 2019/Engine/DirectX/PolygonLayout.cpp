@@ -1,6 +1,5 @@
 #include "PolygonLayout.h"
 
-#include <d3d11.h>
 #include <vector>
 
 ID3D11InputLayout* PolygonLayout::GetLayout() {

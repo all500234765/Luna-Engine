@@ -2,7 +2,6 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <d3d11.h>
 #include <D3Dcompiler.h>
 #include <string>
 #include <vector>

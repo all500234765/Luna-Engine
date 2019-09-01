@@ -2,9 +2,12 @@
 
 #include <string>
 
+#include "Vendor/TinyDDSLoader/TinyDDSLoader.h"
 #include "Vendor/STB/stbi_image.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/DirectXChild.h"
+
+#include "Engine/Utility/Utils.h"
 
 static const std::string sSideNames[6] = {
     "Right",
@@ -32,6 +35,7 @@ private:
     };
 public:
     void CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMAT format);
+    void CreateFromDDS(std::string fname, bool bDepth);
 
     void Bind(Shader::ShaderType type, UINT slot=0);
     void Release();

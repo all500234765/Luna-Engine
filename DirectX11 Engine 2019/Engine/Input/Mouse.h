@@ -51,7 +51,7 @@ private:
             switch( key ) {
                 case MouseButton::Left  : return mLeftButton;
                 case MouseButton::Right : return mRightButton;
-                case MouseButton::Middle: return mLeftButton;
+                case MouseButton::Middle: return mMiddleButton;
                 case MouseButton::X1    : return mX1Button;
                 case MouseButton::X2    : return mX2Button;
             }

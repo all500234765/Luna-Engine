@@ -314,10 +314,19 @@ void _DirectX::Resize() {
     gTextController->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
 
     // Resize swapchain
-    scd.BufferDesc.Width  = (UINT)cfg.CurrentWidth;
-    scd.BufferDesc.Height = (UINT)cfg.CurrentHeight;
+    scd.Width = (UINT)cfg.CurrentWidth;
+    scd.Height = (UINT)cfg.CurrentHeight;
 
-    gSwapchain->ResizeTarget(&scd.BufferDesc);
+    DXGI_MODE_DESC pModeDesc = {};
+    pModeDesc.Format = scd.Format;
+    pModeDesc.Width = scd.Width;
+    pModeDesc.Height = scd.Height;
+    pModeDesc.RefreshRate = pSCFDesc.RefreshRate;
+    pModeDesc.Scaling = pSCFDesc.Scaling;
+    pModeDesc.ScanlineOrdering = pSCFDesc.ScanlineOrdering;
+    //pModeDesc.Stereo = scd.Stereo;
+
+    gSwapchain->ResizeTarget(&pModeDesc);
 
     std::cout << (gSwapchain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0) == S_OK) << std::endl;
 
@@ -634,6 +643,8 @@ void _DirectX::Load() {
     // Particles
     std::cout << "[ParticleTest]: Generating " << _Num << " particles..." << std::endl;
     std::vector<Particle> _Particles;
+    _Particles.reserve(_Num);
+
     for( int i = 0; i < _Num; i++ ) {
         float x = (float(rand() % 60) - 30.f) * 1.f;
         float y = (float(rand() % 60) - 30.f) * 1.f;
@@ -644,7 +655,7 @@ void _DirectX::Load() {
             { 0.f, 0.f, 0.f }
         };
 
-        _Particles.push_back(p);
+        _Particles.push_back(std::move(p));
     }
 
     cbDataBuffer = new ConstantBuffer();

@@ -63,6 +63,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\Window.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Enums.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\HighLevel.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utlities.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.cpp" />

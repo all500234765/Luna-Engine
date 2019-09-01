@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Vendor/STB/stbi_image.h"
+#include "Vendor/TinyDDSLoader/TinyDDSLoader.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/DirectXChild.h"
 #include "Engine/Utility/Utils.h"
@@ -21,7 +22,7 @@ public:
 
     void Load(std::string fname, UINT bpc=8);
     void Load(std::string fname, DXGI_FORMAT format);
-    void Create(void* data, DXGI_FORMAT format, UINT bpp);
+    void Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch=0);
     void Bind(Shader::ShaderType type, UINT slot=0);
     bool IsCreated();
     void Release();

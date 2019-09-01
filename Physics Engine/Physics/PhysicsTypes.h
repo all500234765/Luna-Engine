@@ -31,6 +31,9 @@ struct pFloat3 {
     pFloat3(const pFloat X, const pFloat Y, const pFloat Z): x(X), y(Y), z(Z) {};
     pFloat3(const pFloat3& v): x(v.x), y(v.y), z(v.z) {};
 
+    pFloat3& operator=(const pFloat3& v) { x = v.x; y = v.y; z = v.z; };
+    pFloat3& operator=(pFloat3&& v) { x = v.x; y = v.y; z = v.z; };
+
 #ifdef _LUNA_ENGINE_DX11_
     pFloat3(const DirectX::XMFLOAT3& v): x(v.x), y(v.y), z(v.z) {};
 #endif
@@ -41,7 +44,7 @@ struct pFloat3 {
     }
 
     pFloat3 min(const pFloat3& rhs) const {
-        return { std::max(x, rhs.x), std::max(y, rhs.y), std::max(z, rhs.z) };
+        return { std::min(x, rhs.x), std::min(y, rhs.y), std::min(z, rhs.z) };
     }
 
     pFloat3 clamp(pFloat3 _min, pFloat3 _max) const {
@@ -157,14 +160,39 @@ struct pFloat3 {
     inline pFloat3 unitstep(pFloat3 to)   const { pFloat d = direction2D(to); return pFloat3(cosf(d), sinf(d), 0.f); }
 
 #ifdef _LUNA_ENGINE_DX11_
-    inline DirectX::XMFLOAT3 DirectX() const { return { x, y, z }; }
+    inline constexpr DirectX::XMFLOAT3 DirectX() const { return { x, y, z }; }
 #endif
 
+    // Creates lerped vector
     pFloat3 lerp(const pFloat3& to, float t) {
         return *this + (to - *this) * t;
     }
 
-    const pFloat3& normalize() {
+    // Lerps current vector
+    pFloat3& lerpTo(const pFloat3& to, float t) {
+        *this += (to - *this) * t;
+        return *this;
+    }
+
+    // Lerps current vector
+    pFloat3& lerpToX(const pFloat& to, float t) {
+        x += (to - x) * t;
+        return *this;
+    }
+
+    // Lerps current vector
+    pFloat3& lerpToY(const pFloat& to, float t) {
+        y += (to - y) * t;
+        return *this;
+    }
+
+    // Lerps current vector
+    pFloat3& lerpToZ(const pFloat& to, float t) {
+        z += (to - z) * t;
+        return *this;
+    }
+
+    pFloat3& normalize() {
         *this /= length();
         return *this;
     }
@@ -177,7 +205,7 @@ struct pFloat3 {
         return { *this - n * this->dot(n) * 2 };
     }
 
-    const pFloat3& Reflect(const pFloat3& n) {
+    pFloat3& Reflect(const pFloat3& n) {
         *this -= n * this->dot(n) * 2;
         return *this;
     }

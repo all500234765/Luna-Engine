@@ -1,5 +1,6 @@
 #include "DirectX.h"
 #include <iostream>
+#include <string>
 
 #include "Engine/Extensions/Default.h"
 
@@ -18,10 +19,12 @@ int _DirectX::Create(const DirectXConfig& config) {
     D3D_FEATURE_LEVEL level;
     HRESULT res;
     D3D_FEATURE_LEVEL pFeatureLevels[] = {
+        D3D_FEATURE_LEVEL_12_1,
+        D3D_FEATURE_LEVEL_12_0,
         D3D_FEATURE_LEVEL_11_1,
         D3D_FEATURE_LEVEL_11_0
     };
-
+    
     D3D_DRIVER_TYPE DXDriverType[] = {
         D3D_DRIVER_TYPE_HARDWARE,
         D3D_DRIVER_TYPE_WARP,
@@ -40,7 +43,7 @@ int _DirectX::Create(const DirectXConfig& config) {
         //  DXGI_FORMAT_R10G10B10A2_UNORM
         // Additionally, multisampling is supported for all the above formats. If your game is using a format that is not on the list 
         // Ansel will produce images with zero for every pixel - i.e. black.
-
+        // 
         // THO! You still can use DXGI_FORMAT_R16G16B16A16_FLOAT !
         // I hope that they just forgot to update their guide.
 
@@ -54,16 +57,9 @@ int _DirectX::Create(const DirectXConfig& config) {
     scd.Width = config.Width;
     scd.Height = config.Height;
     scd.Format = format;
-    //scd.BufferDesc.RefreshRate.Numerator = config.RefreshRate;
-    //scd.BufferDesc.RefreshRate.Denominator = 1;
-
-    //scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-    //scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-
+    
     scd.BufferCount = config.BufferCount;
     scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    //scd.OutputWindow = config.m_hwnd;
-    //scd.Windowed = config.Windowed;
     scd.Flags = 0;
     scd.SwapEffect = (config.BufferCount >= 2) ? DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL : DXGI_SWAP_EFFECT_SEQUENTIAL;
 
@@ -74,22 +70,22 @@ int _DirectX::Create(const DirectXConfig& config) {
 #endif
 
     if( config.MSAA ) {
-        scd.SampleDesc.Count = config.MSAA_Samples;
+        scd.SampleDesc.Count   = config.MSAA_Samples;
         scd.SampleDesc.Quality = config.MSAA_Quality;
     } else {
-        scd.SampleDesc.Count = 1;
+        scd.SampleDesc.Count   = 1;
         scd.SampleDesc.Quality = 0;
     }
 
-    pSCFDesc.RefreshRate.Numerator = config.RefreshRate;
+    pSCFDesc.RefreshRate.Numerator   = config.RefreshRate;
     pSCFDesc.RefreshRate.Denominator = 1;
-    pSCFDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-    pSCFDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-    pSCFDesc.Windowed = config.Windowed;
+    pSCFDesc.Scaling                 = DXGI_MODE_SCALING_UNSPECIFIED;
+    pSCFDesc.ScanlineOrdering        = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+    pSCFDesc.Windowed                = config.Windowed;
 
     // Create device
     for( int i = 0; i < 3; i++ ) {
-        res = D3D11CreateDevice(NULL, DXDriverType[i], NULL, DeviceFlags, pFeatureLevels, 2,
+        res = D3D11CreateDevice(NULL, DXDriverType[i], NULL, DeviceFlags, pFeatureLevels, ARRAYSIZE(pFeatureLevels),
                                 D3D11_SDK_VERSION, &gDevice, &level, &gContext);
 
         if( SUCCEEDED(res) ) { break; }
@@ -118,9 +114,6 @@ int _DirectX::Create(const DirectXConfig& config) {
     // Create swapchain
     res = pIDXGIFactory->CreateSwapChainForHwnd(gDevice, config.m_hwnd, &scd, &pSCFDesc, gOutput, &gSwapchain);
     if( FAILED(res) ) { return 13; } // Failed to create swapchain
-
-    // 
-
 
     // Check MSAA levels
     /*UINT maxQuality;
@@ -275,33 +268,40 @@ int _DirectX::Create(const DirectXConfig& config) {
     gDevice->CreateShaderResourceView(gDSVTex, &pDesc1, &gDSV_SRV);
 
     // Create deferred context
-    if( config.DeferredContext ) {
-        gContextImm = 0;
-        gDevice->CreateDeferredContext(0, &gContextImm);
+    //if( config.DeferredContext ) {
+    //    gContextImm = 0;
+    //    gDevice->CreateDeferredContext(0, &gContextImm);
+    //
+    //    // Swap deferred with imm. context
+    //    auto t = gContextImm;
+    //    gContextImm = gContext;
+    //    gContext = t;
+    //}
 
-        // Swap deferred with imm. context
-        auto t = gContextImm;
-        gContextImm = gContext;
-        gContext = t;
-    }
+    // Obtain ID3D11DeviceN, and for ID3D11DeviceContextN
+    res = gDevice->QueryInterface(__uuidof(ID3D11Device1), (void**)&gDeviceN);
+    if( FAILED(res) ) { return 14; }
 
+    res = gContext->QueryInterface(__uuidof(ID3D11DeviceContext1), (void**)&gContextN);
+    if( FAILED(res) ) { return 15; }
+    
     // No errors
     return 0;
 }
 
 bool _DirectX::ShowError(int id) {
     if( id == 0 ) { return false; }
-    const wchar_t *error;
+    const char *error;
 
     switch( id ) {
-        case 1: error = L"Failed to create device and swapchain."; break;
-        case 2: error = L"Failed to fetch back buffer texture."; break;
-        case 3: error = L"Failed to create render target view."; break;
+        case 1: error = "Failed to create device and swapchain."; break;
+        case 2: error = "Failed to fetch back buffer texture."; break;
+        case 3: error = "Failed to create render target view."; break;
         //case 4: std::cout << "Failed to initilize AnselSDK." << std::endl; return;
-        default: error = L"Unknown error."; break;
+        default: error = (std::string("Unknown error. (") + std::to_string(id)).c_str(); break; // TODO: Fix
     }
 
-    MessageBox(NULL, error, L"DirectX Initialization failed", MB_OK);
+    MessageBoxA(NULL, error, "DirectX Initialization failed", MB_OK);
 
     return true;
 }

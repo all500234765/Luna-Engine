@@ -15,7 +15,7 @@ public:
         Number = num;
 
         // Create buffer
-        D3D11_BUFFER_DESC pDesc = {};
+        pDesc = {};
         pDesc.BindFlags           = D3D11_BIND_SHADER_RESOURCE | (UAV ? D3D11_BIND_UNORDERED_ACCESS : 0);
         pDesc.ByteWidth           = Number * Stride;
         pDesc.MiscFlags           = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;

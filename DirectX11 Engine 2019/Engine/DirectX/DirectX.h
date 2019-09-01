@@ -1,9 +1,9 @@
 #pragma once
 
 // 3D Rendering (primarely)
+#include <d3d11_4.h>
 #include <dxgi1_2.h>
 #include <d3dcommon.h>
-#include <d3d11.h>
 #include <DirectXMath.h>
 
 //#include "HighLevel/DirectX/HighLevel.h"
@@ -68,8 +68,15 @@ private:
 public:
     // Globals
     // 3D Rendering
-    ID3D11Device *gDevice;
-    ID3D11DeviceContext *gContext, *gContextImm;
+    ID3D11Device         *gDevice;
+    ID3D11DeviceContext  *gContext;
+
+    // 11.1
+    ID3D11Device1        *gDeviceN;
+    ID3D11DeviceContext1 *gContextN;
+    
+    // Deferred context
+    ID3D11DeviceContext1 *gContextImm;
 
 #ifdef _DEBUG
     ID3D11Debug *gDebug;
