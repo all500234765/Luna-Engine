@@ -1,7 +1,7 @@
 # Luna-Engine
- ![Icon](Misc/Luna600.png)
-
-Luna Engine is DirectX 11 based engine that i am working on.
+ ![Icon](Misc/Luna150_Wide.png) 
+ 
+ Luna Engine is DirectX 11 based engine that i develop. Main reason why is that i want to learn more and try it all by myself
 
 I made trello panel, so you can see what i want to do, what i already done and what i am working on atm.
 https://trello.com/b/T8T6vkBN/directx-11-engine-2019
