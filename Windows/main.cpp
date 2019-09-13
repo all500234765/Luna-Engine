@@ -151,6 +151,9 @@ bool _DirectX::FrameFunction() {
             // Bind cubemap
             pCubemap->Bind(Shader::Pixel, 6);
             sPoint->Bind(Shader::Pixel, 6);
+
+            // 
+            sMipLinearRougness->Bind(Shader::Pixel, 7);
         }
 
         // Render Test scene
@@ -166,12 +169,12 @@ bool _DirectX::FrameFunction() {
         gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 
         // Balls
-        for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
+        /*for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
             const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
 
             if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
                 DrawBall(cam, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
-        }
+        }*/
 
         // Render skybox
         if( flags & RendererFlags::RenderSkybox ) {
@@ -317,7 +320,7 @@ bool _DirectX::FrameFunction() {
     gContext->RSSetState(gRSDefault);
 
     sRenderBuffer* _Depth2 = bDepth->GetDepth();     // Shadow map
-    sRenderBuffer* _Depth = bGBuffer->GetDepth();    // Depth
+    sRenderBuffer* _Depth  = bGBuffer->GetDepth();   // Depth
     sRenderBuffer* _Color0 = bGBuffer->GetColor0();  // Diffuse
     sRenderBuffer* _Color1 = bGBuffer->GetColor1();  // Normal
     sRenderBuffer* _Color2 = bGBuffer->GetColor2();  // Specular
@@ -1045,7 +1048,8 @@ void _DirectX::Load() {
 
 #pragma region Load textures
     // Create cubemap
-    pCubemap->CreateFromFiles("../Textures/Cubemaps/Test/", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+    //pCubemap->CreateFromFiles("../Textures/Cubemaps/Test/", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+    pCubemap->CreateFromDDS("../Textures/Cubemaps/environment.dds", false);
 
     // Create default texture
     tDefault->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -1372,8 +1376,8 @@ void _DirectX::Load() {
     mScreenPlane->LoadModel<Vertex_PT>("../Models/ScreenPlane.obj");
     mScreenPlane->DisableDefaultTexture();
 
-    mSpaceShip = new Model("Space ship model");
-    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Space Ship Guns1.obj");
+    mSpaceShip = new Model("Bunny model");
+    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Bunnies/bunny_metal.obj");
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Shadow test model");
@@ -1405,17 +1409,19 @@ void _DirectX::Load() {
     mSkybox = new ModelInstance();
     mSkybox->SetModel(mModel3);
     mSkybox->SetShader(shSkybox);
-    mSkybox->SetWorldMatrix(DirectX::XMMatrixScaling(1000, 1000, 1000));
+    mSkybox->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(-90.f)) * 
+                            DirectX::XMMatrixScaling(1000, 1000, 1000));
 
     // Space ship
     miSpaceShip = new ModelInstance();
-    miSpaceShip->SetModel(mModel1);
-    //miSpaceShip->SetModel(mSpaceShip);
+    //miSpaceShip->SetModel(mModel1);
+    miSpaceShip->SetModel(mSpaceShip);
     miSpaceShip->SetShader(shSurface);
-    miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(90.f)) *
+    miSpaceShip->SetWorldMatrix(//DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(90.f)) *
                                 DirectX::XMMatrixTranslation(-1, -.25, 1) *
                                 //DirectX::XMMatrixScaling(.0625, .0625, .0625)
-                                DirectX::XMMatrixScaling(40, 10, 40)
+                                //DirectX::XMMatrixScaling(40, 10, 40)
+                                DirectX::XMMatrixScaling(40, 40, 40)
                                 //DirectX::XMMatrixTranslation(-.5.f, -.5.f, 0.f)
     );
     //miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *

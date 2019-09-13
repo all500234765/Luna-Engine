@@ -39,7 +39,7 @@ protected:
 
 private:
     typedef enum {
-        Diffuse, Normal, Bump, Opacity, Specular
+        Diffuse, Normal, Bump, Opacity, Specular, Rougness
 
     } eTextureType;
 
@@ -53,9 +53,10 @@ private:
     const char* sName; // Model name
     std::vector<Mesh*> MeshBuffer;
     std::vector<tTuple*> FilenameBuffer;
-    std::vector<aiString> FNB_Diffuse, FNB_Normal, FNB_Opacity, FNB_Specular;
-    std::vector<Texture*> DiffuseTextureBuffer, NormalTextureBuffer, OpacityTextureBuffer, SpecularTextureBuffer;
-    std::vector<int> DiffuseMapIndex, NormalMapIndex, OpacityMapIndex, SpecularMapIndex;
+    std::vector<aiString> FNB_Diffuse, FNB_Normal, FNB_Opacity, FNB_Specular, FNB_Rougness;
+    std::vector<Texture*> DiffuseTextureBuffer, NormalTextureBuffer, OpacityTextureBuffer, SpecularTextureBuffer, 
+                          RougnessTextureBuffer;
+    std::vector<int> DiffuseMapIndex, NormalMapIndex, OpacityMapIndex, SpecularMapIndex, RougnessMapIndex;
     int num, mVertexSize;
     bool bUseDefaultTexture = true;
 
@@ -67,7 +68,7 @@ private:
         bool bOpacity;
         bool bSpecular;
         bool bCubemap;
-        bool PADDING[11];
+        bool PADDING[10];
     };
 
     //cbBoolTextures cbBoolTexturesInstData;
@@ -109,7 +110,7 @@ void Model::LoadModel(std::string fname) {
 
     // Load textures
     stbi_set_flip_vertically_on_load(1);
-    int i = 0, j = 0, k = 0, l = 0;
+    int i = 0, j = 0, k = 0, l = 0, m = 0;
     for( tTuple* f : FilenameBuffer ) {
         // Load texture
         Texture *tex = new Texture();
@@ -166,6 +167,19 @@ void Model::LoadModel(std::string fname) {
                 }
 
                 l++;
+                break;
+
+            case eTextureType::Rougness:
+                RougnessTextureBuffer.push_back(tex);
+
+                // Use default texture
+                if( tex->GetWidth() == 0 ) {
+                    RougnessMapIndex.at(l) = -1;
+                } else {
+                    std::cout << "Rougness(" << f->str.C_Str() << ")" << std::endl;
+                }
+
+                m++;
                 break;
         }
     }
@@ -286,7 +300,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
                 OpacityMapIndex.push_back(static_cast<int>(std::distance(FNB_Opacity.begin(), index)));
             }
         }
-        
+
         // Load specular textures
         tFname = " ";
         mat->GetTexture(aiTextureType_SPECULAR, 0, &tFname);
@@ -302,6 +316,24 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
                 FNB_Specular.push_back(tFname);
             } else {
                 SpecularMapIndex.push_back(static_cast<int>(std::distance(FNB_Specular.begin(), index)));
+            }
+        }
+
+        // Load roughness textures
+        tFname = " ";
+        mat->GetTexture(aiTextureType_UNKNOWN, 0, &tFname);
+        if( !strcmp(tFname.C_Str(), "") || !strcmp(tFname.C_Str(), " ") || tFname.length == 0 || tFname.length == 1 ) {
+            RougnessMapIndex.push_back(-1);
+        } else {
+            auto index = std::find(FNB_Rougness.begin(), FNB_Rougness.end(), tFname);
+
+            if( index == FNB_Rougness.end() ) {
+                // This texture wasn't loaded prev.
+                SpecularMapIndex.push_back(static_cast<int>(FNB_Rougness.size()));
+                FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Rougness));
+                FNB_Rougness.push_back(tFname);
+            } else {
+                RougnessMapIndex.push_back(static_cast<int>(std::distance(FNB_Rougness.begin(), index)));
             }
         }
     }

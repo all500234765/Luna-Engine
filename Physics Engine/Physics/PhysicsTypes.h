@@ -31,8 +31,8 @@ struct pFloat3 {
     pFloat3(const pFloat X, const pFloat Y, const pFloat Z): x(X), y(Y), z(Z) {};
     pFloat3(const pFloat3& v): x(v.x), y(v.y), z(v.z) {};
 
-    pFloat3& operator=(const pFloat3& v) { x = v.x; y = v.y; z = v.z; };
-    pFloat3& operator=(pFloat3&& v) { x = v.x; y = v.y; z = v.z; };
+    pFloat3& operator=(const pFloat3& v) { x = v.x; y = v.y; z = v.z; return *this; };
+    pFloat3& operator=(pFloat3&& v) { x = v.x; y = v.y; z = v.z; return *this; };
 
 #ifdef _LUNA_ENGINE_DX11_
     pFloat3(const DirectX::XMFLOAT3& v): x(v.x), y(v.y), z(v.z) {};

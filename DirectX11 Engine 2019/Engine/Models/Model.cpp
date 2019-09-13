@@ -108,6 +108,21 @@ void Model::Render(/*bool bBindTextures*/) {
                 gDirectX->gContext->PSSetShaderResources(3, 1, &gNullRes);
             }
         }
+
+        index = RougnessMapIndex[i];
+        if( index > -1 && RougnessTextureBuffer.size() > 0 && index < RougnessTextureBuffer.size() ) {
+            RougnessTextureBuffer[index]->Bind(Shader::Pixel, 7);
+            //cbBoolTexturesInstData->bRougness = true;
+        } else {
+            // Bind default texture
+            //if( gDefaultTextureRougness && bUseDefaultTexture ) 
+            {
+                //gDefaultTextureSpecular->Bind(Shader::Pixel, 3);
+
+                //cbBoolTexturesInstData->bSpecular = false;
+                gDirectX->gContext->PSSetShaderResources(7, 1, &gNullRes);
+            }
+        }
         
         i++;
 
