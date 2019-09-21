@@ -63,6 +63,11 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
     * Keyboard
     * Mouse
     * Multiple Gamepad support
+* 2D Drawing API (HighLevel/DirectX/Utilities.h)
+    * Circles (Filled and Outlined)
+    * Rectangles
+    * Lines
+    * Set/Get Draw Color
 
 * What do I plan to do in the future? / What am i working on?
     * You can check out my Trello.
