@@ -9,6 +9,8 @@
 #include <fstream>
 #include <iostream>
 
+Shader* Shader::gBoundShader = nullptr;
+
 Shader::Shader() {
     pl = new PolygonLayout();
 }
@@ -130,6 +132,8 @@ void Shader::AttachShader(Shader* origin, ShaderType type) {
 }
 
 void Shader::Bind() {
+    gBoundShader = this; // 
+
     if( pl->GetLayout() ) pl->Bind();
 
     if( ((Type & Vertex  ) == Vertex  ) ) { gDirectX->gContext->VSSetShader(sVertex, NULL, 0);   } else { gDirectX->gContext->VSSetShader(nullptr, NULL, 0); }

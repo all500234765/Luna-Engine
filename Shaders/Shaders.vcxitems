@@ -123,6 +123,13 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shUnitSpherePS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shCircleOuterVS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shCircleVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDeferredVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
@@ -131,6 +138,7 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shLineVS.hlsl">
       <ShaderType>Vertex</ShaderType>
+      <FileType>Document</FileType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shNullVertexVS.hlsl">
       <ShaderType>Vertex</ShaderType>
@@ -172,9 +180,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Shaders\PS\fxaa.hlsli" />
-    <None Include="$(MSBuildThisFileDirectory)Shaders\PS\shRectanglePS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shRectanglePS.hlsl">
       <FileType>Document</FileType>
-    </None>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <None Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextInclude.hlsli" />
+    <None Include="$(MSBuildThisFileDirectory)Shaders\VS\PrimitiveVS.hlsli" />
   </ItemGroup>
 </Project>

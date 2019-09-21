@@ -26,6 +26,7 @@ struct BaseTexturePreset {
     bool bNormals;
     bool bOpacity;
     bool bSpecular;
+    bool mEmpty[11];
 
     BaseTexturePreset(): bDiffuse(true), bNormals(true), bOpacity(true), bSpecular(true) {};
     BaseTexturePreset(bool diff, bool norm=false, bool opac=false, bool spec=false): 
@@ -68,7 +69,7 @@ private:
         bool bOpacity;
         bool bSpecular;
         bool bCubemap;
-        bool PADDING[10];
+        bool PADDING[11];
     };
 
     //cbBoolTextures cbBoolTexturesInstData;
@@ -329,7 +330,7 @@ Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
 
             if( index == FNB_Rougness.end() ) {
                 // This texture wasn't loaded prev.
-                SpecularMapIndex.push_back(static_cast<int>(FNB_Rougness.size()));
+                RougnessMapIndex.push_back(static_cast<int>(FNB_Rougness.size()));
                 FilenameBuffer.push_back(new tTuple(tFname, eTextureType::Rougness));
                 FNB_Rougness.push_back(tFname);
             } else {

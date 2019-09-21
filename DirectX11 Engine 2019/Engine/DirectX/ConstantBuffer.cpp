@@ -14,14 +14,14 @@ void ConstantBuffer::CreateDefault(UINT size) {
     std::cout << "ConstantBuffer created (error=" << hr << ", size=" << size << ")" << std::endl;
 }
 
-void* ConstantBuffer::Map() {
+void* ConstantBuffer::Map(D3D11_MAP map) {
     if( !pBuff ) { return nullptr; }
 
     D3D11_MAPPED_SUBRESOURCE res;
     HRESULT hr;
-    
+
     // Try to get mapped resource
-    hr = gDirectX->gContext->Map(pBuff, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
+    hr = gDirectX->gContext->Map(pBuff, 0, map, 0, &res);
     if( FAILED(hr) ) {
         std::cout << "Can't map ConstantBuffer." << std::endl;
         return NULL;

@@ -146,11 +146,13 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
     //[branch] if( bNormals ) 
     {
         half3 NormalTex = _NormalTexture.Sample(_NormalSampler, In.Texcoord).rgb;
-        [branch] if( NormalTex.r > 0. ) N = normalize(mul(In.WorldTBN, NormalTex * 2. - 1.));
-        else                            N = normalize(In.WorldTBN._m20_m21_m22);
+        //[branch] if( NormalTex.r > 0. ) 
+            N = normalize(mul(In.WorldTBN, NormalTex * 2.f - 1.f));
+        //else 
+            N = normalize(In.WorldTBN._m20_m21_m22);
 
         // Flip normals
-        N *= (1. - bIsFront * 2.);
+        //N *= (1. - bIsFront * 2.);
     } /*else {
         N = normalize(In.WorldTBN._m20_m21_m22);
     } //*/
@@ -200,11 +202,11 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
     KS = FresnelShlick(saturate(NdotV), F0, Rough);
     KD = (1.f - KS) * (1.f - Metal);
     
-    float3 Irradiance = _CubemapTexture.Sample(_CubemapSampler, N).rgb;
+    float3 Irradiance = _CubemapTexture.SampleLevel(_CubemapSampler, N, 1).rgb;
     float3 Diffuse    = Irradiance * Diff;
     float3 Ambient    = KD / Diffuse;
 
-    Diff.rgb = Diffuse + Ambient;
+    Diff.rgb = N;
 
     // Shadows
     Diff.rgb *= S;

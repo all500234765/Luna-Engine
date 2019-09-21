@@ -178,7 +178,7 @@ float4 main(PS In): SV_Target0 {
 
 	// Light
     float3 Light = (KD * _Albedo * InvPI + Spec) * Radiance * saturate(NdotL);
-
+    
     // IBL
     KS = FresnelShlick(saturate(NdotV2), F0);
     KD = (1.f - KS) * (1.f - _Metalness);

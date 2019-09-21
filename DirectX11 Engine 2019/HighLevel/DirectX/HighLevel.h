@@ -119,11 +119,11 @@ public:
 
         // Resize swapchain
         DXGI_MODE_DESC pModeDesc = {};
-        pModeDesc.Format = gDirectX->scd.Format;
-        pModeDesc.Width = gDirectX->scd.Width;
-        pModeDesc.Height = gDirectX->scd.Height;
-        pModeDesc.RefreshRate = gDirectX->pSCFDesc.RefreshRate;
-        pModeDesc.Scaling = gDirectX->pSCFDesc.Scaling;
+        pModeDesc.Format           = gDirectX->scd.Format;
+        pModeDesc.Width            = cfg.CurrentWidth;
+        pModeDesc.Height           = cfg.CurrentHeight;
+        pModeDesc.RefreshRate      = gDirectX->pSCFDesc.RefreshRate;
+        pModeDesc.Scaling          = gDirectX->pSCFDesc.Scaling;
         pModeDesc.ScanlineOrdering = gDirectX->pSCFDesc.ScanlineOrdering;
         //pModeDesc.Stereo = scd.Stereo;
 
@@ -138,7 +138,7 @@ public:
         BackBufferColor->Release(); // ?
 
         // Create depth texture
-        gDirectX->pTex2DDesc.Width = cfg.CurrentWidth;
+        gDirectX->pTex2DDesc.Width  = cfg.CurrentWidth;
         gDirectX->pTex2DDesc.Height = cfg.CurrentHeight;
         gDirectX->gDSVTex->Release();
         gDirectX->gDSV->Release();

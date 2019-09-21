@@ -1,5 +1,5 @@
 #ifndef __SAFE_DELETE__
-
+#define __SAFE_DELETE__
 
 #define SAFE_DELETE(x) if( x ) delete x;
 #define SAFE_RELEASE(x) if( x ) { x->Release(); SAFE_DELETE(x); }
