@@ -14,6 +14,20 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shBloomCS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shHorizontalFilterCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shLumDownscale1CS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shLumDownscale2CS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shMarchingCubesCS.hlsl">
       <ShaderType>Compute</ShaderType>
       <ExcludedFromBuild>true</ExcludedFromBuild>
@@ -26,6 +40,9 @@
       <ShaderType>Compute</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shParticles3DCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shVerticalFilterCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shHemisphereDS.hlsl">
@@ -177,8 +194,12 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTriangleVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\CS\DownscaleConstantBuffer.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\PS\fxaa.hlsli" />
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shRectanglePS.hlsl">
       <FileType>Document</FileType>

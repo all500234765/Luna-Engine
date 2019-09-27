@@ -7,8 +7,8 @@ cbuffer MatrixBuffer : register(b0) {
 cbuffer PrimitiveBuffer : register(b1) {
     float2 _PositionStart;
     float2 _PositionEnd;
+    float2 _Alignment;
     float1 _Radius;
     uint   _Vertices;
-    float2 _Alignment;
 };
 

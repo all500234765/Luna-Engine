@@ -82,19 +82,6 @@ public:
     ID3D11Debug *gDebug;
 #endif
 
-    // 2D Rendering
-    /*ID2D1HwndRenderTarget *g2DRT;
-
-    ID2D1Factory *g2DFactory;
-    IDWriteFactory *g2DWriteFactory;
-
-    // Uniques
-    IDWriteTextFormat *gTextFormat_Arial;
-    ID2D1SolidColorBrush *gSolidLimeBrush;
-
-    // Very uniques
-    IDWriteTextLayout *gTextLayout; // Per string and format - unique*/
-
     // Game state
     bool gPause, gAnselSessionIsActive;
     DirectX::XMMATRIX gViewBackup, gView;

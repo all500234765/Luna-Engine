@@ -4,7 +4,11 @@
 
 #include "Engine Includes/MainInclude.h"
 
+#include "Effects/HDRPostProcess.h"
+
 #pragma region Heap allocated instances
+HDRPostProcess *gHDRPostProcess;
+
 // Text
 Text *tTest;
 Font *fRegular;
@@ -448,11 +452,23 @@ bool _DirectX::FrameFunction() {
 
 #pragma endregion
 
+#pragma region HDR Pre-Processing Steps, Eye adaptation
+    gHDRPostProcess->Begin(bGBuffer);
+#pragma endregion
+
 #pragma region Render to screen, Final Post Process Pass
     gContext->OMSetRenderTargets(1, &gRTV, nullptr);
     
     shPostProcess->Bind();
 
+    // HDR Post Processing; Eye Adaptation; Bloom
+    gHDRPostProcess->BindFinalPass(Shader::Pixel, 0);
+    gHDRPostProcess->BindLuminance(Shader::Pixel, 4);
+    gHDRPostProcess->BindBloom(Shader::Pixel, 5);
+
+    sMipLinear->Bind(Shader::Pixel, 5);
+
+    // 
     c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
     c2DScreen->BuildConstantBuffer(); // Constant buffer
     c2DScreen->BindBuffer(Shader::Vertex, 0);
@@ -473,9 +489,14 @@ bool _DirectX::FrameFunction() {
     gContext->PSSetShaderResources(3, 1, &_ColorD->pSRV);
     sPoint->Bind(Shader::Pixel, 3);
 
+    // 
     gContext->Draw(6, 0);
 
 #pragma endregion
+
+    // Eye Adaptation
+    // Swap buffer data
+    gHDRPostProcess->End();
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -726,26 +747,39 @@ void _DirectX::ComposeUI() {
     // Create debug window
     ImGui::Begin("Debug");
     
-    ImGui::Button("Test button");
-
-    // Console
-    static std::string buf;
-    if( buf.size() == 0 ) {
-        buf.resize(50, ' ');
-    }
-
-    ImGui::InputText("", (char*)buf.data(), buf.size());
-    ImGui::SameLine();
-    if( ImGui::Button("Submit") ) {
-        std::cout << buf << std::endl;
-        // gDebugObject->ConsoleParse(buf);
-    }
-
     bIsWireframe ^= ImGui::Button("Wireframe");
     bDebugGUI    ^= ImGui::Button("Debug buffers");
 
+    // Eye Adaptation
+    static float White       = 1.53f;
+    static float MidGray     = .863f;
+    static float gAdaptation = 10.f;
+    static float gBloomScale = .74f;
+    static float gBloomThres = 1.1f;
+    
+    ImGui::DragFloat("White"          , &White      , .01f, 0.f, 6.f);
+    ImGui::DragFloat("Middle Gray"    , &MidGray    , .01f, 0.f, 6.f);
+    ImGui::DragFloat("Adaptation rate", &gAdaptation, .01f, 0.f, 10.f);
+    ImGui::DragFloat("Bloom Scale"    , &gBloomScale, .01f, 0.f, 2.f);
+    ImGui::DragFloat("Bloom Threshold", &gBloomThres, .01f, 0.f, 2.f);
 
+    // Update constant buffers
+    FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
+        __q->_LumWhiteSqr = White * White * MidGray * MidGray; //MidGray * MidGray * White * White;
+        __q->_MiddleGrey  = MidGray;
+        __q->_BloomScale  = gBloomScale;
+    gHDRPostProcess->UnmapFinalPass();
 
+    const WindowConfig& cfg = gWindow->GetCFG();
+    DownScaleInst* __c = gHDRPostProcess->MapDownScale();
+        __c->_Res            = { static_cast<uint32_t>(cfg.CurrentWidth / 4), static_cast<uint32_t>(cfg.CurrentHeight / 4) };
+        __c->_Domain         = __c->_Res.x * __c->_Res.y;
+        __c->_GroupSize      = __c->_Domain / 1024;
+        __c->_Adaptation     = gAdaptation / (float)this->cfg.RefreshRate;
+        __c->_BloomThreshold = gBloomThres;
+    gHDRPostProcess->UnmapDownScale();
+
+    // 
     ImGui::End();
     ImGui::Render();
 
@@ -776,6 +810,9 @@ void _DirectX::Resize() {
     bDeferred->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
     bShadows->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
     bZBuffer_Editor->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
+
+    // Resize HDR Post processing textures
+    gHDRPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
 
     // Resize text port
     gTextController->SetSize(static_cast<float>(cfg.CurrentWidth), static_cast<float>(cfg.CurrentHeight));
@@ -839,6 +876,8 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::Load() {
+    gHDRPostProcess = new HDRPostProcess;
+
 #pragma region Physics setup
     pColliderSphere = new PhysicsCollider(PhysicsShapeType::Sphere);
     pColliderPlane  = new PhysicsCollider(PhysicsShapeType::Plane);
@@ -1377,7 +1416,7 @@ void _DirectX::Load() {
     mScreenPlane->DisableDefaultTexture();
 
     mSpaceShip = new Model("Bunny model");
-    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Bunnies/bunny_metal.obj");
+    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Bunnies/Teapot_metal.obj");
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Shadow test model");
@@ -1417,11 +1456,12 @@ void _DirectX::Load() {
     //miSpaceShip->SetModel(mModel1);
     miSpaceShip->SetModel(mSpaceShip);
     miSpaceShip->SetShader(shSurface);
-    miSpaceShip->SetWorldMatrix(//DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(90.f)) *
-                                DirectX::XMMatrixTranslation(-1, -.25, 1) *
+    miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
+                                DirectX::XMMatrixTranslation(-1, -.25, 1)
                                 //DirectX::XMMatrixScaling(.0625, .0625, .0625)
                                 //DirectX::XMMatrixScaling(40, 10, 40)
-                                DirectX::XMMatrixScaling(40, 40, 40)
+                                //* DirectX::XMMatrixScaling(40, 40, 40)
+                                * DirectX::XMMatrixScaling(4, 4, 4)
                                 //DirectX::XMMatrixTranslation(-.5.f, -.5.f, 0.f)
     );
     //miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *
@@ -1462,6 +1502,8 @@ void _DirectX::Unload() {
 #if USE_HBAO_PLUS
     pAOContext->Release();
 #endif
+
+    delete gHDRPostProcess;
 
     // Release states
     rsFrontCull->Release();
@@ -1653,8 +1695,8 @@ int main() {
     winCFG.Borderless  = false;
     winCFG.Windowed    = true;
     winCFG.ShowConsole = true;
-    winCFG.Width       = 1024;
-    winCFG.Height      = 540;
+    winCFG.Width       = 1366;
+    winCFG.Height      = 768;
     winCFG.Title       = L"Editor - Luna Engine";
     winCFG.Icon        = L"Engine/Assets/Luna48.ico";
 

@@ -18,5 +18,6 @@ public:
 
     ID3D11DepthStencilView *GetTarget();
 
+    sRenderBuffer* GetColor0() override { return nullptr; }
     sRenderBuffer* GetDepth();
 };

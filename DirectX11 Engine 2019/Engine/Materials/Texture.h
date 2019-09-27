@@ -14,23 +14,31 @@ private:
     UINT flags;
     ID3D11Texture2D *pTexture = 0;
     ID3D11ShaderResourceView *pSRV = 0;
+    ID3D11UnorderedAccessView *pUAV = 0;
+
+    D3D11_TEXTURE2D_DESC pDesc;
+
 
 public:
     Texture();
-    Texture(std::string fname, UINT bpc = 8);
-    Texture(std::string fname, DXGI_FORMAT format);
+    Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV=false);
+    Texture(std::string fname, UINT bpc=8, bool UAV=false);
+    Texture(std::string fname, DXGI_FORMAT format, bool UAV=false);
 
-    void Load(std::string fname, UINT bpc=8);
-    void Load(std::string fname, DXGI_FORMAT format);
-    void Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch=0);
-    void Bind(Shader::ShaderType type, UINT slot=0);
+    void Load(std::string fname, UINT bpc=8, bool UAV=false);
+    void Load(std::string fname, DXGI_FORMAT format, bool UAV=false);
+    void Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch=0, bool UAV=false);
+    void Bind(Shader::ShaderType type, UINT slot=0, bool UAV=false);
     bool IsCreated();
     void Release();
 
     void SetName(const char* name) { _SetName(pTexture, name); }
 
+    void Resize(UINT Width, UINT Height, bool Save=false);
+
     int GetWidth();
     int GetHeight();
     ID3D11ShaderResourceView* GetSRV();
     ID3D11Texture2D* GetTexture();
+    inline ID3D11UnorderedAccessView* GetUAV() const { return pUAV; };
 };

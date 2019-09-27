@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Engine/DirectX/DirectX.h"
+#include "Engine/Extensions/Safe.h"
+
+#include <random>
 
 extern _DirectX *gDirectX;
 
@@ -9,7 +12,7 @@ namespace LunaEngine {
 #pragma region Compute Shader
     template<UINT dim>
     void CSDiscardUAV() {
-        ID3D11UnorderedAccessView *pEmpty[dim] = nullptr;
+        ID3D11UnorderedAccessView *pEmpty[dim] = { nullptr };
         gDirectX->gContext->CSSetUnorderedAccessViews(0, dim, pEmpty, 0);
     }
 
@@ -174,6 +177,20 @@ namespace LunaEngine {
     }
 #pragma endregion
     
+    namespace Random {
+        std::default_random_engine gGen;
+
+        float Gen01() {
+            std::uniform_real_distribution<float> dist(0, 1);
+            return dist(gGen);
+        }
+
+        float Gen11() {
+            std::uniform_real_distribution<float> dist(1, 1);
+            return dist(gGen);
+        }
+    }
+
 #pragma region Primitives
     namespace Draw {
         typedef float               float1;
@@ -185,8 +202,8 @@ namespace LunaEngine {
         typedef DirectX::XMMATRIX   mfloat4x4;
 
         enum PrimitiveType {
-            Noone, _Line, _Rectangle, _Circle, _Elipse, 
-            _CircleOuter
+            Noone, _Line, _Rectangle, _Circle, _Ellipse, _Triangle, 
+            _CircleOuter, 
         };
 
         struct PrimitiveColorBuffer {
@@ -196,9 +213,30 @@ namespace LunaEngine {
         struct PrimitiveBuffer {
             float2 _PositionStart;
             float2 _PositionEnd;
-            float1 _Radius;
-            UINT   _Vertices;
-            float2 _Alignment;
+            union {
+                struct {
+                    union {
+                        struct { // Circle
+                            float2 _Alignment_d;
+                            float1 _Radius;
+                        };
+
+                        struct { // Ellipse
+                            float2 _Radius2;
+                            float1 _Alignment_c;
+                        };
+                    };
+
+                    UINT _Vertices;
+                };
+                
+                struct { // Triangle
+                    float2 _Position3;
+                    float2 _Alignment_b;
+                };
+
+                float4 _Alignment_a;
+            };
         };
 
         struct MatrixBuffer {
@@ -215,6 +253,7 @@ namespace LunaEngine {
         static Shader               *shCircleOuter;
         static Shader               *shLine;
         static Shader               *shCircle;
+        static Shader               *shTriangle;
         static Shader               *shRectangle;
         static PrimitiveType         gLastPrimitive = PrimitiveType::Noone;
         static PrimitiveColorBuffer *gPrimColorBuff;
@@ -271,6 +310,10 @@ namespace LunaEngine {
             shCircle->LoadFile("shCircleVS.cso", Shader::Vertex);
             shCircle->AttachShader(shLine, Shader::Pixel);
 
+            shTriangle = new Shader();
+            shTriangle->LoadFile("shTriangleVS.cso", Shader::Vertex);
+            shTriangle->AttachShader(shLine, Shader::Pixel);
+
             shRectangle = new Shader();
             shRectangle->LoadFile("shRectangleVS.cso", Shader::Vertex);
             shRectangle->AttachShader(shLine, Shader::Pixel);
@@ -281,6 +324,8 @@ namespace LunaEngine {
 
             shCircleOuter->ReleaseBlobs();
             shRectangle->ReleaseBlobs();
+            shTriangle->ReleaseBlobs();
+            shCircle->ReleaseBlobs();
             shLine->ReleaseBlobs();
 
             // Create constant buffers
@@ -311,6 +356,7 @@ namespace LunaEngine {
         void Release() {
             SAFE_RELEASE(shCircleOuter);
             SAFE_RELEASE(shRectangle  );
+            SAFE_RELEASE(shTriangle   );
             SAFE_RELEASE(shCircle     );
             SAFE_RELEASE(shLine       );
 
@@ -318,7 +364,7 @@ namespace LunaEngine {
             SAFE_RELEASE(gPrimitiveBuffer   );
             SAFE_RELEASE(gMatrixBuffer      );
 
-            SAFE_DELETE(gConfig);
+            SAFE_DELETE(gConfig          );
             SAFE_DELETE(gMatrixBufferInst);
             SAFE_DELETE(gPrimColorBuff   );
         }
@@ -371,7 +417,7 @@ namespace LunaEngine {
         }
 
         void Circle(float x, float y, float r, UINT precision=32) {
-            if( Shader::GetBound() != shCircleOuter || gLastPrimitive != PrimitiveType::_Circle ) {
+            if( Shader::GetBound() != shCircle || gLastPrimitive != PrimitiveType::_Circle ) {
                 gLastPrimitive = PrimitiveType::_Circle;                                           // Update state
                 shCircle->Bind();                                                                  // Set shader
                 gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set topology
@@ -393,6 +439,29 @@ namespace LunaEngine {
             gDirectX->gContext->Draw(precision * 3 + 1, 0);
         }
         
+        void Triangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+            if( Shader::GetBound() != shTriangle || gLastPrimitive != PrimitiveType::_Triangle ) {
+                gLastPrimitive = PrimitiveType::_Triangle;                                         // Update state
+                shTriangle->Bind();                                                                // Set shader
+                gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set topology
+            }
+
+            // Update primitive buffer
+            PrimitiveBuffer *pBuff = (PrimitiveBuffer*)gPrimitiveBuffer->Map();
+                pBuff->_PositionStart = { x1, y1 };
+                pBuff->_PositionEnd   = { x2, y2 };
+                pBuff->_Position3     = { x3, y3 };
+            gPrimitiveBuffer->Unmap();
+
+            // Bind Buffers
+            BindMatrixBuffer();
+            gPrimitiveBuffer->Bind(Shader::Vertex, 1);
+            gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
+
+            // Draw call
+            gDirectX->gContext->Draw(3, 0);
+        }
+
         void CircleOuter(float x, float y, float r, UINT precision=32) {
             if( Shader::GetBound() != shCircleOuter || gLastPrimitive != PrimitiveType::_CircleOuter ) {
                 gLastPrimitive = PrimitiveType::_CircleOuter;                                   // Update state

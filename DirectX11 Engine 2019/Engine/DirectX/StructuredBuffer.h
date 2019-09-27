@@ -50,10 +50,10 @@ public:
 
         // Create SRV
         D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc = {};
-        pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-        pSRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+        pSRVDesc.ViewDimension       = D3D11_SRV_DIMENSION_BUFFER;
+        pSRVDesc.Format              = DXGI_FORMAT_UNKNOWN;
         pSRVDesc.Buffer.FirstElement = 0;
-        pSRVDesc.Buffer.NumElements = Number;
+        pSRVDesc.Buffer.NumElements  = Number;
 
         if( (hr = gDirectX->gDevice->CreateShaderResourceView(pBuff, &pSRVDesc, &pSRV)) != S_OK ) {
             std::cout << "Failed to create SRV for StructuredBuffer (error=" << hr << ")" << std::endl;
@@ -62,6 +62,8 @@ public:
 
         std::cout << "Successfully created SRV for " << (UAV ? "UAV " : "") << "StructuredBuffer" << std::endl;
     }
+
+    inline ID3D11UnorderedAccessView* GetUAV() const { return pUAV; };
 
     void Bind(Shader::ShaderType type, UINT slot) { Bind(static_cast<UINT>(type), slot); }
 
@@ -84,6 +86,7 @@ public:
     }
 
     void Release() {
+        if( pUAV ) pUAV->Release();
         if( pSRV ) pSRV->Release();
         if( pBuff ) pBuff->Release();
     }

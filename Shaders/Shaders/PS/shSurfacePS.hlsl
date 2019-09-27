@@ -202,11 +202,12 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
     KS = FresnelShlick(saturate(NdotV), F0, Rough);
     KD = (1.f - KS) * (1.f - Metal);
     
-    float3 Irradiance = _CubemapTexture.SampleLevel(_CubemapSampler, N, 1).rgb;
+    float3 Irradiance = _CubemapTexture.SampleLevel(_CubemapSampler, N.xzy, 1).rgb;
     float3 Diffuse    = Irradiance * Diff;
     float3 Ambient    = KD / Diffuse;
 
-    Diff.rgb = N;
+    Diff.rgb = Diffuse;
+    //Diff.rgb = N;
 
     // Shadows
     Diff.rgb *= S;

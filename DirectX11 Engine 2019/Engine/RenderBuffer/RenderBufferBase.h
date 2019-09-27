@@ -65,6 +65,9 @@ public:
     int GetHeight();
     int GetDepth();
 
+    virtual sRenderBuffer* GetColor0() = 0;
+    //virtual sRenderBuffer* GetDepth()  = 0;
+
     void BindTarget(sRenderBuffer* dRTV, sRenderBuffer* dDSV);
     void BindTarget(sRenderBuffer* data);
     void BindTarget(std::vector<sRenderBuffer*> dRTV, sRenderBuffer* dDSV);

@@ -10,10 +10,33 @@ SamplerState _ShadowSampler : register(s2);
 Texture2D _DeferredTexture    : register(t3);
 SamplerState _DeferredSampler : register(s3);
 
+cbuffer _FinalPass : register(b0) {
+    float _MiddleGrey;
+    float _LumWhiteSqr;
+    float _BloomScale;
+    float1 _Alignment;
+};
+
+StructuredBuffer<float> _AvgLum : register(t4);
+
+Texture2D<float4> _BloomTexture : register(t5);
+SamplerState _LinearSampler     : register(s5);
+
 struct PS {
     float4 Position : SV_Position;
     float2 Texcoord : TEXCOORD0;
 };
+
+static const float3 _LumFactor = { .299f, .587f, .114f };
+float3 EyeAdaptationNtoneMapping(float3 HDR) {
+    float3 LScale = dot(HDR, _LumFactor);
+
+    LScale *= _MiddleGrey / _AvgLum[0];
+    LScale = (LScale + LScale * LScale / _LumWhiteSqr) / (1.f + LScale);
+
+    // Apply lum scale
+    return HDR * LScale;
+}
 
 float3 _toneExposure(float3 vColor, float average) {
     float T = -pow(average, -1.f);
@@ -109,6 +132,12 @@ half4 main(PS In): SV_Target0 {
     // Tonemapping
     //Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
     //Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
+
+    // Bloom
+    Diff.rgb += _BloomScale * _BloomTexture.Sample(_LinearSampler, In.Texcoord);
+
+    // Eye Adaptation And Tonemapping
+    Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);
 
     // 
     return Diff;

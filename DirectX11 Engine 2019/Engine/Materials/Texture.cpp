@@ -3,15 +3,20 @@
 Texture::Texture() {
 }
 
-Texture::Texture(std::string fname, UINT bpc) {
-    Load(fname, bpc);
+Texture::Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV): w(Width), h(Height) {
+    channels = Format2Ch(format);
+    Create(nullptr, format, Format2BPP(format), 0, UAV);
 }
 
-Texture::Texture(std::string fname, DXGI_FORMAT format) {
-    Load(fname, format);
+Texture::Texture(std::string fname, UINT bpc, bool UAV) {
+    Load(fname, bpc, UAV);
 }
 
-void Texture::Load(std::string fname, UINT bpc) {
+Texture::Texture(std::string fname, DXGI_FORMAT format, bool UAV) {
+    Load(fname, format, UAV);
+}
+
+void Texture::Load(std::string fname, UINT bpc, bool UAV) {
     // TODO: Move to Filemanager class
     auto GetFileExtension = [](const std::string& FileName) {
         if( FileName.find_last_of(".") != std::string::npos )
@@ -97,7 +102,7 @@ void Texture::Load(std::string fname, UINT bpc) {
     }
 }
 
-void Texture::Load(std::string fname, DXGI_FORMAT format) {
+void Texture::Load(std::string fname, DXGI_FORMAT format, bool UAV) {
     // TODO: Move to Filemanager class
     auto GetFileExtension = [](const std::string& FileName) {
         if( FileName.find_last_of(".") != std::string::npos )
@@ -150,11 +155,10 @@ void Texture::Load(std::string fname, DXGI_FORMAT format) {
     }
 }
 
-void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch) {
-    bool bGenMips = true;
+void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch, bool UAV) {
+    bool bGenMips = (data != nullptr);
 
     // Create texture
-    D3D11_TEXTURE2D_DESC pDesc;
     pDesc.Width = w;
     pDesc.Height = h;
     pDesc.MipLevels = bGenMips ? 0 : 1;
@@ -163,13 +167,18 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch) 
     pDesc.SampleDesc.Count = 1;
     pDesc.SampleDesc.Quality = 0;
     pDesc.Usage = D3D11_USAGE_DEFAULT;
-    pDesc.BindFlags = (bGenMips ? D3D11_BIND_RENDER_TARGET : 0) | D3D11_BIND_SHADER_RESOURCE;
+    pDesc.BindFlags = (bGenMips ? D3D11_BIND_RENDER_TARGET : 0) | D3D11_BIND_SHADER_RESOURCE | (UAV ? D3D11_BIND_UNORDERED_ACCESS : 0);
     pDesc.CPUAccessFlags = 0;
     pDesc.MiscFlags = bGenMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
     
+    // Allocate memory
+    if( !data ) {
+        data = malloc(w * h * bpp / 8);
+    }
+
     D3D11_SUBRESOURCE_DATA pData;
-    pData.pSysMem = data;
-    pData.SysMemPitch = UINT(bpp * w / 8);
+    pData.pSysMem          = data;
+    pData.SysMemPitch      = UINT(bpp * w / 8);
     pData.SysMemSlicePitch = SlicePitch;
 
     // Create texture
@@ -177,6 +186,22 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch) 
     if( FAILED(res) ) {
         std::cout << "Failed to create texture!" << std::endl;
         return;
+    }
+
+    // Create UAV
+    if( UAV ) {
+        D3D11_UNORDERED_ACCESS_VIEW_DESC pUAVDesc = {};
+        pUAVDesc.ViewDimension       = D3D11_UAV_DIMENSION_TEXTURE2D;
+        pUAVDesc.Format              = pDesc.Format;
+        pUAVDesc.Texture2D.MipSlice  = 0;
+
+        HRESULT hr = S_OK;
+        if( (hr = gDirectX->gDevice->CreateUnorderedAccessView(pTexture, &pUAVDesc, &pUAV)) != S_OK ) {
+            std::cout << "Failed to create UAV for Texture2D (error=" << hr << ")" << std::endl;
+            return;
+        }
+
+        std::cout << "Successfully created UAV for Texture2D" << std::endl;
     }
 
     // Create SRV
@@ -217,15 +242,21 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch) 
     }
 }
 
-void Texture::Bind(Shader::ShaderType type, UINT slot) {
+void Texture::Bind(Shader::ShaderType type, UINT slot, bool UAV) {
     if( !pSRV ) { return; }
-    switch( type ) {
-        case Shader::Vertex  : gDirectX->gContext->VSSetShaderResources(slot, 1, &pSRV); break;
-        case Shader::Pixel   : gDirectX->gContext->PSSetShaderResources(slot, 1, &pSRV); break;
-        case Shader::Geometry: gDirectX->gContext->GSSetShaderResources(slot, 1, &pSRV); break;
-        case Shader::Hull    : gDirectX->gContext->HSSetShaderResources(slot, 1, &pSRV); break;
-        case Shader::Domain  : gDirectX->gContext->DSSetShaderResources(slot, 1, &pSRV); break;
-        case Shader::Compute : gDirectX->gContext->CSSetShaderResources(slot, 1, &pSRV); break;
+
+    if( type & Shader::Vertex   ) gDirectX->gContext->VSSetShaderResources(slot, 1, &pSRV);
+    if( type & Shader::Pixel    ) gDirectX->gContext->PSSetShaderResources(slot, 1, &pSRV);
+    if( type & Shader::Geometry ) gDirectX->gContext->GSSetShaderResources(slot, 1, &pSRV);
+    if( type & Shader::Hull     ) gDirectX->gContext->HSSetShaderResources(slot, 1, &pSRV);
+    if( type & Shader::Domain   ) gDirectX->gContext->DSSetShaderResources(slot, 1, &pSRV);
+    if( type & Shader::Compute  ) {
+        if( UAV ) {
+            UINT pInitial = { 0 };
+            gDirectX->gContext->CSSetUnorderedAccessViews(slot, 1, &pUAV, &pInitial);
+        } else {
+            gDirectX->gContext->CSSetShaderResources(slot, 1, &pSRV);
+        }
     }
 }
 
@@ -236,6 +267,88 @@ bool Texture::IsCreated() {
 void Texture::Release() {
     if( pTexture ) pTexture->Release();
     if( pSRV ) pSRV->Release();
+    if( pUAV ) pUAV->Release();
+}
+
+void Texture::Resize(UINT Width, UINT Height, bool Save) {
+    bool bGenMips = !pDesc.MipLevels;
+
+    pDesc.Width = Width;
+    pDesc.Height = Height;
+
+    // Recreate texture
+    if( pTexture ) {
+        // Save old data
+        ID3D11Texture2D *pTextureTemp;
+        gDirectX->gDevice->CreateTexture2D(&pDesc, nullptr, &pTextureTemp);
+        gDirectX->gContext->CopyResource(pTextureTemp, pTexture);
+
+        // Recreate texture
+        pTexture->Release();
+        gDirectX->gDevice->CreateTexture2D(&pDesc, nullptr, &pTexture);
+
+        // Re-create SRV
+        D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
+        ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+        pSRVDesc.Format                    = pDesc.Format;
+        pSRVDesc.Texture2D.MipLevels       = -1;
+        pSRVDesc.Texture2D.MostDetailedMip = 0;
+        pSRVDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+
+        HRESULT res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
+        if( FAILED(res) ) {
+            std::cout << "Failed to create shader resource view!" << std::endl;
+            return;
+        }
+
+        // Restore old data
+        if( !bGenMips ) {
+            gDirectX->gContext->CopyResource(pTexture, pTextureTemp);
+        } else {
+            ID3D11Texture2D *pStaging = 0;
+            CD3D11_TEXTURE2D_DESC pStagingDesc(pDesc.Format, w, h, 1, 1, 0, D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ, 1, 0, 0);
+
+            res = gDirectX->gDevice->CreateTexture2D(&pStagingDesc, nullptr, &pStaging);
+            if( FAILED(res) ) {
+                std::cout << "Failed to create staging texture!" << std::endl;
+                return;
+            }
+
+            // 
+            gDirectX->gContext->CopyResource(pStaging, pTextureTemp);
+
+            // 
+            gDirectX->gContext->CopyResource(pStaging, pTexture);
+            //gDirectX->gContext->CopySubresourceRegion(pTexture, 0, 0, 0, 0, pStaging, 0, nullptr);
+            pStaging->Release();
+
+            // 
+            //gDirectX->gContext->UpdateSubresource(pTexture, 0, nullptr, data, pData.SysMemPitch, 0);
+
+            // Generate mips for texture
+            gDirectX->gContext->GenerateMips(pSRV);
+        }
+
+        // Delete temp texture
+        pTextureTemp->Release();
+    }
+
+    if( pUAV ) {
+        D3D11_UNORDERED_ACCESS_VIEW_DESC pUAVDesc = {};
+        pUAVDesc.ViewDimension      = D3D11_UAV_DIMENSION_TEXTURE2D;
+        pUAVDesc.Format             = pDesc.Format;
+        pUAVDesc.Texture2D.MipSlice = 0;
+
+        pUAV->Release();
+
+        HRESULT hr = S_OK;
+        if( (hr = gDirectX->gDevice->CreateUnorderedAccessView(pTexture, &pUAVDesc, &pUAV)) != S_OK ) {
+            std::cout << "Failed to re-create UAV for Texture2D (error=" << hr << ")" << std::endl;
+            return;
+        }
+
+        std::cout << "Successfully re-created UAV for Texture2D" << std::endl;
+    }
 }
 
 int Texture::GetWidth() {
