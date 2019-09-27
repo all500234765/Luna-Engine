@@ -2,6 +2,7 @@
 
 #include "Engine/DirectX/DirectX.h"
 #include "Engine/Extensions/Safe.h"
+#include "Engine/Utility/Timer.h"
 
 #include <random>
 

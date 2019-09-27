@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ostream>
+#include <iostream>
 
 class TimerLog {
 protected:
@@ -8,11 +8,12 @@ protected:
 
     template<typename T>
     void Log(const char* name, T us) {
-        mStream << "[" << name << "] Performed in: " << us << "us | " << (us * .001) << "ms" << std::endl;
+        //mStream
+        std::cout << "[" << name << "] Performed in: " << us << "us | " << (us * .001) << "ms" << std::endl;
     }
 
 private:
-    std::ostream &mStream;
+    //std::ostream &mStream;
 
 public:
     TimerLog();

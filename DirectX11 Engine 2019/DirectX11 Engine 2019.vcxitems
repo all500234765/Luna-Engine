@@ -110,6 +110,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\TextController.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\TextFactory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\DataBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\TimerLog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Vertices.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />

@@ -7,6 +7,8 @@
 #include "Effects/HDRPostProcess.h"
 
 #pragma region Heap allocated instances
+TimerLog *gTimerLog = new TimerLog;
+
 HDRPostProcess *gHDRPostProcess;
 
 // Text
@@ -33,7 +35,7 @@ ModelInstance *mLevel1, *mDunes, *mCornellBox, *mSkybox, *miSpaceShip;
 // Textures and materials
 Texture *tDefault, *tBlueNoiseRG, *tClearPixel, *tOpacityDefault, *tSpecularDefault;
 DiffuseMap *mDefaultDiffuse;
-Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougness;
+Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougness, *sLinear;
 
 Material *mDefault;
 
@@ -453,7 +455,10 @@ bool _DirectX::FrameFunction() {
 #pragma endregion
 
 #pragma region HDR Pre-Processing Steps, Eye adaptation
-    gHDRPostProcess->Begin(bGBuffer);
+    {
+        //Timer timer("HDR Post Process");
+        gHDRPostProcess->Begin(bGBuffer);
+    }
 #pragma endregion
 
 #pragma region Render to screen, Final Post Process Pass
@@ -466,7 +471,7 @@ bool _DirectX::FrameFunction() {
     gHDRPostProcess->BindLuminance(Shader::Pixel, 4);
     gHDRPostProcess->BindBloom(Shader::Pixel, 5);
 
-    sMipLinear->Bind(Shader::Pixel, 5);
+    sLinear->Bind(Shader::Pixel, 5);
 
     // 
     c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
@@ -757,11 +762,11 @@ void _DirectX::ComposeUI() {
     static float gBloomScale = .74f;
     static float gBloomThres = 1.1f;
     
-    ImGui::DragFloat("White"          , &White      , .01f, 0.f, 6.f);
-    ImGui::DragFloat("Middle Gray"    , &MidGray    , .01f, 0.f, 6.f);
+    ImGui::DragFloat("White"          , &White      , .01f, 0.f, 60.f);
+    ImGui::DragFloat("Middle Gray"    , &MidGray    , .01f, 0.f, 60.f);
     ImGui::DragFloat("Adaptation rate", &gAdaptation, .01f, 0.f, 10.f);
-    ImGui::DragFloat("Bloom Scale"    , &gBloomScale, .01f, 0.f, 2.f);
-    ImGui::DragFloat("Bloom Threshold", &gBloomThres, .01f, 0.f, 2.f);
+    ImGui::DragFloat("Bloom Scale"    , &gBloomScale, .01f, 0.f, 4.f);
+    ImGui::DragFloat("Bloom Threshold", &gBloomThres, .01f, 0.f, 10.f);
 
     // Update constant buffers
     FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
@@ -877,6 +882,7 @@ void _DirectX::Resize() {
 
 void _DirectX::Load() {
     gHDRPostProcess = new HDRPostProcess;
+    TimerLog::SetTimerLog(gTimerLog);
 
 #pragma region Physics setup
     pColliderSphere = new PhysicsCollider(PhysicsShapeType::Sphere);
@@ -1132,6 +1138,11 @@ void _DirectX::Load() {
     // Linear mip rougness sampler
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = 0.;
     sMipLinearRougness->Create(pDesc);
+
+    // Linear
+    sLinear = new Sampler();
+    pDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    sLinear->Create(pDesc);
 
     // Anisotropic mip sampler
     pDesc.Filter = D3D11_FILTER_MAXIMUM_ANISOTROPIC;
@@ -1416,7 +1427,7 @@ void _DirectX::Load() {
     mScreenPlane->DisableDefaultTexture();
 
     mSpaceShip = new Model("Bunny model");
-    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Bunnies/Teapot_metal.obj");
+    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/LevelModelOBJ.obj");
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Shadow test model");
@@ -1449,7 +1460,9 @@ void _DirectX::Load() {
     mSkybox->SetModel(mModel3);
     mSkybox->SetShader(shSkybox);
     mSkybox->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(-90.f)) * 
-                            DirectX::XMMatrixScaling(1000, 1000, 1000));
+                            //DirectX::XMMatrixScaling(1000, 1000, 1000)
+                            DirectX::XMMatrixScaling(1, 1, 1)
+    );
 
     // Space ship
     miSpaceShip = new ModelInstance();
@@ -1459,9 +1472,9 @@ void _DirectX::Load() {
     miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
                                 DirectX::XMMatrixTranslation(-1, -.25, 1)
                                 //DirectX::XMMatrixScaling(.0625, .0625, .0625)
-                                //DirectX::XMMatrixScaling(40, 10, 40)
-                                //* DirectX::XMMatrixScaling(40, 40, 40)
-                                * DirectX::XMMatrixScaling(4, 4, 4)
+                                * DirectX::XMMatrixScaling(.5, .5, .5)
+                                //DirectX::XMMatrixScaling(400, 400, 400)
+                                //* DirectX::XMMatrixScaling(4, 4, 4)
                                 //DirectX::XMMatrixTranslation(-.5.f, -.5.f, 0.f)
     );
     //miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *
@@ -1503,6 +1516,7 @@ void _DirectX::Unload() {
     pAOContext->Release();
 #endif
 
+    delete gTimerLog;
     delete gHDRPostProcess;
 
     // Release states
