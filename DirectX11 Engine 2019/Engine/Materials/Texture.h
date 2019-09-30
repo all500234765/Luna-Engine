@@ -17,17 +17,17 @@ private:
     ID3D11UnorderedAccessView *pUAV = 0;
 
     D3D11_TEXTURE2D_DESC pDesc;
-
+    bool bDepth;
 
 public:
     Texture();
-    Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV=false);
+    Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV=false, bool Depth=false);
     Texture(std::string fname, UINT bpc=8, bool UAV=false);
     Texture(std::string fname, DXGI_FORMAT format, bool UAV=false);
 
-    void Load(std::string fname, UINT bpc=8, bool UAV=false);
-    void Load(std::string fname, DXGI_FORMAT format, bool UAV=false);
-    void Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch=0, bool UAV=false);
+    void Load(std::string fname, UINT bpc=8, bool UAV=false, bool bGenMips=false);
+    void Load(std::string fname, DXGI_FORMAT format, bool UAV=false, bool bGenMips=false);
+    void Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch=0, bool UAV=false, bool bGenMips2=false);
     void Bind(Shader::ShaderType type, UINT slot=0, bool UAV=false);
     bool IsCreated();
     void Release();
@@ -42,3 +42,5 @@ public:
     ID3D11Texture2D* GetTexture();
     inline ID3D11UnorderedAccessView* GetUAV() const { return pUAV; };
 };
+
+// TODO: Different amount of channels support

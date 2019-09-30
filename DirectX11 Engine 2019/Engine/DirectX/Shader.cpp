@@ -18,12 +18,12 @@ Shader::Shader() {
 void Shader::SetNullShader(ShaderType type) {
     // Create shader
     switch( type ) {
-        case Vertex: sVertex = 0; break;
-        case Pixel: sPixel = 0; break;
+        case Vertex  : sVertex   = 0; break;
+        case Pixel   : sPixel    = 0; break;
         case Geometry: sGeometry = 0; break;
-        case Hull: sHull = 0; break;
-        case Domain: sDomain = 0; break;
-        case Compute: sCompute = 0; break;
+        case Hull    : sHull     = 0; break;
+        case Domain  : sDomain   = 0; break;
+        case Compute : sCompute  = 0; break;
     }
 
     // Shader was compiled natively
@@ -60,6 +60,14 @@ bool Shader::LoadFile(std::string fname, ShaderType type) {
         std::cout << "Can't create shader! (" << type << ")" << std::endl;
         return 1;
     }
+
+    // Show message about succ loaded shader
+    const char* gcShaderName[] = {
+        "Vertex", "Pixel", "Geometry", 
+        "Hull", "Domain", "Compute"
+    };
+
+    std::cout << "Successfully loaded " << fname << " file as " << gcShaderName[(int)log2((int)type)] << " shader type" << std::endl;
 
     // Shader was compiled natively
     Type |= type;

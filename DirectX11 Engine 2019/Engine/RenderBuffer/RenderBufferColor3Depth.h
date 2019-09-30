@@ -40,5 +40,5 @@ public:
     sRenderBuffer* GetColor0();
     sRenderBuffer* GetColor1();
     sRenderBuffer* GetColor2();
-    sRenderBuffer* GetDepth();
+    sRenderBuffer* GetDepthB();
 };

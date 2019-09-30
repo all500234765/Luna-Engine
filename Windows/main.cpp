@@ -199,7 +199,7 @@ bool _DirectX::FrameFunction() {
 
     float Clear[4] = { .2f, .2f, .2f, 1.f }; // RGBA
     float Clear0[4] = { 0.f, 0.f, 0.f, 1.f }; // RGBA black
-    gContext->ClearRenderTargetView(gRTV, Clear);
+    gContext->ClearRenderTargetView(gRTV, Clear0);
     gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
     // Ansel session
@@ -325,8 +325,8 @@ bool _DirectX::FrameFunction() {
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     gContext->RSSetState(gRSDefault);
 
-    sRenderBuffer* _Depth2 = bDepth->GetDepth();     // Shadow map
-    sRenderBuffer* _Depth  = bGBuffer->GetDepth();   // Depth
+    sRenderBuffer* _Depth2 = bDepth->GetDepthB();    // Shadow map
+    sRenderBuffer* _Depth  = bGBuffer->GetDepthB();  // Depth
     sRenderBuffer* _Color0 = bGBuffer->GetColor0();  // Diffuse
     sRenderBuffer* _Color1 = bGBuffer->GetColor1();  // Normal
     sRenderBuffer* _Color2 = bGBuffer->GetColor2();  // Specular
@@ -466,10 +466,13 @@ bool _DirectX::FrameFunction() {
     
     shPostProcess->Bind();
 
-    // HDR Post Processing; Eye Adaptation; Bloom
+    // HDR Post Processing; Eye Adaptation; Bloom; Depth of Field
     gHDRPostProcess->BindFinalPass(Shader::Pixel, 0);
     gHDRPostProcess->BindLuminance(Shader::Pixel, 4);
     gHDRPostProcess->BindBloom(Shader::Pixel, 5);
+    gHDRPostProcess->BindBlur(Shader::Pixel, 6);
+
+    bGBuffer->BindResource(_Depth, Shader::Pixel, 7);
 
     sLinear->Bind(Shader::Pixel, 5);
 
@@ -575,8 +578,8 @@ bool _DirectX::FrameFunction() {
     gSwapchain->Present(1, 0);
     return false;
 }
-
-float fSpeed = 20.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
+ 
+float fSpeed = 200.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
 float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
@@ -756,23 +759,48 @@ void _DirectX::ComposeUI() {
     bDebugGUI    ^= ImGui::Button("Debug buffers");
 
     // Eye Adaptation
-    static float White       = 1.53f;
-    static float MidGray     = .863f;
-    static float gAdaptation = 10.f;
-    static float gBloomScale = .74f;
-    static float gBloomThres = 1.1f;
-    
-    ImGui::DragFloat("White"          , &White      , .01f, 0.f, 60.f);
-    ImGui::DragFloat("Middle Gray"    , &MidGray    , .01f, 0.f, 60.f);
-    ImGui::DragFloat("Adaptation rate", &gAdaptation, .01f, 0.f, 10.f);
-    ImGui::DragFloat("Bloom Scale"    , &gBloomScale, .01f, 0.f, 4.f);
-    ImGui::DragFloat("Bloom Threshold", &gBloomThres, .01f, 0.f, 10.f);
+    static float White        = 21.53f;
+    static float MidGray      = 20.863f;
+    static float gAdaptation  = 5.f;
+    static float gBloomScale  = 1.73f;
+    static float gBloomThres  = 10.f;
+    static float gFarStart    = 10.f;
+    static float gFarRange    = 6.f;
+    static float gBokehThreshold   = .5f;
+    static float gBokehColorScale  = .5f;
+    static float gBokehRadiusScale = .5f;
+
+    ImGui::SliderFloat("White"          , &White       , 0.f, 60.f);
+    ImGui::SliderFloat("Middle Gray"    , &MidGray     , 0.f, 60.f);
+    ImGui::SliderFloat("Adaptation rate", &gAdaptation , 0.f, 10.f);
+    ImGui::SliderFloat("Bloom Scale"    , &gBloomScale , 0.f, 4.f);
+    ImGui::SliderFloat("Bloom Threshold", &gBloomThres , 0.f, 10.f);
+    ImGui::SliderFloat("Far start"      , &gFarStart   , 0.f, 10.f);
+    ImGui::SliderFloat("Far range"      , &gFarRange   , 1.f, 5.f);
+    ImGui::SliderFloat("Bokeh Threshold", &gBokehThreshold, 0.f, 1.f);
+    ImGui::SliderFloat("Bokeh Color Scale", &gBokehColorScale, 0.f, 1.f);
+    ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f, 1.f);
+
+    // 
+    float4x4 dest;
+    DirectX::XMStoreFloat4x4(&dest, cPlayer->GetProjMatrix());
+
+    float fNear = cPlayer->GetParams().fNear;
+
+    // float fQ = g_Camera.GetFarClip() / (g_Camera.GetFarClip() - g_Camera.GetNearClip());
+    // pDownScale->ProjectionValues[0] = -g_Camera.GetNearClip() * fQ;
+    // pDownScale->ProjectionValues[1] = -fQ;
 
     // Update constant buffers
     FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
         __q->_LumWhiteSqr = White * White * MidGray * MidGray; //MidGray * MidGray * White * White;
         __q->_MiddleGrey  = MidGray;
         __q->_BloomScale  = gBloomScale;
+        __q->_ProjectedValues = { 1.f / fNear };
+        __q->_DoFFarValues    = { gFarStart, 1.f / gFarRange };
+        __q->_BokehThreshold  = gBokehThreshold;
+        __q->_ColorScale      = gBokehColorScale;
+        __q->_RadiusScale     = gBokehRadiusScale;
     gHDRPostProcess->UnmapFinalPass();
 
     const WindowConfig& cfg = gWindow->GetCFG();
@@ -1470,9 +1498,9 @@ void _DirectX::Load() {
     miSpaceShip->SetModel(mSpaceShip);
     miSpaceShip->SetShader(shSurface);
     miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
-                                DirectX::XMMatrixTranslation(-1, -.25, 1)
+                                DirectX::XMMatrixTranslation(-500, -50, 500)
                                 //DirectX::XMMatrixScaling(.0625, .0625, .0625)
-                                * DirectX::XMMatrixScaling(.5, .5, .5)
+                                //* DirectX::XMMatrixScaling(.125, .125, .125)
                                 //DirectX::XMMatrixScaling(400, 400, 400)
                                 //* DirectX::XMMatrixScaling(4, 4, 4)
                                 //DirectX::XMMatrixTranslation(-.5.f, -.5.f, 0.f)

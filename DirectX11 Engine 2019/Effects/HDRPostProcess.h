@@ -2,6 +2,13 @@
 
 #include "Engine Includes/MainInclude.h"
 
+// (WIP)
+// Eye adaptation
+// Bloom
+// Depth of Field
+// Bokeh
+// 
+
 struct DownScaleInst {
     // Res of downscaled target: x - width, y - height
     uint2 _Res; // Backbuffer / 4
@@ -20,31 +27,78 @@ struct DownScaleInst {
 };
 
 struct FinalPassInst {
+    // Eye adaptation / HDR
     float1 _MiddleGrey;
     float1 _LumWhiteSqr;
+
+    // Bloom
     float1 _BloomScale;
-    float1 _Alignment;
+
+    // DoF
+    // _ProjValues.x = ;
+    float1 _ProjectedValues; // _ProjValues.y / _ProjValues.x
+    float2 _DoFFarValues;
+
+    // Bokeh
+    float1 _ColorScale;
+    float1 _RadiusScale;
+    float1 _BokehThreshold;
+
+    float3 _Alignment;
 };
 
 class HDRPostProcess {
 private:
+    struct BokehBuffer {
+        float2 _Position;
+        float1 _Radius;
+        float4 _Color;
+    };
+
+    struct _IndirectArgs {
+        UINT _Args[4];
+    };
+
+    struct _Geometry {
+        float1 _AspectRatio; // w / h
+        float3 _Padding;
+    };
+
     Shader *shLuminanceDownScale1; // Dispatch(Width * Height / (16 * 1024), 1, 1);
     Shader *shLuminanceDownScale2; // Dispatch(1, 1, 1);
     Shader *shBloom;               // Dispatch(Width * Height / (16 * 1024), 1, 1);
     Shader *shVerticalFilter;      // Dispatch(Width / 16, Height / (16 * (128 - 12)) + 1, 1);
     Shader *shHorizontalFilter;    // Dispatch(ceil(Width / (16 * (128 - 12))), Height / 16, 1);
+    Shader *shBloomReveal;         // Dispatch(ceil(Width * Height / 1024.f)
+    Shader *shBokeh;               // VS, GS, PS
+    Shader *shEmptyShader;         // Nothing is bound here. It clears shader state
 
     ConstantBuffer *cbDownScale;
     ConstantBuffer *cbFinalPass;
+    ConstantBuffer *cbGeometry;
     
     StructuredBuffer<float1> *sbILuminance; // Intermidiate luminance
     StructuredBuffer<float1> *sbALuminance; // Average luminance
     StructuredBuffer<float1> *sbPLuminance; // Previous luminance
 
-    Texture *_HDRDS; // HDR Downsampled
-    Texture *_Bloom; // Bloom texture
-    Texture *_Bloom2; // Bloom filtered
+    StructuredBuffer<_IndirectArgs> *sbBokehIndirect; // For Indirect instanced rendering
+    AppendStructuredBuffer<BokehBuffer> *abBokeh;     // Bokeh buffer
 
+    Texture *_HDRDS;   // HDR Downsampled
+    Texture *_Bloom;   // Bloom texture
+    Texture *_Bloom2;  // Bloom Intermidiate filtered
+    Texture *_Blur;    // Blur In / Out
+    Texture *_BlurOut; // Blur Intermidiate
+    
+    Texture *_BokehTex; // Bokeh texture
+
+    BlendState *_OldState, *_NewState;
+    Sampler *_LinearSampler;
+
+    // Saves last RT's size.
+    // So we can apply other effects too
+    float fWidth;
+    float fHeight;
 public:
     HDRPostProcess() {
         // Create resources
@@ -65,6 +119,10 @@ public:
         cbFinalPass = new ConstantBuffer();
         cbFinalPass->CreateDefault(sizeof(FinalPassInst));
 
+        // 
+        cbGeometry = new ConstantBuffer();
+        cbGeometry->CreateDefault(sizeof(_Geometry));
+
         // Shaders
         shLuminanceDownScale1 = new Shader();
         shLuminanceDownScale1->LoadFile("shLumDownscale1CS.cso", Shader::Compute);
@@ -81,6 +139,24 @@ public:
         shVerticalFilter = new Shader();
         shVerticalFilter->LoadFile("shVerticalFilterCS.cso", Shader::Compute);
         shVerticalFilter->ReleaseBlobs();
+
+        shBloomReveal = new Shader();
+        shBloomReveal->LoadFile("shBloomRevealCS.cso", Shader::Compute);
+        shBloomReveal->ReleaseBlobs();
+
+        shEmptyShader = new Shader();
+        shEmptyShader->SetNullShader(Shader::Vertex);
+        shEmptyShader->SetNullShader(Shader::Geometry);
+        shEmptyShader->SetNullShader(Shader::Pixel);
+        shEmptyShader->SetNullShader(Shader::Hull);
+        shEmptyShader->SetNullShader(Shader::Domain);
+        shEmptyShader->SetNullShader(Shader::Compute);
+
+        shBokeh = new Shader();
+        shBokeh->LoadFile("shBokehVS.cso", Shader::Vertex);
+        shBokeh->LoadFile("shBokehGS.cso", Shader::Geometry);
+        shBokeh->LoadFile("shBokehPS.cso", Shader::Pixel);
+        shBokeh->ReleaseBlobs();
 
         shBloom = new Shader();
         shBloom->LoadFile("shBloomCS.cso", Shader::Compute);
@@ -108,11 +184,60 @@ public:
 
         sbPLuminance->CreateDefault(1, &_PLumData[0], true);
 
+        // Bokeh indirect buffer
+        abBokeh = new AppendStructuredBuffer<BokehBuffer>();
+        sbBokehIndirect = new StructuredBuffer<_IndirectArgs>();
+
+        std::vector<BokehBuffer> _BokehBuff;
+        _BokehBuff.resize(128);
+
+        _IndirectArgs _Indirect = { 0, 1, 0, 0 };
+
+        abBokeh->CreateDefault(128, nullptr, true, 0, false);
+        sbBokehIndirect->CreateDefault(1, &_Indirect, false, 0, true);
+
         // Create UAV textures
-        DXGI_FORMAT format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-        _HDRDS  = new Texture(Width, Height, format, true);
-        _Bloom  = new Texture(Width, Height, format, true);
-        _Bloom2 = new Texture(Width, Height, format, true);
+        DXGI_FORMAT format1 = DXGI_FORMAT_R16G16B16A16_FLOAT, 
+                    format2 = DXGI_FORMAT_R32_FLOAT;
+        _HDRDS   = new Texture(Width, Height, format1, true);
+        _Bloom   = new Texture(Width, Height, format1, true);
+        _Bloom2  = new Texture(Width, Height, format1, true);
+        _Blur    = new Texture(Width, Height, format1, true);
+        _BlurOut = new Texture(Width, Height, format1, true);
+
+        _BokehTex = new Texture();
+        _BokehTex->Load("../Textures/Bokeh.dds", DXGI_FORMAT_R8_UNORM, false, true);
+        
+        // Create blend state
+        _NewState = new BlendState();
+        D3D11_BLEND_DESC pDesc;
+        pDesc.AlphaToCoverageEnable          = false;
+        pDesc.IndependentBlendEnable         = false;
+        pDesc.RenderTarget[0].BlendEnable    = true;
+        pDesc.RenderTarget[0].SrcBlend       = D3D11_BLEND_SRC_ALPHA;
+        pDesc.RenderTarget[0].DestBlend      = D3D11_BLEND_INV_SRC_ALPHA;
+        pDesc.RenderTarget[0].BlendOp        = D3D11_BLEND_OP_ADD;
+        pDesc.RenderTarget[0].SrcBlendAlpha  = D3D11_BLEND_ONE;
+        pDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+        pDesc.RenderTarget[0].BlendOpAlpha   = D3D11_BLEND_OP_ADD;
+        pDesc.RenderTarget[0].RenderTargetWriteMask = D3D10_COLOR_WRITE_ENABLE_ALL;
+
+        _NewState->Create(pDesc, { 0.f, 0.f, 0.f, 1.f });
+
+        // Create sampler state
+        _LinearSampler = new Sampler();
+        D3D11_SAMPLER_DESC pSamplerDesc;
+        pSamplerDesc.Filter         = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        pSamplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pSamplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pSamplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pSamplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+        pSamplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
+        pSamplerDesc.MinLOD         = 0;
+        pSamplerDesc.MipLODBias     = 0;
+        pSamplerDesc.MaxAnisotropy  = 16;
+
+        _LinearSampler->Create(pSamplerDesc);
     };
 
     ~HDRPostProcess() {
@@ -121,35 +246,64 @@ public:
         shLuminanceDownScale2->Release();
         shHorizontalFilter->Release();
         shVerticalFilter->Release();
+        shBloomReveal->Release();
+        shEmptyShader->Release();
+        shBokeh->Release();
         shBloom->Release();
 
         sbILuminance->Release();
         sbALuminance->Release();
 
+        sbBokehIndirect->Release();
+        abBokeh->Release();
+        
         cbDownScale->Release();
         cbFinalPass->Release();
+        cbGeometry->Release();
 
         _HDRDS->Release();
         _Bloom->Release();
         _Bloom2->Release();
+        _Blur->Release();
+        _BlurOut->Release();
+        _BokehTex->Release();
+
+        _NewState->Release();
+        _LinearSampler->Release();
+
+        delete _NewState;
+        delete _LinearSampler;
 
         delete shLuminanceDownScale1;
         delete shLuminanceDownScale2;
         delete shHorizontalFilter;
         delete shVerticalFilter;
+        delete shBloomReveal;
+        delete shEmptyShader;
+        delete shBokeh;
         delete shBloom;
 
         delete sbILuminance;
         delete sbALuminance;
 
+        delete sbBokehIndirect;
+        delete abBokeh;
+
         delete cbDownScale;
         delete cbFinalPass;
+        delete cbGeometry;
 
         delete _HDRDS;
         delete _Bloom;
         delete _Bloom2;
+        delete _Blur;
+        delete _BlurOut;
+        delete _BokehTex;
     };
 
+    // Render Buffer MUST contain
+    //  - Diffuse HDR texture in slot 0
+    //  - Depth buffer
     void Begin(RenderBufferBase *RB) {
         // Avg luminance pass
         // 1st Pass
@@ -158,14 +312,14 @@ public:
         _HDRDS->Bind(Shader::Compute, 1, true);                // RWTexture2D; _HDRDS
         cbDownScale->Bind(Shader::Compute, 0);                 // CB
         
-        float fWidth  = RB->GetWidth();
-        float fHeight = RB->GetHeight();
+        fWidth  = RB->GetWidth();
+        fHeight = RB->GetHeight();
         UINT X = ceil(fWidth * fHeight / (16.f * 1024.f));
         shLuminanceDownScale1->Dispatch(X, 1, 1);
         
         // Unbind slots
         LunaEngine::CSDiscardUAV<2>();
-        LunaEngine::CSDiscardSRV<1>();
+        LunaEngine::CSDiscardSRV<2>();
         LunaEngine::CSDiscardCB <1>();
 
         // 2nd Pass
@@ -189,6 +343,9 @@ public:
 
         shBloom->Dispatch(X, 1, 1);
 
+        // Copy _HDRDS to _Blur
+        gDirectX->gContext->CopyResource(_Blur->GetTexture(), _HDRDS->GetTexture());
+
         // Unbind slots
         LunaEngine::CSDiscardUAV<2>();
         LunaEngine::CSDiscardSRV<1>();
@@ -206,6 +363,7 @@ public:
         LunaEngine::CSDiscardSRV<1>();
         LunaEngine::CSDiscardCB <1>();
 
+        //////////////////////////// Bloom Blur ////////////////////////////
         // Horizontal pass
         cbDownScale->Bind(Shader::Compute, 0);       // CB
         _Bloom2->Bind(Shader::Compute, 0);           // Texture2D; _Input
@@ -217,6 +375,58 @@ public:
         LunaEngine::CSDiscardUAV<2>();
         LunaEngine::CSDiscardSRV<1>();
         LunaEngine::CSDiscardCB <1>();
+
+        // Vertical pass
+        cbDownScale->Bind(Shader::Compute, 0);        // CB
+        _Bloom->Bind(Shader::Compute, 0);             // Texture2D; _Input
+        _Bloom2->Bind(Shader::Compute, 0, true);      // RWTexture2D; _Output
+
+        shHorizontalFilter->Dispatch((UINT)ceil(RB->GetWidth() / (4.f * (128.f - 12.f))), (UINT)ceil(RB->GetHeight() / 4.f), 1);
+
+        // Unbind slots
+        LunaEngine::CSDiscardUAV<2>();
+        LunaEngine::CSDiscardSRV<1>();
+        LunaEngine::CSDiscardCB <1>();
+
+        //////////////////////////// Depth Of Field Blur ////////////////////////////
+        // Horizontal pass
+        cbDownScale->Bind(Shader::Compute, 0);       // CB
+        _Blur->Bind(Shader::Compute, 0);             // Texture2D; _Input
+        _BlurOut->Bind(Shader::Compute, 0, true);    // RWTexture2D; _Output
+
+        shVerticalFilter->Dispatch((UINT)ceil(fWidth / 4.f), (UINT)ceil(fHeight / (4.f * (128.f - 12.f))), 1);
+
+        // Unbind slots
+        LunaEngine::CSDiscardUAV<2>();
+        LunaEngine::CSDiscardSRV<1>();
+        LunaEngine::CSDiscardCB <1>();
+
+        // Vertical pass
+        cbDownScale->Bind(Shader::Compute, 0);        // CB
+        _BlurOut->Bind(Shader::Compute, 0);           // Texture2D; _Input
+        _Blur->Bind(Shader::Compute, 0, true);        // RWTexture2D; _Output
+
+        shHorizontalFilter->Dispatch((UINT)ceil(RB->GetWidth() / (4.f * (128.f - 12.f))), (UINT)ceil(RB->GetHeight() / 4.f), 1);
+
+        // Unbind slots
+        LunaEngine::CSDiscardUAV<2>();
+        LunaEngine::CSDiscardSRV<1>();
+        LunaEngine::CSDiscardCB <1>();
+
+        //////////////////////////// Bokeh reveal ////////////////////////////
+        RB->BindResource(RB->GetColor0(), Shader::Compute, 0); // Texture2D; SRV
+        RB->BindResource(RB->GetDepthB(), Shader::Compute, 1); // Texture2D; SRV
+        sbALuminance->Bind(Shader::Compute, 2);                // SRV
+        cbDownScale->Bind(Shader::Compute, 0);                 // CB
+        cbFinalPass->Bind(Shader::Compute, 1);                 // CB
+        abBokeh->Bind(Shader::Compute, 0, true);               // UAV
+
+        shBloomReveal->Dispatch((UINT)ceil(fWidth * fHeight / 1024.f), 1, 1);
+
+        // Unbind slots
+        LunaEngine::CSDiscardUAV<1>();
+        LunaEngine::CSDiscardSRV<3>();
+        LunaEngine::CSDiscardCB <2>();
     }
 
     // On Post-Processing Step use next 2 functions
@@ -232,15 +442,55 @@ public:
         _Bloom->Bind(shader, slot);
     }
 
+    void BindBlur(Shader::ShaderType shader=Shader::Pixel, UINT slot=6) {
+        _Blur->Bind(shader, slot);
+    }
+
     void End() {
         gDirectX->gContext->CopyResource(sbPLuminance->GetBuffer(), sbALuminance->GetBuffer());
+
+        // Update constant buffer
+        _Geometry *dbGeometry = (_Geometry*)cbGeometry->Map();
+            dbGeometry->_AspectRatio = fWidth / fHeight;
+        cbGeometry->Unmap();
+
+        // Copy amount of appended highlights, so we can render them
+        gDirectX->gContext->CopyStructureCount(sbBokehIndirect->GetBuffer(), 0, abBokeh->GetUAV());
+
+        // Update states
+        _OldState = BlendState::Current();
+        _NewState->Bind();
+
+        shBokeh->Bind();
+
+        gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+        gDirectX->gContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+        gDirectX->gContext->IASetInputLayout(nullptr);
+        gDirectX->gContext->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+
+        // Bind resources
+        //_Blur->Bind(Shader::Pixel, 0);
+        _BokehTex->Bind(Shader::Pixel, 0);
+        _LinearSampler->Bind(Shader::Pixel, 0);
+        abBokeh->Bind(Shader::Vertex, 0);
+        cbGeometry->Bind(Shader::Geometry, 0);
+
+        // Render bokeh
+        gDirectX->gContext->DrawInstancedIndirect(sbBokehIndirect->GetBuffer(), 0);
+
+        // Restore old state
+        shEmptyShader->Bind();
+        if( _OldState ) _OldState->Bind();
+        gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     }
 
     // Resize
     void Resize(UINT Width, UINT Height) {
-        _HDRDS->Resize(Width / 4, Height / 4);
-        _Bloom->Resize(Width / 4, Height / 4);
-        _Bloom2->Resize(Width / 4, Height / 4);
+        _HDRDS->Resize(  Width / 4, Height / 4);
+        _Bloom->Resize(  Width / 4, Height / 4);
+        _Bloom2->Resize( Width / 4, Height / 4);
+        _BlurOut->Resize(Width / 4, Height / 4);
+        _Blur->Resize(   Width / 4, Height / 4);
     }
 
     // Update constant buffers

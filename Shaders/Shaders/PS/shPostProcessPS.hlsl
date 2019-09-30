@@ -11,21 +11,48 @@ Texture2D _DeferredTexture    : register(t3);
 SamplerState _DeferredSampler : register(s3);
 
 cbuffer _FinalPass : register(b0) {
-    float _MiddleGrey;
-    float _LumWhiteSqr;
-    float _BloomScale;
-    float1 _Alignment;
+    // Eye adaptation / HDR
+    float1 _MiddleGrey;
+    float1 _LumWhiteSqr;
+
+    // Bloom
+    float1 _BloomScale;
+
+    // DoF
+    // _ProjValues.x = ;
+    float1 _ProjValues; // _ProjValues.y / _ProjValues.x
+    float2 _DoFFarValues;
+
+    // Bokeh
+    float1 _ColorScale;
+    float1 _RadiusScale;
+    float1 _BokehThreshold;
+
+    float3 _Alignment;
 };
 
 StructuredBuffer<float> _AvgLum : register(t4);
 
 Texture2D<float4> _BloomTexture : register(t5);
+Texture2D<float4> _BlurTexture  : register(t6);
+Texture2D<float1> _DepthTexture : register(t7);
+
 SamplerState _LinearSampler     : register(s5);
 
 struct PS {
     float4 Position : SV_Position;
     float2 Texcoord : TEXCOORD0;
 };
+
+float Depth2Linear(float z) {
+    return _ProjValues * z;
+}
+
+float3 DistDoF(float3 focus, float3 blur, float depth) {
+    // Calculate CoC and lerp between colors based on CoC
+    float CoC = saturate((depth - _DoFFarValues.x) * _DoFFarValues.y);
+    return lerp(focus, blur, CoC);
+}
 
 static const float3 _LumFactor = { .299f, .587f, .114f };
 float3 EyeAdaptationNtoneMapping(float3 HDR) {
@@ -107,7 +134,7 @@ half4 main(PS In): SV_Target0 {
     _Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
 
     // 
-    half4 Diff = _Texture.Sample(_Sampler, In.Texcoord);
+    half4 Diff = pow(_Texture.Sample(_Sampler, In.Texcoord), 1.f / 2.2f);
 
     if( Diff.a < .5f ) { discard; }
 
@@ -132,6 +159,21 @@ half4 main(PS In): SV_Target0 {
     // Tonemapping
     //Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
     //Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
+
+    // Depth of Field
+    float depth = _DepthTexture.Sample(_LinearSampler, In.Texcoord);
+
+    // We don't wanna process far plane pixels
+    [flatten] if( depth < 1.f ) {
+        // Convert depth to linear space
+        depth = Depth2Linear(depth);
+
+        // Get blurred color
+        float3 Blur = _BlurTexture.Sample(_LinearSampler, In.Texcoord);
+
+        // Compute final color
+        Diff.rgb = DistDoF(Diff.rgb, Blur, depth);
+    }
 
     // Bloom
     Diff.rgb += _BloomScale * _BloomTexture.Sample(_LinearSampler, In.Texcoord);

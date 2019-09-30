@@ -11,7 +11,9 @@ void BlendState::Create(D3D11_BLEND_DESC pDesc, DirectX::XMFLOAT4 f, UINT Sample
 
 void BlendState::Bind() {
     if( !pState ) { return; }
-    float f[4] = {Factor.x, Factor.y, Factor.z, Factor.w};
+    gBlendState = this;
+
+    float f[4] = { Factor.x, Factor.y, Factor.z, Factor.w };
 
     gDirectX->gContext->OMSetBlendState(pState, f, SampleMask);
 }
@@ -19,3 +21,5 @@ void BlendState::Bind() {
 void BlendState::Release() {
     if( pState ) pState->Release();
 }
+
+BlendState* BlendState::gBlendState = nullptr;

@@ -18,6 +18,9 @@
       <FileType>Document</FileType>
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shBloomRevealCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shHorizontalFilterCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
@@ -54,6 +57,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shUnitsphereDS.hlsl">
       <ShaderType>Domain</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shBokehGS.hlsl">
+      <ShaderType>Geometry</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shFurGS.hlsl">
       <ShaderType>Geometry</ShaderType>
     </FxCompile>
@@ -71,6 +77,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\HS\shTerrainHS.hlsl">
       <ShaderType>Hull</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shBokehPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDeferredFinalPS.hlsl">
       <ShaderType>Pixel</ShaderType>
@@ -119,6 +128,12 @@
       <ShaderType>Pixel</ShaderType>
       <FileType>Document</FileType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTest.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <AssemblerOutput>AssemblyCodeAndHex</AssemblerOutput>
+      <AssemblerOutputFile>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).asm</AssemblerOutputFile>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextEffectsPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -139,6 +154,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shUnitSpherePS.hlsl">
       <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shBokehVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shCircleOuterVS.hlsl">
       <FileType>Document</FileType>

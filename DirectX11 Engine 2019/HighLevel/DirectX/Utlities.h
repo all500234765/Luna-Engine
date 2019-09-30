@@ -25,8 +25,8 @@ namespace LunaEngine {
 
     template<UINT dim>
     void CSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = nullptr;
-        gDirectX->gContext->CSSetConstantBuffers(0, dim, pEmpty, 0);
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->CSSetConstantBuffers(0, dim, pEmpty);
     }
 
     template<>
@@ -37,8 +37,8 @@ namespace LunaEngine {
 
     template<UINT dim>
     void CSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = nullptr;
-        gDirectX->gContext->CSSetShaderResources(0, dim, pEmpty, 0);
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->CSSetShaderResources(0, dim, pEmpty);
     }
 
     template<>
@@ -51,8 +51,8 @@ namespace LunaEngine {
 #pragma region Vertex Shader
     template<UINT dim>
     void VSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = nullptr;
-        gDirectX->gContext->VSSetConstantBuffers(0, dim, pEmpty, 0);
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->VSSetConstantBuffers(0, dim, pEmpty);
     }
 
     template<>
@@ -63,8 +63,8 @@ namespace LunaEngine {
 
     template<UINT dim>
     void VSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = nullptr;
-        gDirectX->gContext->VSSetShaderResources(0, dim, pEmpty, 0);
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->VSSetShaderResources(0, dim, pEmpty);
     }
 
     template<>
@@ -77,8 +77,8 @@ namespace LunaEngine {
 #pragma region Pixel Shader
     template<UINT dim>
     void PSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = nullptr;
-        gDirectX->gContext->PSSetConstantBuffers(0, dim, pEmpty, 0);
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->PSSetConstantBuffers(0, dim, pEmpty);
     }
 
     template<>
@@ -89,8 +89,8 @@ namespace LunaEngine {
 
     template<UINT dim>
     void PSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = nullptr;
-        gDirectX->gContext->PSSetShaderResources(0, dim, pEmpty, 0);
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->PSSetShaderResources(0, dim, pEmpty);
     }
 
     template<>
@@ -103,8 +103,8 @@ namespace LunaEngine {
 #pragma region Geometry Shader
     template<UINT dim>
     void GSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = nullptr;
-        gDirectX->gContext->GSSetConstantBuffers(0, dim, pEmpty, 0);
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->GSSetConstantBuffers(0, dim, pEmpty);
     }
 
     template<>
@@ -115,8 +115,8 @@ namespace LunaEngine {
 
     template<UINT dim>
     void GSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = nullptr;
-        gDirectX->gContext->GSSetShaderResources(0, dim, pEmpty, 0);
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->GSSetShaderResources(0, dim, pEmpty);
     }
 
     template<>
@@ -129,8 +129,8 @@ namespace LunaEngine {
 #pragma region Hull Shader
     template<UINT dim>
     void HSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = nullptr;
-        gDirectX->gContext->HSSetConstantBuffers(0, dim, pEmpty, 0);
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->HSSetConstantBuffers(0, dim, pEmpty);
     }
 
     template<>
@@ -141,8 +141,8 @@ namespace LunaEngine {
 
     template<UINT dim>
     void HSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = nullptr;
-        gDirectX->gContext->HSSetShaderResources(0, dim, pEmpty, 0);
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->HSSetShaderResources(0, dim, pEmpty);
     }
 
     template<>
@@ -155,8 +155,8 @@ namespace LunaEngine {
 #pragma region Domain Shader
     template<UINT dim>
     void DSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = nullptr;
-        gDirectX->gContext->DSSetConstantBuffers(0, dim, pEmpty, 0);
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->DSSetConstantBuffers(0, dim, pEmpty);
     }
 
     template<>
@@ -167,8 +167,8 @@ namespace LunaEngine {
 
     template<UINT dim>
     void DSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = nullptr;
-        gDirectX->gContext->DSSetShaderResources(0, dim, pEmpty, 0);
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->DSSetShaderResources(0, dim, pEmpty);
     }
 
     template<>
@@ -374,7 +374,7 @@ namespace LunaEngine {
         inline float4 GetColor() { return gPrimColorBuff->_Color; }
 
         void Line(float x1, float y1, float x2, float y2) {
-            if( Shader::GetBound() != shLine || gLastPrimitive != PrimitiveType::_Line ) {
+            if( Shader::Current() != shLine || gLastPrimitive != PrimitiveType::_Line ) {
                 gLastPrimitive = PrimitiveType::_Line;                                         // Update state
                 shLine->Bind();                                                                // Set shader
                 gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST); // Set topology
@@ -396,7 +396,7 @@ namespace LunaEngine {
         }
 
         void Rectangle(float x1, float y1, float x2, float y2) {
-            if( Shader::GetBound() != shRectangle || gLastPrimitive != PrimitiveType::_Rectangle ) {
+            if( Shader::Current() != shRectangle || gLastPrimitive != PrimitiveType::_Rectangle ) {
                 gLastPrimitive = PrimitiveType::_Rectangle;                                        // Update state
                 shRectangle->Bind();                                                               // Set shader
                 gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set topology
@@ -418,7 +418,7 @@ namespace LunaEngine {
         }
 
         void Circle(float x, float y, float r, UINT precision=32) {
-            if( Shader::GetBound() != shCircle || gLastPrimitive != PrimitiveType::_Circle ) {
+            if( Shader::Current() != shCircle || gLastPrimitive != PrimitiveType::_Circle ) {
                 gLastPrimitive = PrimitiveType::_Circle;                                           // Update state
                 shCircle->Bind();                                                                  // Set shader
                 gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set topology
@@ -441,7 +441,7 @@ namespace LunaEngine {
         }
         
         void Triangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-            if( Shader::GetBound() != shTriangle || gLastPrimitive != PrimitiveType::_Triangle ) {
+            if( Shader::Current() != shTriangle || gLastPrimitive != PrimitiveType::_Triangle ) {
                 gLastPrimitive = PrimitiveType::_Triangle;                                         // Update state
                 shTriangle->Bind();                                                                // Set shader
                 gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set topology
@@ -464,7 +464,7 @@ namespace LunaEngine {
         }
 
         void CircleOuter(float x, float y, float r, UINT precision=32) {
-            if( Shader::GetBound() != shCircleOuter || gLastPrimitive != PrimitiveType::_CircleOuter ) {
+            if( Shader::Current() != shCircleOuter || gLastPrimitive != PrimitiveType::_CircleOuter ) {
                 gLastPrimitive = PrimitiveType::_CircleOuter;                                   // Update state
                 shCircleOuter->Bind();                                                          // Set shader
                 gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP); // Set topology

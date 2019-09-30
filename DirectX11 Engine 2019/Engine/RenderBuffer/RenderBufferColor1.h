@@ -17,4 +17,5 @@ public:
     void SetName(const char* name) { _SetName(sColor0->pTexture2D, name); }
 
     sRenderBuffer* GetColor0();
+    sRenderBuffer* GetDepthB() override { return nullptr; }
 };

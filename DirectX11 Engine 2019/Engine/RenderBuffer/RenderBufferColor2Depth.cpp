@@ -72,6 +72,6 @@ sRenderBuffer* RenderBufferColor2Depth::GetColor1() {
     return sColor1;
 }
 
-sRenderBuffer* RenderBufferColor2Depth::GetDepth() {
+sRenderBuffer* RenderBufferColor2Depth::GetDepthB() {
     return sDepth;
 }

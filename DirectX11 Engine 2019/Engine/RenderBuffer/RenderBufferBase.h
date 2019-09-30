@@ -66,7 +66,7 @@ public:
     int GetDepth();
 
     virtual sRenderBuffer* GetColor0() = 0;
-    //virtual sRenderBuffer* GetDepth()  = 0;
+    virtual sRenderBuffer* GetDepthB() = 0;
 
     void BindTarget(sRenderBuffer* dRTV, sRenderBuffer* dDSV);
     void BindTarget(sRenderBuffer* data);

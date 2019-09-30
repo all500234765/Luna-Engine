@@ -25,7 +25,7 @@ float DownScale4x4(uint2 CurPixel, uint groupThreadID) {
 
         DownScaled *= 1.f / 16.f;
 
-        // Downscale HDR
+        // Store downscaled HDR
         _HDRDS[CurPixel] = DownScaled;
 
         // Calc luminance

@@ -18,7 +18,7 @@ void main(uint3 GroupID : SV_GroupID, uint GroupIndex : SV_GroupIndex) {
     int2 coord = int2(GroupIndex - KernelHalf + (GroupThreads - KernelHalf * 2) * GroupID.x, GroupID.y);
     coord = clamp(coord, 0, _Res - 1);
 
-    _SharedInput[GroupIndex] = _Input.Load( int3(coord, 0) );  
+    _SharedInput[GroupIndex] = _Input.Load(int3(coord, 0));
 
     // Sync
     GroupMemoryBarrierWithGroupSync();

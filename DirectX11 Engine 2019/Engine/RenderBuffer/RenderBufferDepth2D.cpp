@@ -26,6 +26,6 @@ ID3D11DepthStencilView* RenderBufferDepth2D::GetTarget() {
     return sDepth->pDSV;
 }
 
-sRenderBuffer* RenderBufferDepth2D::GetDepth() {
+sRenderBuffer* RenderBufferDepth2D::GetDepthB() {
     return sDepth;
 }

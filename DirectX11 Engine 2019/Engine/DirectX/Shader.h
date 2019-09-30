@@ -35,7 +35,7 @@ private:
     char Type = 0 /* Original */, Linked = 0 /* Linked from another shader */;
 
 public:
-    static Shader* GetBound() { return gBoundShader; };
+    static Shader* Current() { return gBoundShader; };
 
     typedef enum {
         Vertex   = 1, 
