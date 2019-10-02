@@ -759,33 +759,38 @@ void _DirectX::ComposeUI() {
     bDebugGUI    ^= ImGui::Button("Debug buffers");
 
     // Eye Adaptation
-    static float White        = 21.53f;
-    static float MidGray      = 20.863f;
-    static float gAdaptation  = 5.f;
-    static float gBloomScale  = 1.73f;
-    static float gBloomThres  = 10.f;
-    static float gFarStart    = 10.f;
-    static float gFarRange    = 6.f;
+    static float White             = 21.53f;
+    static float MidGray           = 20.863f;
+    static float gAdaptation       = 5.f;
+    static float gBloomScale       = 1.73f;
+    static float gBloomThres       = 10.f;
+    static float gFarStart         = 300.f;
+    static float gFarRange         = 60.f;
     static float gBokehThreshold   = .5f;
     static float gBokehColorScale  = .5f;
     static float gBokehRadiusScale = .5f;
 
-    ImGui::SliderFloat("White"          , &White       , 0.f, 60.f);
-    ImGui::SliderFloat("Middle Gray"    , &MidGray     , 0.f, 60.f);
-    ImGui::SliderFloat("Adaptation rate", &gAdaptation , 0.f, 10.f);
-    ImGui::SliderFloat("Bloom Scale"    , &gBloomScale , 0.f, 4.f);
-    ImGui::SliderFloat("Bloom Threshold", &gBloomThres , 0.f, 10.f);
-    ImGui::SliderFloat("Far start"      , &gFarStart   , 0.f, 10.f);
-    ImGui::SliderFloat("Far range"      , &gFarRange   , 1.f, 5.f);
-    ImGui::SliderFloat("Bokeh Threshold", &gBokehThreshold, 0.f, 1.f);
-    ImGui::SliderFloat("Bokeh Color Scale", &gBokehColorScale, 0.f, 1.f);
-    ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f, 1.f);
+    ImGui::SliderFloat("White"             , &White            , 0.f,  60.f);
+    ImGui::SliderFloat("Middle Gray"       , &MidGray          , 0.f,  60.f);
+    ImGui::SliderFloat("Adaptation rate"   , &gAdaptation      , 0.f,  10.f);
+    ImGui::SliderFloat("Bloom Scale"       , &gBloomScale      , 0.f,   4.f);
+    ImGui::SliderFloat("Bloom Threshold"   , &gBloomThres      , 0.f,  10.f);
+    ImGui::SliderFloat("Far start"         , &gFarStart        , 0.f, 400.f);
+    ImGui::SliderFloat("Far range"         , &gFarRange        , 1.f, 150.f);
+    ImGui::SliderFloat("Bokeh Threshold"   , &gBokehThreshold  , 0.f,   1.f);
+    ImGui::SliderFloat("Bokeh Color Scale" , &gBokehColorScale , 0.f,   1.f);
+    ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f,   1.f);
+
+    const float gFarScale = 100.f;
 
     // 
     float4x4 dest;
     DirectX::XMStoreFloat4x4(&dest, cPlayer->GetProjMatrix());
 
-    float fNear = cPlayer->GetParams().fNear;
+    CameraConfig c_cfg = cPlayer->GetParams();
+    float fNear = c_cfg.fNear;
+    float fFar  = c_cfg.fFar;
+    float fQ = fFar / (fNear - fFar);
 
     // float fQ = g_Camera.GetFarClip() / (g_Camera.GetFarClip() - g_Camera.GetNearClip());
     // pDownScale->ProjectionValues[0] = -g_Camera.GetNearClip() * fQ;
@@ -793,11 +798,11 @@ void _DirectX::ComposeUI() {
 
     // Update constant buffers
     FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
-        __q->_LumWhiteSqr = White * White * MidGray * MidGray; //MidGray * MidGray * White * White;
+        __q->_LumWhiteSqr = White * White * MidGray * MidGray;
         __q->_MiddleGrey  = MidGray;
         __q->_BloomScale  = gBloomScale;
-        __q->_ProjectedValues = { 1.f / fNear };
-        __q->_DoFFarValues    = { gFarStart, 1.f / gFarRange };
+        __q->_ProjectedValues = { fNear * fQ, fQ };
+        __q->_DoFFarValues    = { gFarStart * gFarScale, 1.f / (gFarRange * gFarScale) };
         __q->_BokehThreshold  = gBokehThreshold;
         __q->_ColorScale      = gBokehColorScale;
         __q->_RadiusScale     = gBokehRadiusScale;

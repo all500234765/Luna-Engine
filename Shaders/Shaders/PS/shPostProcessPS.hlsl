@@ -17,10 +17,12 @@ cbuffer _FinalPass : register(b0) {
 
     // Bloom
     float1 _BloomScale;
+    
+    float1 _Alignment2;
 
     // DoF
     // _ProjValues.x = ;
-    float1 _ProjValues; // _ProjValues.y / _ProjValues.x
+    float2 _ProjValues; // _ProjValues.y / _ProjValues.x
     float2 _DoFFarValues;
 
     // Bokeh
@@ -28,7 +30,7 @@ cbuffer _FinalPass : register(b0) {
     float1 _RadiusScale;
     float1 _BokehThreshold;
 
-    float3 _Alignment;
+    float1 _Alignment3;
 };
 
 StructuredBuffer<float> _AvgLum : register(t4);
@@ -45,7 +47,7 @@ struct PS {
 };
 
 float Depth2Linear(float z) {
-    return _ProjValues * z;
+    return _ProjValues.x / (z + _ProjValues.y);
 }
 
 float3 DistDoF(float3 focus, float3 blur, float depth) {

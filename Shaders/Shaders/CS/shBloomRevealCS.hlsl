@@ -3,9 +3,9 @@ Texture2D<float> _Depth : register(t1);
 StructuredBuffer<float> _AvgLum : register(t2);
 
 struct TBokeh {
+    float4 _Color;
     float2 _Position;
     float1 _Radius;
-    float4 _Color;
 };
 
 AppendStructuredBuffer<TBokeh> _BokehBuffer : register(u0);
@@ -20,9 +20,11 @@ cbuffer _FinalPass : register(b1) {
     // Bloom
     float1 _BloomScale;
 
+    float1 _Alignment2;
+
     // DoF
     // _ProjValues.x = ;
-    float1 _ProjValues; // _ProjValues.y / _ProjValues.x
+    float2 _ProjValues; // _ProjValues.y / _ProjValues.x
     float2 _DoFFarValues;
 
     // Bokeh
@@ -30,11 +32,11 @@ cbuffer _FinalPass : register(b1) {
     float1 _RadiusScale;
     float1 _BokehThreshold;
 
-    float3 _Alignment2;
+    float1 _Alignment3;
 };
 
 float Depth2Linear(float z) {
-    return _ProjValues * z;
+    return _ProjValues.x / (z + _ProjValues.y);
 }
 
 float3 CircleOfConfusion(float depth) {

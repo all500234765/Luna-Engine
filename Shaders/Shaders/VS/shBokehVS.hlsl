@@ -1,7 +1,7 @@
 struct TBokeh {
+    float4 _Color;
     float2 _Position;
     float1 _Radius;
-    float4 _Color;
 };
 
 StructuredBuffer<TBokeh> _Bokeh : register(t0);

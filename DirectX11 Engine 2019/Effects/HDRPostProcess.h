@@ -34,9 +34,11 @@ struct FinalPassInst {
     // Bloom
     float1 _BloomScale;
 
+    float1 _Alignment2;
+
     // DoF
     // _ProjValues.x = ;
-    float1 _ProjectedValues; // _ProjValues.y / _ProjValues.x
+    float2 _ProjectedValues; // _ProjValues.y / _ProjValues.x
     float2 _DoFFarValues;
 
     // Bokeh
@@ -44,15 +46,15 @@ struct FinalPassInst {
     float1 _RadiusScale;
     float1 _BokehThreshold;
 
-    float3 _Alignment;
+    float1 _Alignment;
 };
 
 class HDRPostProcess {
 private:
     struct BokehBuffer {
+        float4 _Color;
         float2 _Position;
         float1 _Radius;
-        float4 _Color;
     };
 
     struct _IndirectArgs {
@@ -188,9 +190,6 @@ public:
         abBokeh = new AppendStructuredBuffer<BokehBuffer>();
         sbBokehIndirect = new StructuredBuffer<_IndirectArgs>();
 
-        std::vector<BokehBuffer> _BokehBuff;
-        _BokehBuff.resize(128);
-
         _IndirectArgs _Indirect = { 0, 1, 0, 0 };
 
         abBokeh->CreateDefault(128, nullptr, true, 0, false);
@@ -206,7 +205,7 @@ public:
         _BlurOut = new Texture(Width, Height, format1, true);
 
         _BokehTex = new Texture();
-        _BokehTex->Load("../Textures/Bokeh.dds", DXGI_FORMAT_R8_UNORM, false, true);
+        _BokehTex->Load("../Textures/Bokeh.dds", DXGI_FORMAT_R8_UNORM, false, false);
         
         // Create blend state
         _NewState = new BlendState();
@@ -446,6 +445,7 @@ public:
         _Blur->Bind(shader, slot);
     }
 
+    // After post-processing
     void End() {
         gDirectX->gContext->CopyResource(sbPLuminance->GetBuffer(), sbALuminance->GetBuffer());
 
@@ -464,9 +464,9 @@ public:
         shBokeh->Bind();
 
         gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+        gDirectX->gContext->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
         gDirectX->gContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
         gDirectX->gContext->IASetInputLayout(nullptr);
-        gDirectX->gContext->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
 
         // Bind resources
         //_Blur->Bind(Shader::Pixel, 0);

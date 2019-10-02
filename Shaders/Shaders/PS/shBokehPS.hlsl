@@ -1,4 +1,4 @@
-Texture2D<float4> _BokehTex : register(t0);
+Texture2D<float1> _BokehTex : register(t0);
 SamplerState _LinearSampler : register(s0);
 
 struct PS {
@@ -8,5 +8,5 @@ struct PS {
 };
 
 float4 main(PS In) : SV_Target0 {
-    return In.Color * _BokehTex.Sample(_LinearSampler, In.Texcoord);
+    return float4(0.f, 0.f, 0.f, 1.f); //In.Color * _BokehTex.Sample(_LinearSampler, In.Texcoord);
 }

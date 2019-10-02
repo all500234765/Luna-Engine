@@ -198,7 +198,7 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch, 
     D3D11_SUBRESOURCE_DATA pData;
     pData.pSysMem          = data;
     pData.SysMemPitch      = UINT(bpp * w / 8);
-    pData.SysMemSlicePitch = SlicePitch;
+    pData.SysMemSlicePitch = SlicePitch*0;
 
     // Create texture
     auto res = gDirectX->gDevice->CreateTexture2D(&pDesc, bGenMips ? nullptr : &pData, &pTexture);
