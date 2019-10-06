@@ -8,5 +8,5 @@ struct PS {
 };
 
 float4 main(PS In) : SV_Target0 {
-    return float4(0.f, 0.f, 0.f, 1.f); //In.Color * _BokehTex.Sample(_LinearSampler, In.Texcoord);
+    return In.Color * _BokehTex.Sample(_LinearSampler, In.Texcoord);
 }

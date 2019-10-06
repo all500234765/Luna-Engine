@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\HDRPostProcess.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSAOPostProcess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\ConstantBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectX.h" />

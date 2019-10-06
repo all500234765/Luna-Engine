@@ -82,7 +82,7 @@ public:
         if( type & Shader::Domain   ) gDirectX->gContext->DSSetShaderResources(slot, 1, &pSRV);
         if( type & Shader::Compute  ) {
             if( UAV ) {
-                UINT pInitial = { 0 };
+                UINT pInitial = 0;
                 gDirectX->gContext->CSSetUnorderedAccessViews(slot, 1, &pUAV, &pInitial);
             } else {
                 gDirectX->gContext->CSSetShaderResources(slot, 1, &pSRV);

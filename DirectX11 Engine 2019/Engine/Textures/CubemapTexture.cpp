@@ -130,7 +130,8 @@ void CubemapTexture::CreateFromDDS(std::string fname, bool bDepth) {
     // 
     Width    = dds.GetWidth();
     Height   = dds.GetHeight();
-    channels = int(Format2BPP(desc.Format) / 8);
+    channels = int(Format2BPP(desc.Format) / 8); // TODO: Wrong channel calculation
+    //                                                    Replace with Format2Ch(format);
 
     // Set side size
     desc.Width  = Width;
@@ -214,8 +215,8 @@ void CubemapTexture::CreateFromDDS(std::string fname, bool bDepth) {
     // Create SRV desc
     D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
     ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-    pSRVDesc.Format = desc.Format;
-    pSRVDesc.Texture2DArray.MipLevels = desc.MipLevels;
+    pSRVDesc.Format                         = desc.Format;
+    pSRVDesc.Texture2DArray.MipLevels       = desc.MipLevels;
     pSRVDesc.Texture2DArray.FirstArraySlice = 0;
     pSRVDesc.Texture2DArray.MostDetailedMip = 0;
     pSRVDesc.Texture2DArray.ArraySize       = 6;

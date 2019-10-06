@@ -2,7 +2,7 @@
 
 // 3D Rendering (primarely)
 #include <d3d11_4.h>
-#include <dxgi1_2.h>
+#include <dxgi1_6.h>
 #include <d3dcommon.h>
 #include <DirectXMath.h>
 
@@ -39,10 +39,18 @@ struct DirectXConfig {
 
 class _DirectX {
 private:
+    // HDR / WCG
+    bool gUseHDR; // Is HDR Supported by user's windows version?
+    DXGI_OUTPUT_DESC1 pDescHDR;
+
     // Main
     IDXGISwapChain1 *gSwapchain;
+    IDXGISwapChain4 *gSwapchain4;
     ID3D11CommandList* pCommandList = NULL;
-    IDXGIOutput *gOutput;
+    IDXGIOutput  *gOutput;
+    IDXGIOutput6 *gOutput6;
+
+    IDXGIAdapter3 *gAdapter3 = nullptr;
 
     // RTVs
     ID3D11RenderTargetView *gRTV;
@@ -87,12 +95,40 @@ public:
     DirectX::XMMATRIX gViewBackup, gView;
 
     _DirectX();
+    ~_DirectX() {
+        if( gAdapter3   ) gAdapter3->Release();
+        if( gOutput6    ) gOutput6->Release();
+        if( gOutput     ) gOutput->Release();
+        if( gSwapchain4 ) gSwapchain4->Release();
+    };
     
     // Setup DirectX
     int Create(const DirectXConfig& config);
     bool ShowError(int id);
 
     const DirectXConfig& GetConfig();
+
+    DXGI_QUERY_VIDEO_MEMORY_INFO GPUUsage() const {
+        DXGI_QUERY_VIDEO_MEMORY_INFO info = {};
+        HRESULT hr = gAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info);
+        return info;
+    }
+
+    DXGI_QUERY_VIDEO_MEMORY_INFO CPUUsage() const {
+        DXGI_QUERY_VIDEO_MEMORY_INFO info = {};
+        HRESULT hr = gAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &info);
+        return info;
+    }
+
+    UINT64 GPUUsageCurrent()     const { return GPUUsage().CurrentUsage; }
+    UINT64 GPUUsageAvaliable()   const { return GPUUsage().AvailableForReservation; }
+    UINT64 GPUUsageBudget()      const { return GPUUsage().Budget; }
+    UINT64 GPUUsageReservation() const { return GPUUsage().CurrentReservation; }
+
+    UINT64 CPUUsageCurrent()     const { return CPUUsage().CurrentUsage; }
+    UINT64 CPUUsageAvaliable()   const { return CPUUsage().AvailableForReservation; }
+    UINT64 CPUUsageBudget()      const { return CPUUsage().Budget; }
+    UINT64 CPUUsageReservation() const { return CPUUsage().CurrentReservation; }
 
     // 
     bool FrameFunction();

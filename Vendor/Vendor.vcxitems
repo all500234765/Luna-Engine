@@ -65,6 +65,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector2.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector3.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\Assimp\version.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\DirectXTex\DDSTextureLoader.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\config\ftconfig.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\config\ftheader.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\FreeType\freetype\config\ftmodule.h" />
@@ -138,6 +139,7 @@
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\vector3.inl" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXTex\DDSTextureLoader.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_draw.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_dx11.cpp" />

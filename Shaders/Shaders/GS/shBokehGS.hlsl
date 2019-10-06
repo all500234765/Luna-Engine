@@ -47,7 +47,7 @@ void main(point GS In[1], inout TriangleStream<PS> Stream) {
         [unroll] for( int j = 0; j < 3; j++, idx++ ) {
             float2 p = In[0].Position.xy + arrPos[idx] * In[0].Radius * float2(1.f, _AspectRatio);
 
-            Out.Position = float4(p, 1.f, 1.f);
+            Out.Position = float4(p, 0.f, 1.f);
             Out.Texcoord = arrUV[idx];
             Out.Color    = In[0].Color;
 

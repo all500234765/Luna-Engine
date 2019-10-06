@@ -49,7 +49,7 @@ void Camera::BuildProj() {
     if( cfg.Ortho ) {
         mProj = DirectX::XMMatrixOrthographicOffCenterLH(0.f, cfg.ViewW, cfg.ViewH, 0.f, cfg.fNear, cfg.fFar);
     } else {
-        mProj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(cfg.FOV / cfg.fAspect), cfg.fAspect, cfg.fNear, cfg.fFar);
+        mProj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(cfg.FOV / cfg.fAspect), cfg.fAspect, cfg.fFar, cfg.fNear);
     }
 }
 

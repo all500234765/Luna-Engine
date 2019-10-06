@@ -18,8 +18,8 @@ cbuffer bLightData : register(b1) {
 Texture2D<half2> _NormalTexture : register(t0);
 SamplerState _NormalSampler     : register(s0);
 
-Texture2D _DepthTexture    : register(t1);
-SamplerState _DepthSampler : register(s1);
+Texture2D<float> _DepthTexture : register(t1);
+SamplerState _DepthSampler     : register(s1);
 
 // https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
 // Spherical Coordinates
@@ -62,7 +62,7 @@ half3 PointLight(float3 p, float3 n) {
 
 half4 main(PS In) : SV_Target0 {
     // Unpack GBuffer
-    float LinDepth = Depth2Linear(_DepthTexture.Sample(_DepthSampler, In.Texcoord).x);
+    float LinDepth = Depth2Linear(1.f - _DepthTexture.Sample(_DepthSampler, In.Texcoord));
     //half4 Diffuse = ;
     half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
 

@@ -156,6 +156,45 @@ size_t Format2Ch(DXGI_FORMAT format) {
     }
 }
 
+DXGI_FORMAT Channel2Format(size_t channels, UINT bpc) {
+    switch( channels ) {
+        case 1:
+            // Red channel
+            switch( bpc ) {
+                case 8 : return DXGI_FORMAT_R8_UNORM;  break;
+                case 16: return DXGI_FORMAT_R16_FLOAT; break;
+                case 32: return DXGI_FORMAT_R32_FLOAT; break;
+            }
+            break;
+
+        case 2:
+            // Red, Green channels
+            switch( bpc ) {
+                case 8 : return DXGI_FORMAT_R8G8_UNORM;   break;
+                case 16: return DXGI_FORMAT_R16G16_FLOAT; break;
+                case 32: return DXGI_FORMAT_R32G32_FLOAT; break;
+            }
+            break;
+
+        case 3:
+            // Red, Green, Blue channels
+            if( bpc == 32 ) return DXGI_FORMAT_R32G32B32_FLOAT;
+            else channels = 4; // ?..
+            return Channel2Format(channels, bpc);
+
+        case 4:
+            // Red, Green, Blue, Alpha channels
+            switch( bpc ) {
+                case 8 : return DXGI_FORMAT_R8G8B8A8_UNORM;     break;
+                case 16: return DXGI_FORMAT_R16G16B16A16_FLOAT; break;
+                case 32: return DXGI_FORMAT_R32G32B32A32_FLOAT; break;
+            }
+            break;
+    }
+
+    return DXGI_FORMAT_UNKNOWN;
+}
+
 size_t Format2BPP(DXGI_FORMAT format) {
     switch( static_cast<int>(format) ) {
         case DXGI_FORMAT_R32G32B32A32_TYPELESS:

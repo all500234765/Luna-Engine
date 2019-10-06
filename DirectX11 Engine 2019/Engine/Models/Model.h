@@ -16,10 +16,12 @@
 #include <string>
 #include <vector>
 
-#include "Engine/Models/Mesh.h"
 #include "Engine/Materials/Texture.h"
 #include "Engine/DirectX/Buffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/DirectX/IndexBuffer.h"
+#include "Engine/DirectX/VertexBuffer.h"
+#include "Engine/Models/Mesh.h"
 
 struct BaseTexturePreset {
     bool bDiffuse;

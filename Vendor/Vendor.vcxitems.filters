@@ -114,6 +114,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_dx11.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_win32.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\TinyDDSLoader\TinyDDSLoader.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\DirectXTex\DDSTextureLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\color4.inl" />
@@ -134,5 +135,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_dx11.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_win32.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\TinyDDSLoader\TinyDDSLoader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXTex\DDSTextureLoader.cpp" />
   </ItemGroup>
 </Project>

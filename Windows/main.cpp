@@ -1,3 +1,6 @@
+#include <array>
+//#include <algorithm>
+
 // Extensions
 #include "Engine/Extensions/Default.h"
 #include "Engine/Input/Gamepad.h"
@@ -5,11 +8,29 @@
 #include "Engine Includes/MainInclude.h"
 
 #include "Effects/HDRPostProcess.h"
+#include "Effects/SSAOPostProcess.h"
 
 #pragma region Heap allocated instances
 TimerLog *gTimerLog = new TimerLog;
 
+template<size_t _Size>
+struct PlotData {
+    uint32_t mIndex;
+    float2 mMinMax = { D3D11_FLOAT32_MAX, -D3D11_FLOAT32_MAX };
+    std::array<float, _Size>     mPlot;
+    std::array<float, _Size - 1> mTemp;
+};
+
+PlotData<120> *gHDRPlot;
+PlotData<120> *gSSAOPlot;
+
+//float2 gMinMaxHDR, gMinMaxSSAO;
+//std::array<float, 120> gHDRPlot, gSSAOPlot, gATemp120;
+//uint32_t gHDRPlotIndex = 0, gSSAOPlotIndex = 0;
+
 HDRPostProcess *gHDRPostProcess;
+SSAOPostProcess *gSSAOPostProcess;
+SSAOArgs *gSSAOArgs;
 
 // Text
 Text *tTest;
@@ -107,6 +128,30 @@ GFSDK_SSAO_Parameters Params;
 GFSDK_SSAO_Output_D3D11 Output;
 #endif
 
+template<size_t _Size>
+void PlotUpdate(PlotData<_Size> *plot, float ms) {
+    ms *= .001f;
+
+    // MinMax
+    plot->mMinMax.x = std::min(plot->mMinMax.x, ms);
+    plot->mMinMax.y = std::max(plot->mMinMax.y, ms);
+
+    // Store
+    plot->mPlot[++plot->mIndex] = ms;
+
+    // Roll
+    if( plot->mIndex >= _Size - 1 ) {
+        // Set to last index
+        plot->mIndex = _Size - 2;
+
+        // Roll array
+        std::copy(plot->mPlot.begin() + 1, plot->mPlot.end(), plot->mTemp.begin());
+        std::copy(plot->mTemp.begin(), plot->mTemp.end() - 1, plot->mPlot.begin());
+
+        plot->mPlot[plot->mIndex] = ms;
+    }
+}
+
 float fAspect = 1024.f / 540.f;
 bool bIsWireframe = false, bDebugGUI = false, bLookMouse = true, bPause = false;
 int SceneID = 0;
@@ -200,7 +245,8 @@ bool _DirectX::FrameFunction() {
     float Clear[4] = { .2f, .2f, .2f, 1.f }; // RGBA
     float Clear0[4] = { 0.f, 0.f, 0.f, 1.f }; // RGBA black
     gContext->ClearRenderTargetView(gRTV, Clear0);
-    gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+    gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
+    //                                                                Default is 1 ^^^
 
     // Ansel session
 #if USE_ANSEL
@@ -228,7 +274,8 @@ bool _DirectX::FrameFunction() {
 
 #pragma region Render depth buffer for directional light
     bDepth->Bind();
-    bDepth->Clear();
+    bDepth->Clear(D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
+    //                                        Default is 1 ^^^
 
     rsFrontCull->Bind();
     gContext->RSSetViewports(1, &vpDepth);
@@ -252,7 +299,8 @@ bool _DirectX::FrameFunction() {
     gContext->OMSetRenderTargets(1, &pEmptyRTV, nullptr);
 
     bGBuffer->Bind();
-    bGBuffer->Clear(Clear, Clear0, Clear0);
+    bGBuffer->Clear(Clear, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
+    //                                        Default is 1 ^^^
 
     // Render scene
     RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
@@ -456,8 +504,21 @@ bool _DirectX::FrameFunction() {
 
 #pragma region HDR Pre-Processing Steps, Eye adaptation
     {
-        //Timer timer("HDR Post Process");
+        Timer timer("HDR Post Process", false, [](float ms)->void {
+            PlotUpdate(gHDRPlot, ms);
+        });
+
         gHDRPostProcess->Begin(bGBuffer);
+    }
+#pragma endregion
+
+#pragma region SSAO
+    {
+        Timer timer("SSAO Post Process", false, [](float ms)->void {
+            PlotUpdate(gSSAOPlot, ms);
+        });
+
+        gSSAOPostProcess->Begin(bGBuffer, bGBuffer->GetColor1(), *gSSAOArgs);
     }
 #pragma endregion
 
@@ -471,6 +532,8 @@ bool _DirectX::FrameFunction() {
     gHDRPostProcess->BindLuminance(Shader::Pixel, 4);
     gHDRPostProcess->BindBloom(Shader::Pixel, 5);
     gHDRPostProcess->BindBlur(Shader::Pixel, 6);
+
+    gSSAOPostProcess->BindAO(Shader::Pixel, 8);
 
     bGBuffer->BindResource(_Depth, Shader::Pixel, 7);
 
@@ -524,8 +587,8 @@ bool _DirectX::FrameFunction() {
             //bZBuffer_Editor->GetDepth()->pSRV,
             _SSLRBf->pSRV,
             _ColorD->pSRV, 
-            bGBuffer->GetColor1()->pSRV
-
+            bGBuffer->GetColor1()->pSRV, 
+            gSSAOPostProcess->GetSSAOSRV()
         };
         
         shGUI->Bind();
@@ -579,7 +642,7 @@ bool _DirectX::FrameFunction() {
     return false;
 }
  
-float fSpeed = 200.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
+float fSpeed = 500.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
 float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
@@ -745,6 +808,10 @@ void _DirectX::Tick(float fDeltaTime) {
     cPlayer->RotateAbs(DirectX::XMFLOAT3(fPitch, fDir, 0.));
 }
 
+float PValGetter(void* data, int idx) {
+    return ((float*)data)[idx];
+};
+
 void _DirectX::ComposeUI() {
 #if _DEBUG_BUILD
     ImGui_ImplDX11_NewFrame();
@@ -754,11 +821,26 @@ void _DirectX::ComposeUI() {
 
     // Create debug window
     ImGui::Begin("Debug");
-    
+
+    // GPU Memory usage
+    DXGI_QUERY_VIDEO_MEMORY_INFO MemoryUsage = GPUUsage();
+
+    ImGui::Text("Memory usage:\n\tGPU:\n\t\tCurrent: %u\n\t\tAvaliable: %u\n\t\tBudget: %u\n\t\tReservation: %u",
+                MemoryUsage.CurrentUsage, MemoryUsage.AvailableForReservation, MemoryUsage.Budget, MemoryUsage.CurrentReservation);
+
+    // CPU Memory usage
+    MemoryUsage = CPUUsage();
+    ImGui::Text("\tCPU:\n\t\tCurrent: %u\n\t\tAvaliable: %u\n\t\tBudget: %u\n\t\tReservation: %u",
+                MemoryUsage.CurrentUsage, MemoryUsage.AvailableForReservation, MemoryUsage.Budget, MemoryUsage.CurrentReservation);
+
+    // 
     bIsWireframe ^= ImGui::Button("Wireframe");
     bDebugGUI    ^= ImGui::Button("Debug buffers");
 
-    // Eye Adaptation
+    // Camera
+    ImGui::SliderFloat("Camera speed", &fSpeed, 0.f, 2000.f);
+
+    // HDR; Eye Adaptation; Bloom; Bokeh; DoF
     static float White             = 21.53f;
     static float MidGray           = 20.863f;
     static float gAdaptation       = 5.f;
@@ -770,6 +852,21 @@ void _DirectX::ComposeUI() {
     static float gBokehColorScale  = .5f;
     static float gBokehRadiusScale = .5f;
 
+    static float gSSAOOffsetRad = 10.f;
+    static float gSSAORadius    = 13.f;
+    static float gSSAOPower     = 2.f;
+
+    ImGui::Text("SSAO Settings");
+    ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), gSSAOPlot->mPlot.size());
+    ImGui::Text("Min: %f\nMax: %f", gSSAOPlot->mMinMax.x, gSSAOPlot->mMinMax.y);
+
+    ImGui::SliderFloat("Offset radius", &gSSAOOffsetRad , 0.f, 20.f);
+    ImGui::SliderFloat("Radius"       , &gSSAORadius    , 0.f, 50.f);
+    ImGui::SliderFloat("Power"        , &gSSAOPower     , .1f, 5.f);
+    
+    ImGui::Text("HDR Settings");
+    ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), gHDRPlot->mPlot.size());
+    ImGui::Text("Min: %f\nMax: %f", gHDRPlot->mMinMax.x, gHDRPlot->mMinMax.y);
     ImGui::SliderFloat("White"             , &White            , 0.f,  60.f);
     ImGui::SliderFloat("Middle Gray"       , &MidGray          , 0.f,  60.f);
     ImGui::SliderFloat("Adaptation rate"   , &gAdaptation      , 0.f,  10.f);
@@ -777,15 +874,15 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Bloom Threshold"   , &gBloomThres      , 0.f,  10.f);
     ImGui::SliderFloat("Far start"         , &gFarStart        , 0.f, 400.f);
     ImGui::SliderFloat("Far range"         , &gFarRange        , 1.f, 150.f);
-    ImGui::SliderFloat("Bokeh Threshold"   , &gBokehThreshold  , 0.f,   1.f);
+    ImGui::SliderFloat("Bokeh Threshold"   , &gBokehThreshold  , 0.f,  25.f);
     ImGui::SliderFloat("Bokeh Color Scale" , &gBokehColorScale , 0.f,   1.f);
     ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f,   1.f);
 
     const float gFarScale = 100.f;
 
     // 
-    float4x4 dest;
-    DirectX::XMStoreFloat4x4(&dest, cPlayer->GetProjMatrix());
+    //float4x4 dest;
+    //DirectX::XMStoreFloat4x4(&dest, cPlayer->GetProjMatrix());
 
     CameraConfig c_cfg = cPlayer->GetParams();
     float fNear = c_cfg.fNear;
@@ -798,9 +895,9 @@ void _DirectX::ComposeUI() {
 
     // Update constant buffers
     FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
-        __q->_LumWhiteSqr = White * White * MidGray * MidGray;
-        __q->_MiddleGrey  = MidGray;
-        __q->_BloomScale  = gBloomScale;
+        __q->_LumWhiteSqr     = White * White * MidGray * MidGray;
+        __q->_MiddleGrey      = MidGray;
+        __q->_BloomScale      = gBloomScale;
         __q->_ProjectedValues = { fNear * fQ, fQ };
         __q->_DoFFarValues    = { gFarStart * gFarScale, 1.f / (gFarRange * gFarScale) };
         __q->_BokehThreshold  = gBokehThreshold;
@@ -816,6 +913,15 @@ void _DirectX::ComposeUI() {
         __c->_Adaptation     = gAdaptation / (float)this->cfg.RefreshRate;
         __c->_BloomThreshold = gBloomThres;
     gHDRPostProcess->UnmapDownScale();
+
+    // Update settings
+    gSSAOArgs->_CameraFar  = fFar;
+    gSSAOArgs->_CameraNear = fNear;
+    gSSAOArgs->_mView      = cPlayer->GetViewMatrix();
+    gSSAOArgs->_mProj      = cPlayer->GetProjMatrix();
+    gSSAOArgs->_OffsetRad  = gSSAOOffsetRad;
+    gSSAOArgs->_Radius     = gSSAORadius;
+    gSSAOArgs->_Power      = gSSAOPower;
 
     // 
     ImGui::End();
@@ -851,6 +957,7 @@ void _DirectX::Resize() {
 
     // Resize HDR Post processing textures
     gHDRPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
+    gSSAOPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
 
     // Resize text port
     gTextController->SetSize(static_cast<float>(cfg.CurrentWidth), static_cast<float>(cfg.CurrentHeight));
@@ -914,7 +1021,17 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::Load() {
-    gHDRPostProcess = new HDRPostProcess;
+    gHDRPostProcess  = new HDRPostProcess;
+    gSSAOPostProcess = new SSAOPostProcess;
+    gSSAOArgs        = new SSAOArgs;
+
+    // 
+    gHDRPlot = new PlotData<120>();
+    gSSAOPlot = new PlotData<120>();
+
+    gHDRPlot->mPlot.fill(0);
+    gSSAOPlot->mPlot.fill(0);
+
     TimerLog::SetTimerLog(gTimerLog);
 
 #pragma region Physics setup
@@ -1051,7 +1168,7 @@ void _DirectX::Load() {
     cbSSLRMatrixInst->CreateDefault(sizeof(cbSSLRMatrix));
 
     // 
-    bShadows->SetSize(1024, 540);
+    bShadows->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
     bShadows->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
     bShadows->SetName("SS-RT-SM buffer");
     
@@ -1060,12 +1177,12 @@ void _DirectX::Load() {
     bDepth->SetName("Shadow map depth buffer");
 
     // Deferred buffer
-    bDeferred->SetSize(1024, 540);
+    bDeferred->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
     bDeferred->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT);
     bDeferred->SetName("Deferred buffer");
 
     // Screen-Space Local Reflections buffer
-    bSSLR->SetSize(1024, 540);
+    bSSLR->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
     bSSLR->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
     bSSLR->SetName("Local Reflections Buffer");
 
@@ -1165,6 +1282,7 @@ void _DirectX::Load() {
     sPoint->Create(pDesc);
 
     // Linear mip opacity sampler
+    pDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sMipLinearOpacity->Create(pDesc);
 
@@ -1186,7 +1304,7 @@ void _DirectX::Load() {
     pDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
     pDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
     pDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-    pDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+    pDesc.ComparisonFunc = D3D11_COMPARISON_GREATER; //D3D11_COMPARISON_LESS
     pDesc.BorderColor[0] = pDesc.BorderColor[1] = pDesc.BorderColor[2] = pDesc.BorderColor[3] = 1.;
     sPointClamp->Create(pDesc);
 
@@ -1200,9 +1318,9 @@ void _DirectX::Load() {
     // Setup cameras
     CameraConfig cfg2;
     cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
-    cfg2.FOV = 100.f;
-    cfg2.fNear = .1f;
-    cfg2.fFar = 10000.f;
+    cfg2.FOV     = 100.f;
+    cfg2.fNear   = .1f; // Swaped
+    cfg2.fFar    = 40000.f;
     cPlayer->SetParams(cfg2);
     cPlayer->BuildProj();
     cPlayer->BuildView();
@@ -1256,9 +1374,9 @@ void _DirectX::Load() {
     c2DScreen->BuildView();
 
     // 
-    cfg2.fNear = .1f;
-    cfg2.fFar  = 10000.f;
-    cfg2.FOV = 90.f;
+    cfg2.fNear   = .1f;
+    cfg2.fFar    = 40000.f;
+    cfg2.FOV     = 90.f;
     cfg2.fAspect = 1.f;
     cLight->SetParams(cfg2);
     cLight->BuildProj();
@@ -1459,8 +1577,8 @@ void _DirectX::Load() {
     mScreenPlane->LoadModel<Vertex_PT>("../Models/ScreenPlane.obj");
     mScreenPlane->DisableDefaultTexture();
 
-    mSpaceShip = new Model("Bunny model");
-    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/LevelModelOBJ.obj");
+    mSpaceShip = new Model("Bunny model"); //LevelModelOBJ
+    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/bunny.obj");
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Shadow test model");
@@ -1493,8 +1611,8 @@ void _DirectX::Load() {
     mSkybox->SetModel(mModel3);
     mSkybox->SetShader(shSkybox);
     mSkybox->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(-90.f)) * 
-                            //DirectX::XMMatrixScaling(1000, 1000, 1000)
-                            DirectX::XMMatrixScaling(1, 1, 1)
+                            DirectX::XMMatrixScaling(10000, 10000, 10000)
+                            //DirectX::XMMatrixScaling(1, 1, 1)
     );
 
     // Space ship
@@ -1502,13 +1620,15 @@ void _DirectX::Load() {
     //miSpaceShip->SetModel(mModel1);
     miSpaceShip->SetModel(mSpaceShip);
     miSpaceShip->SetShader(shSurface);
-    miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
-                                DirectX::XMMatrixTranslation(-500, -50, 500)
-                                //DirectX::XMMatrixScaling(.0625, .0625, .0625)
-                                //* DirectX::XMMatrixScaling(.125, .125, .125)
-                                //DirectX::XMMatrixScaling(400, 400, 400)
-                                //* DirectX::XMMatrixScaling(4, 4, 4)
-                                //DirectX::XMMatrixTranslation(-.5.f, -.5.f, 0.f)
+    miSpaceShip->SetWorldMatrix(//DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
+                                //DirectX::XMMatrixTranslation(-500, -50, 500) * 
+                                //DirectX::XMMatrixScaling(.0625, .0625, .0625) * 
+                                //DirectX::XMMatrixScaling(.125, .125, .125) * 
+                                //DirectX::XMMatrixScaling(400, 400, 400) * 
+                                //DirectX::XMMatrixScaling(50, 50, 50) * 
+                                DirectX::XMMatrixScaling(8, 8, 8) *
+                                //DirectX::XMMatrixTranslation(-.5f, -.5f, 0.f) * 
+                                DirectX::XMMatrixIdentity()
     );
     //miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *
     //                            //DirectX::XMMatrixScaling(.0625, .0625, .0625)
@@ -1549,8 +1669,12 @@ void _DirectX::Unload() {
     pAOContext->Release();
 #endif
 
+    delete gHDRPlot;
+    delete gSSAOPlot;
     delete gTimerLog;
+    delete gSSAOArgs;
     delete gHDRPostProcess;
+    delete gSSAOPostProcess;
 
     // Release states
     rsFrontCull->Release();
@@ -1769,10 +1893,10 @@ int main() {
     // DirectX config
     DirectXConfig dxCFG;
     dxCFG.BufferCount = 2;
-    dxCFG.Width = winCFG.CurrentWidth;
+    dxCFG.Width  = winCFG.CurrentWidth;
     dxCFG.Height = winCFG.CurrentHeight2;
     dxCFG.m_hwnd = gWindow->GetHWND();
-    dxCFG.RefreshRate = 120;// 60;
+    dxCFG.RefreshRate = 60;// 60; // TODO: Fix
     dxCFG.UseHDR = true;
     dxCFG.DeferredContext = false;
     dxCFG.Windowed = winCFG.Windowed;

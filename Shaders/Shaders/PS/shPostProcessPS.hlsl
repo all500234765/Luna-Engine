@@ -35,11 +35,12 @@ cbuffer _FinalPass : register(b0) {
 
 StructuredBuffer<float> _AvgLum : register(t4);
 
-Texture2D<float4> _BloomTexture : register(t5);
-Texture2D<float4> _BlurTexture  : register(t6);
-Texture2D<float1> _DepthTexture : register(t7);
+Texture2D<float4> _BloomTexture     : register(t5);
+Texture2D<float4> _BlurTexture      : register(t6);
+Texture2D<float1> _DepthTexture     : register(t7);
+Texture2D<float1> _AmbientOcclusion : register(t8);
 
-SamplerState _LinearSampler     : register(s5);
+SamplerState _LinearSampler : register(s5);
 
 struct PS {
     float4 Position : SV_Position;
@@ -163,10 +164,10 @@ half4 main(PS In): SV_Target0 {
     //Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
 
     // Depth of Field
-    float depth = _DepthTexture.Sample(_LinearSampler, In.Texcoord);
+    float depth = 1.f - _DepthTexture.Sample(_LinearSampler, In.Texcoord);
 
     // We don't wanna process far plane pixels
-    [flatten] if( depth < 1.f ) {
+    [flatten] if( depth > 0.f ) {
         // Convert depth to linear space
         depth = Depth2Linear(depth);
 
@@ -177,9 +178,12 @@ half4 main(PS In): SV_Target0 {
         Diff.rgb = DistDoF(Diff.rgb, Blur, depth);
     }
 
+    // Ambient Occlusion
+    Diff.rgb *= _AmbientOcclusion.Sample(_LinearSampler, In.Texcoord);
+
     // Bloom
     Diff.rgb += _BloomScale * _BloomTexture.Sample(_LinearSampler, In.Texcoord);
-
+    
     // Eye Adaptation And Tonemapping
     Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);
 

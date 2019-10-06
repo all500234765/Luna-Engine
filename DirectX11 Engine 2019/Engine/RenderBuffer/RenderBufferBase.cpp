@@ -68,9 +68,12 @@ sRenderBuffer* RenderBufferBase::CreateDSV2D(int W, int H, UINT bpp) {
     DXGI_FORMAT formatTex, formatDSV, formatSRV;
     switch( bpp ) {
         case 32:
-            formatTex = DXGI_FORMAT_R24G8_TYPELESS;
-            formatDSV = DXGI_FORMAT_D24_UNORM_S8_UINT;
-            formatSRV = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+            formatTex = DXGI_FORMAT_R32_TYPELESS;
+            formatDSV = DXGI_FORMAT_D32_FLOAT;
+            formatSRV = DXGI_FORMAT_R32_FLOAT;
+            //formatTex = DXGI_FORMAT_R24G8_TYPELESS;
+            //formatDSV = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            //formatSRV = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
             break;
 
         case 16:

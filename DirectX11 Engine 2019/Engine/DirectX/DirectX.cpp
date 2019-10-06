@@ -114,17 +114,98 @@ int _DirectX::Create(const DirectXConfig& config) {
     IDXGIAdapter *pDXGIAdapter = nullptr;
     res = pDXGIDevice->GetAdapter(&pDXGIAdapter);
     if( FAILED(res) ) { return 11; } // Failed to retrieve DXGI Adapter
-
-    IDXGIFactory2 *pIDXGIFactory = nullptr;
-    res = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory2), (void **)&pIDXGIFactory);
-    if( FAILED(res) ) { return 12; } // Failed to retrieve DXGI Factory
     
+    IDXGIFactory4 *pIDXGIFactory = nullptr;
+    res = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory4), (void **)&pIDXGIFactory);
+    if( FAILED(res) ) { return 12; } // Failed to retrieve DXGI Factory
+
+    // Get DXGI Adapter 3
+    IDXGIAdapter1 *tmpDxgiAdapter = nullptr;
+
+    DXGI_ADAPTER_DESC1 desc;
+    UINT adapterIndex = 0;
+
+    while( pIDXGIFactory->EnumAdapters1(adapterIndex, &tmpDxgiAdapter) != DXGI_ERROR_NOT_FOUND ) {
+        tmpDxgiAdapter->GetDesc1(&desc);
+
+        if( !gAdapter3 && desc.Flags == 0 ) {
+            tmpDxgiAdapter->QueryInterface(IID_PPV_ARGS(&gAdapter3));
+        }
+
+        tmpDxgiAdapter->Release();
+        ++adapterIndex;
+    }
+
     // Enumerate adapters
-    pDXGIAdapter->EnumOutputs(1, &gOutput);
+    UINT OutputIndex = 0;
+    if( gAdapter3 ) {
+        while( gAdapter3->EnumOutputs(OutputIndex, &gOutput) != DXGI_ERROR_NOT_FOUND ) {
+            if( gOutput ) break;
+            ++OutputIndex;
+        }
+    } else {
+        while( pDXGIAdapter->EnumOutputs(OutputIndex, &gOutput) != DXGI_ERROR_NOT_FOUND ) {
+            if( gOutput ) break;
+            ++OutputIndex;
+        }
+    }
 
     // Create swapchain
     res = pIDXGIFactory->CreateSwapChainForHwnd(gDevice, config.m_hwnd, &scd, &pSCFDesc, gOutput, &gSwapchain);
     if( FAILED(res) ) { return 13; } // Failed to create swapchain
+
+    gSwapchain4 = static_cast<IDXGISwapChain4*>(gSwapchain);
+
+    // Check for HDR API Support
+    gUseHDR = false;
+    res = gOutput->QueryInterface(__uuidof(IDXGIOutput6), (void**)&gOutput6);
+    if( SUCCEEDED(res) ) {
+        gUseHDR = true;
+
+        gOutput6->GetDesc1(&pDescHDR);
+
+        DXGI_HDR_METADATA_HDR10 pHDRMeta;
+        for( int i = 0; i < 2; i++ ) {
+            pHDRMeta.RedPrimary[i]   = UINT(50000.f * pDescHDR.RedPrimary[i]  );
+            pHDRMeta.GreenPrimary[i] = UINT(50000.f * pDescHDR.GreenPrimary[i]);
+            pHDRMeta.BluePrimary[i]  = UINT(50000.f * pDescHDR.BluePrimary[i] );
+            pHDRMeta.WhitePoint[i]   = UINT(50000.f * pDescHDR.WhitePoint[i]  );
+        }
+
+        pHDRMeta.MinMasteringLuminance     = UINT(pDescHDR.MinLuminance * 10000.f);
+        pHDRMeta.MaxMasteringLuminance     = UINT(pDescHDR.MaxLuminance * 10000.f);
+        pHDRMeta.MaxFrameAverageLightLevel = UINT(pDescHDR.MaxLuminance * 10000.f / 2.f);
+        pHDRMeta.MaxContentLightLevel      = UINT(pDescHDR.MaxFullFrameLuminance * 10000.f);
+
+        std::wstring DeviceNameWstr = (pDescHDR.DeviceName);
+
+        // Output DXGI_OUTPUT_DESC1 for debug
+        std::cout << "DXGI_OUTPUT_DESC1: \n"
+            << "\tDeviceName: "            << DeviceNameWstr.c_str()         << "\n"
+            << "\tAttachedToDesktop: "     << pDescHDR.AttachedToDesktop     << "\n"
+            << "\tRotation: "              << pDescHDR.Rotation              << "\n" //
+            << "\tMonitor: "               << pDescHDR.Monitor               << "\n"
+            << "\tBitsPerColor: "          << pDescHDR.BitsPerColor          << "\n"
+            << "\tColorSpace: "            << pDescHDR.ColorSpace            << "\n" //
+            << "\tRedPrimary  [0]: "       << pDescHDR.RedPrimary  [0]       << "\n"
+            << "\tGreenPrimary[0]: "       << pDescHDR.GreenPrimary[0]       << "\n"
+            << "\tBluePrimary [0]: "       << pDescHDR.BluePrimary [0]       << "\n"
+            << "\tWhitePoint  [0]: "       << pDescHDR.WhitePoint  [0]       << "\n"
+            << "\tRedPrimary  [1]: "       << pDescHDR.RedPrimary  [1]       << "\n"
+            << "\tGreenPrimary[1]: "       << pDescHDR.GreenPrimary[1]       << "\n"
+            << "\tBluePrimary [1]: "       << pDescHDR.BluePrimary [1]       << "\n"
+            << "\tWhitePoint  [1]: "       << pDescHDR.WhitePoint  [1]       << "\n"
+            << "\tMinLuminance: "          << pDescHDR.MinLuminance          << "\n"
+            << "\tMaxLuminance: "          << pDescHDR.MaxLuminance          << "\n"
+            << "\tMaxFullFrameLuminance: " << pDescHDR.MaxFullFrameLuminance << "\n";
+
+        gSwapchain4->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(pHDRMeta), &pHDRMeta);
+    }
+
+    //;gSwapchain4->SetColorSpace1(DXGI_COLOR_SPACE_TYPE::DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
+
+    // Clean up
+    pIDXGIFactory->Release();
 
     // Check MSAA levels
     /*UINT maxQuality;
@@ -169,7 +250,7 @@ int _DirectX::Create(const DirectXConfig& config) {
     pTex2DDesc.Height = config.Height;
     pTex2DDesc.MipLevels = 1;
     pTex2DDesc.ArraySize = 1;
-    pTex2DDesc.Format = DXGI_FORMAT_R24G8_TYPELESS; // 
+    pTex2DDesc.Format = DXGI_FORMAT_R32_TYPELESS; // DXGI_FORMAT_R24G8_TYPELESS; // 
     pTex2DDesc.SampleDesc.Count = scd.SampleDesc.Count;
     pTex2DDesc.SampleDesc.Quality = scd.SampleDesc.Quality;
     pTex2DDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -180,9 +261,9 @@ int _DirectX::Create(const DirectXConfig& config) {
     // D3D11_DEPTH_STENCIL_DESC
     pDSD.DepthEnable = true;
     pDSD.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    pDSD.DepthFunc = D3D11_COMPARISON_LESS;
+    pDSD.DepthFunc = D3D11_COMPARISON_GREATER; //D3D11_COMPARISON_LESS
     
-    pDSD.StencilEnable = true;
+    pDSD.StencilEnable = !true;
     pDSD.StencilReadMask = 0xFF;
     pDSD.StencilWriteMask = 0xFF;
 
@@ -199,7 +280,7 @@ int _DirectX::Create(const DirectXConfig& config) {
     pDSD.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
     // D3D11_DEPTH_STENCIL_VIEW_DESC
-    pDesc2.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // Select format for DSV texture
+    pDesc2.Format = DXGI_FORMAT_D32_FLOAT; // DXGI_FORMAT_D24_UNORM_S8_UINT; // Select format for DSV texture
     pDesc2.Texture2D.MipSlice = 0;
     pDesc2.ViewDimension = (D3D11_DSV_DIMENSION)(D3D11_DSV_DIMENSION_TEXTURE2D + 2 * cfg.MSAA);
     pDesc2.Flags = 0;
@@ -271,7 +352,7 @@ int _DirectX::Create(const DirectXConfig& config) {
     // Create SRV for DSV
     D3D11_SHADER_RESOURCE_VIEW_DESC pDesc1;
     ZeroMemory(&pDesc1, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-    pDesc1.Format                    = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+    pDesc1.Format                    = DXGI_FORMAT_R32_FLOAT; //DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
     pDesc1.ViewDimension             = (D3D11_SRV_DIMENSION)(D3D11_SRV_DIMENSION_TEXTURE2D + 2 * cfg.MSAA);
     pDesc1.Texture2D.MipLevels       = 1;
     pDesc1.Texture2D.MostDetailedMip = 0;
@@ -313,6 +394,7 @@ bool _DirectX::ShowError(int id) {
     }
 
     MessageBoxA(NULL, error, "DirectX Initialization failed", MB_OK);
+    //MessageBoxA(NULL, , "Error code", MB_OK);
 
     return true;
 }

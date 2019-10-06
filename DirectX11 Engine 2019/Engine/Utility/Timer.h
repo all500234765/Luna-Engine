@@ -7,10 +7,13 @@ class Timer: public TimerLog {
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> mStart;
     const char* mName = "Unknown";
+    bool mPrint = true;
+    void(*mOnEnd)(float ms);
 
 public:
     Timer() { StartOver(); }
-    Timer(const char* name): mName(name) { StartOver(); }
+    Timer(const char* name, bool print=true, void(*onEnd)(float ms)=[](float ms)->void{}): 
+        mName(name), mPrint(print), mOnEnd(onEnd) { StartOver(); }
 
     ~Timer() { Stop(); }
 
@@ -26,8 +29,9 @@ public:
         auto end   = std::chrono::time_point_cast<std::chrono::microseconds>(mEnd  ).time_since_epoch().count();
 
         auto dur = end - start;
-
-        Log(mName, dur);
+        
+        mOnEnd((float)dur);
+        if( mPrint ) Log(mName, dur);
     }
 
 };
