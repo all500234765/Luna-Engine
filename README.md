@@ -6,6 +6,25 @@
 I made trello panel, so you can see what i want to do, what i already done and what i am working on atm.
 https://trello.com/b/T8T6vkBN/directx-11-engine-2019
 
+# Version 0.1.101
+* Screen-Space Ambient Occlusion
+* Memory usage functions
+    * GPU / CPU
+        * Current Usage
+        * Avaliable For Reservation
+        * Budget
+        * Current Reservation
+* Working on HDR/WCG Support
+* Bokeh (WIP; It's very unstanble atm)
+* Depth Of Field (WIP; Must remove linear interpolation and do it with rsqrt)
+* Graphs to see performance of various things
+* Timer class got an update. Now you can specify several more settings
+    * Log values to the console?
+    * Lambda or any other type of function that will operate on destruction of Timer
+* PlotData(Windows project) structure for easier work with ImGui::Plot
+* Switched to inverse depth buffer (This means that only Windows project is working properly atm)
+![Screen-Space Ambient Occlusion](Misc/SSAO.png)
+
 # Version 0.1.080
 * Million particles test
 
