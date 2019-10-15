@@ -1,6 +1,6 @@
 #include "DownscaleConstantBuffer.hlsli"
 
-Texture2D<float4>       _HDRDS  : register(t0);
+Texture2D<float4>     _HDRDS    : register(t0);
 StructuredBuffer<float> _AvgLum : register(t1);
 
 RWTexture2D<float4> _Bloom : register(u0);

@@ -16,6 +16,8 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\HDRPostProcess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSAOPostProcess.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSLFPostProcess.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSLRPostProcess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\ConstantBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectX.h" />
@@ -46,6 +48,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor3Depth.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RendererFlags.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\DepthStencilState.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\PipelineState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\RasterState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Atlas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.h" />
@@ -102,6 +106,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferDepth2D.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferDepth2D.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\DepthStencilState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\RasterState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\Atlas.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.cpp" />
@@ -115,5 +120,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Vertices.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utilities.inl" />
   </ItemGroup>
 </Project>

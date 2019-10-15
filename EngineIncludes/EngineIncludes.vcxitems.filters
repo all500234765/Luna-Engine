@@ -13,5 +13,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\RenderBuffers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Textures.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Text.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Types.h" />
   </ItemGroup>
 </Project>

@@ -9,6 +9,8 @@
 
 #include "Effects/HDRPostProcess.h"
 #include "Effects/SSAOPostProcess.h"
+#include "Effects/SSLRPostProcess.h"
+#include "Effects/SSLFPostProcess.h"
 
 #pragma region Heap allocated instances
 TimerLog *gTimerLog = new TimerLog;
@@ -30,6 +32,10 @@ PlotData<120> *gSSAOPlot;
 
 HDRPostProcess *gHDRPostProcess;
 SSAOPostProcess *gSSAOPostProcess;
+SSLRPostProcess *gSSLRPostProcess;
+SSLFPostProcess *gSSLFPostProcess;
+
+SSLRArgs *gSSLRArgs;
 SSAOArgs *gSSAOArgs;
 
 // Text
@@ -91,30 +97,31 @@ PhysicsObjectPlane *plane1;
 ConstantBuffer *cbDeferredGlobalInst, *cbDeferredLightInst;
 
 struct cbDeferredLight {
-    DirectX::XMFLOAT3 _LightDiffuse; // Light diffuse color
-    float             PADDING1;      // Unused
-    DirectX::XMFLOAT2 _LightData;    // Range, intensity
-    DirectX::XMFLOAT2 PADDING2;      // Unused
-    DirectX::XMFLOAT4 vPosition;     // Camera pos, w - unused
+    float3 _LightDiffuse; // Light diffuse color
+    float  PADDING1;      // Unused
+    float2 _LightData;    // Range, intensity
+    float2 PADDING2;      // Unused
+    float4 vPosition;     // Camera pos, w - unused
 };
 
 struct cbDeferredGlobal {
-    DirectX::XMFLOAT2 _TanAspect;  // dtan(fov * .5) * aspect, - dtan(fov / 2)
-    DirectX::XMFLOAT2 _Texel;      // 1 / target width, 1 / target height
-    float _Far;                    // Far
-    float PADDING0;                // Unused
-    DirectX::XMFLOAT4 _ProjValues; // 1 / m[0][0], 1 / m[1][1], m[3][2], -m[2][2]
-    DirectX::XMMATRIX _mInvView;   // Inverse matrix of view matrix
-    DirectX::XMFLOAT4 vCameraPos;  // Camera pos, w - unused
+    float2 _TanAspect;   // dtan(fov * .5) * aspect, - dtan(fov / 2)
+    float2 _Texel;       // 1 / target width, 1 / target height
+    float _Far;          // Far
+    float PADDING0;      // Unused
+    float4 _ProjValues;  // 1 / m[0][0], 1 / m[1][1], m[3][2], -m[2][2]
+    mfloat4x4 _mInvView; // Inverse matrix of view matrix
+    mfloat4x4 _mInvProj; // Inverse matrix of projection matrix
+    float4 vCameraPos;   // Camera pos, w - unused
 };
 
 // SSLR
 ConstantBuffer *cbSSLRMatrixInst;
 struct cbSSLRMatrix {
-    DirectX::XMMATRIX _mInvView; // Inverse matrix of view matrix
-    DirectX::XMMATRIX _mInvProj; // Inverse matrix of projection matrix
-    DirectX::XMMATRIX _mProj;
-    DirectX::XMMATRIX _mView;
+    mfloat4x4 _mInvView; // Inverse matrix of view matrix
+    mfloat4x4 _mInvProj; // Inverse matrix of projection matrix
+    mfloat4x4 _mProj;
+    mfloat4x4 _mView;
 };
 #pragma endregion
 
@@ -157,13 +164,16 @@ bool bIsWireframe = false, bDebugGUI = false, bLookMouse = true, bPause = false;
 int SceneID = 0;
 int sfxWalkIndex;
 
+float4 LightPos = { 0.f, 0.f, 0.f, 100.f };
+
 // Define Frame Function
 bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
     
 #pragma region Scene rendering
-    auto RenderScene = [&](Camera *cam, uint32_t flags=RendererFlags::None, Camera *light=nullptr) {
+    auto RenderScene = [&](Camera *cam, uint32_t flags=RendererFlags::None, Camera *light=nullptr, 
+                           void(*PreRender)(DirectX::XMMATRIX m)=[](DirectX::XMMATRIX m)->void{}) {
         // 
         auto DrawBall = [&](Camera* camera, const pFloat3& pos, float radius) {
             camera->SetWorldMatrix(DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z));
@@ -207,20 +217,34 @@ bool _DirectX::FrameFunction() {
             sMipLinearRougness->Bind(Shader::Pixel, 7);
         }
 
-        // Render Test scene
-        miSpaceShip->Bind(cam);
-        if( flags & RendererFlags::DepthPass ) shVertexOnly->Bind();
-        miSpaceShip->Render();
+        // Save shader state
+        if( flags & RendererFlags::DontBindShaders ) {
+            gDirectX->gContext->IASetPrimitiveTopology(miSpaceShip->GetTopology());
+            PreRender(miSpaceShip->GetWorldMatrix());
+        } else {
+            // Render Test scene
+            miSpaceShip->Bind(cam);
+        }
+
+        // 
+        if( flags & RendererFlags::DontBindShaders ) {
+            
+        } else if( flags & RendererFlags::DepthPass ) {
+            shVertexOnly->Bind();
+        }
+
+        // Render scene
+        miSpaceShip->Render(!(flags & RendererFlags::DontBindTextures));
 
         // Render physics engine test unit spheres
-        if( flags & RendererFlags::DepthPass ) shUnitSphereDepthOnly->Bind();
+        /*if( flags & RendererFlags::DepthPass ) shUnitSphereDepthOnly->Bind();
         else                                   shUnitSphere->Bind();
 
         // 
         gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 
         // Balls
-        /*for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
+        for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
             const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
 
             if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
@@ -304,6 +328,9 @@ bool _DirectX::FrameFunction() {
 
     // Render scene
     RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
+
+    // Done rendering to GBuffer
+    bGBuffer->MSAAResolve();
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -391,7 +418,6 @@ bool _DirectX::FrameFunction() {
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 
     // Build & Bind Constant buffer
-    DirectX::XMFLOAT4 LightPos = { 1.62895f, 5.54253f, 2.93616f/*60.4084, 22.6733, 2.3704*/, 100.f };
     cPlayer->SetWorldMatrix(
         //DirectX::XMMatrixScaling(LightPos.w, LightPos.w, LightPos.w) *
         DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z));
@@ -399,17 +425,25 @@ bool _DirectX::FrameFunction() {
     cPlayer->BindBuffer(Shader::Domain, 0);
 
     // Update matrix
-    float FOV = cPlayer->GetParams().FOV;
-    float fFar = cPlayer->GetParams().fFar;
-    DirectX::XMMATRIX mProjTmp = cPlayer->GetProjMatrix();
-    float fHalfTanFov = tanf(DirectX::XMConvertToRadians(FOV * .5f)); // dtan(fov * .5)
+    float FOV          = cPlayer->GetParams().FOV;
+    float fFar         = cPlayer->GetParams().fFar;
+    float fNear        = cPlayer->GetParams().fNear;
+    mfloat4x4 mProjTmp = cPlayer->GetProjMatrix();
+    float fHalfTanFov  = tanf(DirectX::XMConvertToRadians(FOV * .5f)); // dtan(fov * .5)
+
+    float fQ = fFar / (fNear - fFar);
+
+    float4x4 dest;
+    DirectX::XMStoreFloat4x4(&dest, DirectX::XMMatrixTranspose(mProjTmp));
+
     cbDeferredGlobal* data = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
-    data->_mInvView   = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
-    data->_TanAspect = { fHalfTanFov * fAspect, -fHalfTanFov };
-    data->_Texel = { 1.f / cfg.Width, 1.f / cfg.Height };
-    data->_Far = fFar;
-    data->PADDING0 = 0;
-    data->_ProjValues = { 1.f / mProjTmp.r[0].m128_f32[0], 1.f / mProjTmp.r[1].m128_f32[1], mProjTmp.r[3].m128_f32[2], -mProjTmp.r[2].m128_f32[2] };
+        data->_mInvView   = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
+        data->_mInvProj   = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(mProjTmp), mProjTmp);
+        data->_TanAspect  = { fHalfTanFov * fAspect, -fHalfTanFov };
+        data->_Texel      = { 1.f / cfg.Width, 1.f / cfg.Height };
+        data->_Far        = fFar;
+        data->PADDING0    = 0;
+        data->_ProjValues = { fNear * fQ, fQ, 1.f / dest.m[0][0], 1.f / dest.m[1][1] };
     cbDeferredGlobalInst->Unmap();
 
     // Bind buffers
@@ -430,7 +464,7 @@ bool _DirectX::FrameFunction() {
     gContext->OMSetDepthStencilState(pDSS_Default, 1);
 
 #pragma region Screen-space local reflections
-    bSSLR->Bind();        // Set Render Target
+    /*bSSLR->Bind();        // Set Render Target
     bSSLR->Clear(Clear0); // Clear Render Target
     shSSLR->Bind();       // Set Shader
 
@@ -465,6 +499,10 @@ bool _DirectX::FrameFunction() {
     sPoint->Bind(Shader::Pixel, 2);
 
     gContext->Draw(6, 0);
+
+    // Unbind views
+    ID3D11RenderTargetView* nullRTV = nullptr;
+    gDirectX->gContext->OMSetRenderTargets(1, &nullRTV, nullptr);*/
 #pragma endregion
 
 #pragma region Screen-Space Shadow mapping
@@ -522,6 +560,26 @@ bool _DirectX::FrameFunction() {
     }
 #pragma endregion
 
+#pragma region SSLR
+    {
+        LunaEngine::PSDiscardSRV<2>();
+
+        // Begin
+        gSSLRPostProcess->Begin(bGBuffer, bGBuffer->GetColor1(), *gSSLRArgs);
+
+        // Render scene w/o depth writing.
+        RenderScene(cPlayer, OpaquePass | DepthPass | DontBindShaders | DontBindTextures, nullptr, [](mfloat4x4 m) {
+            gSSLRArgs->_mWorldView = m * cPlayer->GetViewMatrix();
+            gSSLRPostProcess->BuildBuffer(*gSSLRArgs);
+        });
+
+        // End
+        bSSLR->Bind();
+        bSSLR->Clear(Clear0);
+        gSSLRPostProcess->End();
+    }
+#pragma endregion
+
 #pragma region Render to screen, Final Post Process Pass
     gContext->OMSetRenderTargets(1, &gRTV, nullptr);
     
@@ -565,9 +623,13 @@ bool _DirectX::FrameFunction() {
 
 #pragma endregion
 
-    // Eye Adaptation
+    // HDR Post Processing
     // Swap buffer data
     gHDRPostProcess->End();
+
+    // SSAO
+    // Unbind for further use
+    gSSAOPostProcess->End();
 
     // HBAO+
 #if USE_HBAO_PLUS
@@ -642,7 +704,7 @@ bool _DirectX::FrameFunction() {
     return false;
 }
  
-float fSpeed = 500.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
+float fSpeed = 37.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
 float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
@@ -716,9 +778,9 @@ void _DirectX::Tick(float fDeltaTime) {
     bPause       ^= gKeyboard->IsPressed(VK_F4); // Toggle world pause
 
     // Update camera
-    DirectX::XMFLOAT3 f3Move(0.f, 0.f, 0.f); // Movement vector
+    float3 f3Move(0.f, 0.f, 0.f); // Movement vector
 
-    static DirectX::XMFLOAT2 pLastPos = {0, 0}; // Last mouse pos
+    static float2 pLastPos = {0, 0}; // Last mouse pos
 
     // Camera
     if( gKeyboard->IsDown(VK_W) ) f3Move.x = +fSpeed * fDeltaTime;  // Forward / Backward
@@ -726,8 +788,18 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsDown(VK_D) ) f3Move.z = +fSpeed * fDeltaTime;  // Strafe
     if( gKeyboard->IsDown(VK_A) ) f3Move.z = -fSpeed * fDeltaTime;
     if( gKeyboard->IsPressed(VK_SPACE) ) {
-        auto p = cPlayer->GetPosition();
-        std::cout << p.x << ", " << p.y << ", " << p.z << std::endl;
+        float3 p = cPlayer->GetPosition();
+        float3 r = cPlayer->GetRotation();
+
+        std::cout << p.x << "f, " << p.y << "f, " << p.z << "f, " << r.x << "f, " << r.y << "f, " << r.z << "f" << std::endl;
+    }
+
+    if( gKeyboard->IsPressed(VK_L) ) {
+        float3 p = cPlayer->GetPosition();
+
+        LightPos.x = p.x;
+        LightPos.y = p.y;
+        LightPos.z = p.z;
     }
 
     if( !bLookMouse ) { return; }
@@ -839,22 +911,36 @@ void _DirectX::ComposeUI() {
 
     // Camera
     ImGui::SliderFloat("Camera speed", &fSpeed, 0.f, 2000.f);
+    ImGui::SliderFloat("Light radius", &LightPos.w, 0.f, 200.f);
 
     // HDR; Eye Adaptation; Bloom; Bokeh; DoF
     static float White             = 21.53f;
     static float MidGray           = 20.863f;
     static float gAdaptation       = 5.f;
-    static float gBloomScale       = 1.73f;
+    static float gBloomScale       = 4.f;
     static float gBloomThres       = 10.f;
-    static float gFarStart         = 300.f;
+    static float gFarStart         = 0.f;
     static float gFarRange         = 60.f;
-    static float gBokehThreshold   = .5f;
-    static float gBokehColorScale  = .5f;
-    static float gBokehRadiusScale = .5f;
+    static float gBokehThreshold   = 0.f;
+    static float gBokehColorScale  = 0.f;
+    static float gBokehRadiusScale = 0.f;
 
+    // SSAO
     static float gSSAOOffsetRad = 10.f;
     static float gSSAORadius    = 13.f;
-    static float gSSAOPower     = 2.f;
+    static float gSSAOPower     = 5.f;
+
+    // SSLR
+    static float gViewAngleThreshold = .2f;
+    static float gEdgeDistThreshold  = .45f;
+    static float gReflScale          = 1.f;
+    static float gDepthBias          = .5f;
+
+    ImGui::Text("SSLR Settings");
+    ImGui::SliderFloat("View angle Threshold"   , &gViewAngleThreshold, -.25f, 1.f  );
+    ImGui::SliderFloat("Edge distance Threshold", &gEdgeDistThreshold , 0.f  , .999f);
+    ImGui::SliderFloat("Reflect scale"          , &gReflScale         , 0.f  , 1.f  );
+    ImGui::SliderFloat("Depth bias"             , &gDepthBias         , 0.f  , 1.5f );
 
     ImGui::Text("SSAO Settings");
     ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), gSSAOPlot->mPlot.size());
@@ -923,6 +1009,14 @@ void _DirectX::ComposeUI() {
     gSSAOArgs->_Radius     = gSSAORadius;
     gSSAOArgs->_Power      = gSSAOPower;
 
+    gSSLRArgs->_mProj              = cPlayer->GetProjMatrix();
+    gSSLRArgs->_CameraFar          = fFar;
+    gSSLRArgs->_CameraNear         = fNear;
+    gSSLRArgs->_ViewAngleThreshold = gViewAngleThreshold;
+    gSSLRArgs->_EdgeDistThreshold  = gEdgeDistThreshold;
+    gSSLRArgs->_ReflScale          = gReflScale;
+    gSSLRArgs->_DepthBias          = gDepthBias;
+
     // 
     ImGui::End();
     ImGui::Render();
@@ -958,6 +1052,7 @@ void _DirectX::Resize() {
     // Resize HDR Post processing textures
     gHDRPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
     gSSAOPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
+    gSSLRPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
 
     // Resize text port
     gTextController->SetSize(static_cast<float>(cfg.CurrentWidth), static_cast<float>(cfg.CurrentHeight));
@@ -1021,12 +1116,19 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::Load() {
+    // Enable MSAA
+    RenderBufferBase::GlobalInit();
+
+    // Post processing
     gHDRPostProcess  = new HDRPostProcess;
     gSSAOPostProcess = new SSAOPostProcess;
-    gSSAOArgs        = new SSAOArgs;
+    gSSLRPostProcess = new SSLRPostProcess;
+
+    gSSLRArgs = new SSLRArgs;
+    gSSAOArgs = new SSAOArgs;
 
     // 
-    gHDRPlot = new PlotData<120>();
+    gHDRPlot  = new PlotData<120>();
     gSSAOPlot = new PlotData<120>();
 
     gHDRPlot->mPlot.fill(0);
@@ -1036,11 +1138,11 @@ void _DirectX::Load() {
 
 #pragma region Physics setup
     pColliderSphere = new PhysicsCollider(PhysicsShapeType::Sphere);
-    pColliderPlane  = new PhysicsCollider(PhysicsShapeType::Plane);
+    pColliderPlane = new PhysicsCollider(PhysicsShapeType::Plane);
 
     sphere1 = new PhysicsObjectSphere(pColliderSphere);
     sphere2 = new PhysicsObjectSphere(pColliderSphere);
-    plane1  = new PhysicsObjectPlane(pColliderPlane);
+    plane1 = new PhysicsObjectPlane(pColliderPlane);
 
     sphere1->SetPosition({ 0.f, 20.f, 0.f });
     sphere1->SetVelocity({ 0.f, 0.f, +1.f });
@@ -1060,8 +1162,8 @@ void _DirectX::Load() {
     gPhysicsEngine->PushObject(sphere2);
     gPhysicsEngine->PushObject(plane1);
 
-    gPhysicsEngine->SetGravity({0.f, -9.8f * 20.f, 0.f});
-    gPhysicsEngine->SetAirResistance({0.f, .5f, 0.f});
+    gPhysicsEngine->SetGravity({ 0.f, -9.8f * 20.f, 0.f });
+    gPhysicsEngine->SetAirResistance({ 0.f, .5f, 0.f });
     gPhysicsEngine->SetFriction(.98f);
 #pragma endregion
 
@@ -1098,9 +1200,9 @@ void _DirectX::Load() {
     shTextSimpleSDF          = new Shader();
     shTextEffectsSDF         = new Shader();
 
-    cPlayer   = new Camera(DirectX::XMFLOAT3(-24.6163f, 14.3178f, 24.5916f));
+    cPlayer   = new Camera(float3(3.78576f, 9.56023f, 21.2106f), float3(9.66979f, 180.f + 208.657f, 0.f));
     c2DScreen = new Camera();
-    cLight    = new Camera(DirectX::XMFLOAT3(-64.1149f, 60.3294f, 56.2415f), DirectX::XMFLOAT3(45.f, 0.f, 0.f));
+    cLight    = new Camera(float3(28.3829f, 44.3529f, -12.3071f), float3(48.2529f, 292.055f, 0.f));
 
     tDefault         = new Texture();
     tBlueNoiseRG     = new Texture();
@@ -1171,14 +1273,15 @@ void _DirectX::Load() {
     bShadows->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
     bShadows->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
     bShadows->SetName("SS-RT-SM buffer");
-    
+
     // Create depth buffer
+    //bDepth->EnableMSAA();
     bDepth->Create(2048, 2048, 32);
     bDepth->SetName("Shadow map depth buffer");
 
     // Deferred buffer
     bDeferred->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bDeferred->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT);
+    bDeferred->CreateColor0(scd.Format);
     bDeferred->SetName("Deferred buffer");
 
     // Screen-Space Local Reflections buffer
@@ -1187,19 +1290,26 @@ void _DirectX::Load() {
     bSSLR->SetName("Local Reflections Buffer");
 
     // Geometry Buffer
-    bGBuffer->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bGBuffer->CreateDepth(32);
-    bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
-    bGBuffer->CreateColor1(DXGI_FORMAT_R16G16B16A16_FLOAT); // Normal
-    bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
-    bGBuffer->SetName(0, "GBuffer Diffuse");
-    bGBuffer->SetName(1, "GBuffer Normal");
-    bGBuffer->SetName(2, "GBuffer Specular");
-    bGBuffer->SetName(-1, "GBuffer Depth");
+    {
+        bGBuffer->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
+
+        // Create buffers with MSAA
+        if( this->cfg.MSAA ) bGBuffer->EnableMSAA();
+
+        bGBuffer->CreateDepth(32);
+        bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
+        bGBuffer->CreateColor1(DXGI_FORMAT_R16G16B16A16_FLOAT); // Normal
+        bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
+
+        bGBuffer->SetName(0, "GBuffer Diffuse");
+        bGBuffer->SetName(1, "GBuffer Normal");
+        bGBuffer->SetName(2, "GBuffer Specular");
+        bGBuffer->SetName(-1, "GBuffer Depth");
+    }
 
     // 
     bZBuffer_Editor->Create(cfg.CurrentWidth, cfg.CurrentHeight, 32);
-    bZBuffer_Editor->SetName("[Editor]: Z-Buffer");
+    bZBuffer_Editor->SetName("ZBuffer");
 #pragma endregion
 
 #pragma region Create states
@@ -1675,6 +1785,7 @@ void _DirectX::Unload() {
     delete gSSAOArgs;
     delete gHDRPostProcess;
     delete gSSAOPostProcess;
+    delete gSSLRPostProcess;
 
     // Release states
     rsFrontCull->Release();
@@ -1856,9 +1967,9 @@ void _DirectX::AnselSession() {
 
 int main() {
     // Create global engine objects
-    gWindow = new Window();
-    gDirectX = new _DirectX();
-    gAudioDevice = new AudioDevice();
+    gWindow        = new Window();
+    gDirectX       = new _DirectX();
+    gAudioDevice   = new AudioDevice();
     gPhysicsEngine = new PhysicsEngine();
     
     // Window config
@@ -1876,9 +1987,9 @@ int main() {
     winCFG = gWindow->GetCFG();
 
     // Get input devices
-    gInput = gWindow->GetInputDevice();
+    gInput    = gWindow->GetInputDevice();
     gKeyboard = gInput->GetKeyboard();
-    gMouse = gInput->GetMouse();
+    gMouse    = gInput->GetMouse();
 #if USE_GAMEPADS
     for( int i = 0; i < NUM_GAMEPAD; i++ ) gGamepad[i] = gInput->GetGamepad(i);
 #endif
@@ -1892,22 +2003,23 @@ int main() {
 
     // DirectX config
     DirectXConfig dxCFG;
-    dxCFG.BufferCount = 2;
-    dxCFG.Width  = winCFG.CurrentWidth;
-    dxCFG.Height = winCFG.CurrentHeight2;
-    dxCFG.m_hwnd = gWindow->GetHWND();
-    dxCFG.RefreshRate = 60;// 60; // TODO: Fix
-    dxCFG.UseHDR = true;
+    dxCFG.BufferCount     = 2;
+    dxCFG.Width           = winCFG.CurrentWidth;
+    dxCFG.Height          = winCFG.CurrentHeight2;
+    dxCFG.m_hwnd          = gWindow->GetHWND();
+    dxCFG.RefreshRate     = 60;// 60; // TODO: Fix
+    dxCFG.UseHDR          = true;
     dxCFG.DeferredContext = false;
-    dxCFG.Windowed = winCFG.Windowed;
-    dxCFG.Ansel = USE_ANSEL;
+    dxCFG.Windowed        = winCFG.Windowed;
+    dxCFG.Ansel           = USE_ANSEL;
+    dxCFG.MSAA            = !true;
 
     // <strike>TODO: MSAA Support</strike>
     // TODO: Remove MSAA from here
     // TODO: Add TAA support
-    dxCFG.MSAA = false;
-    dxCFG.MSAA_Samples = 1;
-    dxCFG.MSAA_Quality = 0;
+    //dxCFG.MSAA = false;
+    //dxCFG.MSAA_Samples = 1;
+    //dxCFG.MSAA_Quality = 0;
 
     // Create device and swap chain
     if( gDirectX->ShowError(gDirectX->Create(dxCFG)) ) { return 1; }
@@ -1957,6 +2069,9 @@ int main() {
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
 #endif
+
+    // 
+    RenderBufferBase::GlobalRelease();
 
     gWindow->Destroy();
     gDirectX->Unload();

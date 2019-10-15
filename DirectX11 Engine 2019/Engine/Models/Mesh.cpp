@@ -32,6 +32,6 @@ void Mesh::SetBuffer(VertexBuffer* inVB, IndexBuffer* inIB) {
 }
 
 void Mesh::Release() {
-    if( vb ) vb->Release();
-    if( ib ) ib->Release();
+    if( vb ) { vb->Release(); delete vb; }
+    if( ib ) { ib->Release(); delete ib; }
 }

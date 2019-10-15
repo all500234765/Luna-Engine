@@ -27,10 +27,15 @@ bool PolygonLayout::End(Shader* shader) {
 }
 
 void PolygonLayout::Release() {
+    if( Released ) return;
     if( il ) il->Release();
+    Released = true;
 }
 
 void PolygonLayout::Bind() {
+    if( !il ) { return; }
+    gState = this;
+
     gDirectX->gContext->IASetInputLayout(il);
 }
 

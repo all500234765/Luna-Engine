@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Engine/DirectX/DirectXChild.h"
+#include "PipelineState.h"
 
-class RasterState: public DirectXChild {
+class RasterState: public PipelineState<RasterState> {
 private:
     ID3D11RasterizerState *pState = 0;
 

@@ -83,8 +83,8 @@ public:
     static void SetDefaultTextureOpacity(Texture* def);
     static void SetDefaultTextureSpecular(Texture* def);
 
-    void Render();
-    void Render(UINT num);
+    void Render(UINT num=1, bool bBindTextures=true);
+    //void Render(UINT num, bool bBindTextures=true);
 
     template<typename VertexT=Vertex_PNT/*, TexturesT=DefaultTexturePreset*/> void  LoadModel(std::string fname);
     template<typename VertexT=Vertex_PNT> void  ProcessNode(aiNode* node, const aiScene* scene);
@@ -95,6 +95,11 @@ public:
     void DisableDefaultTexture() { bUseDefaultTexture = false; };
     void EnableDefaultTexture()  { bUseDefaultTexture = true; };
 };
+
+/*template<typename VertexT>
+void LoadModel(std::string fname) {
+    Model::LoadModel<VertexT>(fname);
+}*/
 
 template<typename VertexT>
 void Model::LoadModel(std::string fname) {

@@ -9,17 +9,20 @@
 #include <iostream>
 
 #include "DirectXChild.h"
-//#include "PolygonLayout.h"
+#include "Engine/States/PipelineState.h"
 
 class PolygonLayout;
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "dxguid.lib")
 
-class Shader: public DirectXChild {
-protected:
-    static Shader* gBoundShader;
+static const char* gcShaderName[] = {
+        "Vertex", "Pixel", "Geometry",
+        "Hull", "Domain", "Compute",
+        "Geometry With Stream Output"
+};
 
+class Shader: public PipelineState<Shader> {
 private:
     ID3D11VertexShader   *sVertex;
     ID3D11PixelShader    *sPixel;
@@ -35,23 +38,24 @@ private:
     char Type = 0 /* Original */, Linked = 0 /* Linked from another shader */;
 
 public:
-    static Shader* Current() { return gBoundShader; };
-
     typedef enum {
-        Vertex   = 1, 
-        Pixel    = 2, 
-        Geometry = 4, 
-        Hull     = 8, 
-        Domain   = 16, 
-        Compute  = 32, 
-        Count    = 6
+        Vertex     = 1, 
+        Pixel      = 2, 
+        Geometry   = 4, 
+        Hull       = 8, 
+        Domain     = 16, 
+        Compute    = 32, 
+        GeometrySO = 64, 
+        Count      = 7
     } ShaderType;
 
     Shader();
 
     void SetNullShader(ShaderType type);
 
-    bool LoadFile(std::string fname, ShaderType type);
+    bool LoadFile(std::string fname, ShaderType type, 
+                  D3D11_SO_DECLARATION_ENTRY* pSODecl=(D3D11_SO_DECLARATION_ENTRY*)0, 
+                  UINT SODeclNum=0, UINT* Strides={0}, UINT NumStrides=0, UINT RStream=0);
     void DeleteShaders();
 
     void ReleaseBlobs();
@@ -68,5 +72,7 @@ public:
     bool CreatePolygonLayout();
     bool CreatePolygonLayout(std::vector<D3D11_INPUT_ELEMENT_DESC> elements);
 
-    void Release() { DeleteShaders(); }
+    void Release() {
+        DeleteShaders();
+    }
 };

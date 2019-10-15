@@ -11,6 +11,7 @@ void RasterState::Create(D3D11_RASTERIZER_DESC pDesc) {
 
 void RasterState::Bind() {
     if( !pState ) { return; }
+    gState = this;
 
     gDirectX->gContext->RSSetState(pState);
 }

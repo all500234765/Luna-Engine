@@ -169,6 +169,8 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
     half Metal = _SpecularTexture.Sample(_SpecularSampler, In.Texcoord).r;
     half Rough = _RougnessTexture.Sample(_RougnessSampler, In.Texcoord);
 
+    //Diff.rgb = pow(Diff.rgb, 2.2f);
+
     // Vectors
     float3 L = normalize(In.LightPos.xyz - In.WorldPos);
     float3 V = normalize(In.ViewDir 	 - In.Position.xyz);
@@ -214,6 +216,8 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
 
     // Shadows
     Diff.rgb *= S;
+    
+    //Diff.rgb = pow(Diff.rgb, 1.f / 2.2f);
 
     // 
     GBuffer Out;

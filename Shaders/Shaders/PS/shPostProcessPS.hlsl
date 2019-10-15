@@ -122,7 +122,7 @@ half3 NormalDecode(half2 enc) {
 //#define FXAA_QUALITY__PRESET 12
 //#define FXAA_QUALITY__PRESET 25
 #define FXAA_QUALITY__PRESET 39
-#include "fxaa.hlsli"
+//#include "fxaa.hlsli"
 
 static const float fxaaSubpix = 0.75;
 static const float fxaaEdgeThreshold = 0.166;
@@ -133,19 +133,20 @@ static const float threshold = .9; // .9
 #define fsqrt(x) sqrt(dot(x, x)) //dot(length(x), length(x))
 
 half4 main(PS In): SV_Target0 {
-    float2 fxaaFrame;
-    _Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
+    //float2 fxaaFrame;
+    //_Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
 
     // 
-    half4 Diff = pow(_Texture.Sample(_Sampler, In.Texcoord), 1.f / 2.2f);
-
+    half4 Diff = _Texture.Sample(_Sampler, In.Texcoord);
+    
+    //Diff.rgb = pow(Diff.rgb, 2.2f);
     if( Diff.a < .5f ) { discard; }
 
     // Screen-Space Snow here
     //half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
 
     // FXAA
-    FxaaTex tex = {_Sampler, _Texture};
+    //FxaaTex tex = {_Sampler, _Texture};
     //Diff = FxaaPixelShader(In.Texcoord, 0, tex, tex, tex, 1.f / fxaaFrame, 0, 0, 0, 
     //                       fxaaSubpix, fxaaEdgeThreshold, fxaaEdgeThresholdMin, 0, 0, 0, 0);
 
@@ -172,17 +173,20 @@ half4 main(PS In): SV_Target0 {
         depth = Depth2Linear(depth);
 
         // Get blurred color
-        float3 Blur = _BlurTexture.Sample(_LinearSampler, In.Texcoord);
+        float3 Blur = _BlurTexture.Sample(_LinearSampler, In.Texcoord).rgb;
 
         // Compute final color
         Diff.rgb = DistDoF(Diff.rgb, Blur, depth);
     }
 
+    // Deferred lightning
+    //Diff.rgb = Deferred;
+
     // Ambient Occlusion
     Diff.rgb *= _AmbientOcclusion.Sample(_LinearSampler, In.Texcoord);
-
+    
     // Bloom
-    Diff.rgb += _BloomScale * _BloomTexture.Sample(_LinearSampler, In.Texcoord);
+    Diff.rgb += _BloomScale * _BloomTexture.Sample(_LinearSampler, In.Texcoord).rgb;
     
     // Eye Adaptation And Tonemapping
     Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);

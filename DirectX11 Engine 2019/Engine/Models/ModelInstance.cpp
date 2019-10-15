@@ -1,9 +1,5 @@
 #include "ModelInstance.h"
 
-#include "Model.h"
-#include "Engine/DirectX/Shader.h"
-#include "Engine/Camera/Camera.h"
-
 void ModelInstance::SetModel(Model* model) {
     mModel = model;
 }
@@ -34,10 +30,10 @@ void ModelInstance::Bind(Camera* cam) {
     cam->BuildConstantBuffer();
 }
 
-void ModelInstance::Render() {
-    mModel->Render();
+void ModelInstance::Render(bool bBindTextures) {
+    mModel->Render(1, bBindTextures);
 }
 
-void ModelInstance::Render(UINT Num) {
-    mModel->Render(Num);
+void ModelInstance::Render(UINT Num, bool bBindTextures) {
+    mModel->Render(Num, bBindTextures);
 }

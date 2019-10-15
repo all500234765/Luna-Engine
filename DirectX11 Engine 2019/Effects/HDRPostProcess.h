@@ -51,13 +51,13 @@ struct FinalPassInst {
 
 class HDRPostProcess {
 private:
-#pragma pack(push, 1)
+//#pragma pack(push, 1)
     struct BokehBuffer {
         float4 _Color;
         float2 _Position;
         float1 _Radius;
     };
-#pragma pop()
+//#pragma pop()
 
     struct _IndirectArgs {
         D3D11_DRAW_INSTANCED_INDIRECT_ARGS _Args;
@@ -97,7 +97,7 @@ private:
     
     Texture *_BokehTex; // Bokeh texture
 
-    BlendState *_OldState, *_NewState;
+    BlendState *bsAdditive;
     Sampler *_LinearSampler;
 
     // Saves last RT's size.
@@ -219,7 +219,7 @@ public:
         _BokehTex->Load("../Textures/Bokeh5.dds", false, false);
         
         // Create blend state
-        _NewState = new BlendState();
+        bsAdditive = new BlendState();
         D3D11_BLEND_DESC pDesc;
         pDesc.AlphaToCoverageEnable          = false;
         pDesc.IndependentBlendEnable         = false;
@@ -232,7 +232,7 @@ public:
         pDesc.RenderTarget[0].BlendOpAlpha   = D3D11_BLEND_OP_ADD;
         pDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-        _NewState->Create(pDesc, { 0.f, 0.f, 0.f, 1.f });
+        bsAdditive->Create(pDesc, { 0.f, 0.f, 0.f, 1.f });
 
         // Create sampler state
         _LinearSampler = new Sampler();
@@ -279,10 +279,10 @@ public:
         _BlurOut->Release();
         _BokehTex->Release();
 
-        _NewState->Release();
+        bsAdditive->Release();
         _LinearSampler->Release();
 
-        delete _NewState;
+        delete bsAdditive;
         delete _LinearSampler;
 
         delete shLuminanceDownScale1;
@@ -484,8 +484,8 @@ public:
         //gDirectX->gContext->CopyStructureCount(sbBokehIndirect->GetBuffer(), 0, abBokeh->GetUAV());
 
         // Update states
-        _OldState = BlendState::Current();
-        _NewState->Bind();
+        BlendState::Push();
+        bsAdditive->Bind();
 
         shBokeh->Bind();
 
@@ -504,9 +504,9 @@ public:
         // Render bokeh
         gDirectX->gContext->DrawInstancedIndirect(sbBokehIndirect->GetBuffer(), 0);
 
-        // Restore old state
+        // Restore old states
         shEmptyShader->Bind();
-        if( _OldState ) _OldState->Bind();
+        BlendState::Pop();
         gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         
         LunaEngine::VSDiscardSRV<1>();

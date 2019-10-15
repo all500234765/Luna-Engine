@@ -2,26 +2,43 @@
 
 void RenderBufferColor1::CreateColor0(DXGI_FORMAT format) {
     sColor0 = CreateRTV2D(Width, Height, format);
+    CreateNonMSAA(format, sMSAAColor, 1);
 }
 
 void RenderBufferColor1::BindResources(Shader::ShaderType type, UINT slot) {
-    BindResource(sColor0, type, slot + 0U);
+    BindResource(GetColor0(), type, slot + 0U);
 }
 
 void RenderBufferColor1::Bind() {
     BindTarget(sColor0);
 }
 
+void RenderBufferColor1::Bind(sRenderBuffer* DSV) {
+    BindTarget(sColor0, DSV);
+}
+
 void RenderBufferColor1::Release() {
     sColor0->Release();
+    delete sColor0;
+
+    if( mMSAA ) {
+        sMSAAColor[0]->Release();
+        delete sMSAAColor[0];
+    }
 }
 
 void RenderBufferColor1::Resize(int w, int h) {
     SetSize(w, h);
 
+    // Color 1
     DXGI_FORMAT f1 = sColor0->format;
     sColor0->Release();
     sColor0 = CreateRTV2D(w, h, f1);
+
+    if( mMSAA ) {
+        sMSAAColor[0]->Release(); // MSAA
+        CreateNonMSAA(f1, sMSAAColor, 0);
+    }
 }
 
 void RenderBufferColor1::Clear(const FLOAT Color0[4]) {
@@ -29,5 +46,5 @@ void RenderBufferColor1::Clear(const FLOAT Color0[4]) {
 }
 
 sRenderBuffer* RenderBufferColor1::GetColor0() {
-    return sColor0;
+    return mMSAA ? sMSAAColor[0] : sColor0;
 }

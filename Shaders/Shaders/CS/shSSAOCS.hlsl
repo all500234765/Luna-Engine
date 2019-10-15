@@ -10,7 +10,7 @@ cbuffer Downscaling : register(b0) {
 };
 
 StructuredBuffer<float4> _DepthNDS : register(t0);
-RWTexture2D<float> _AO : register(u0);
+RWTexture2D<float> _AO             : register(u0);
 
 groupshared float _SharedDepth[1024];
 
@@ -52,7 +52,7 @@ float ComputeAO(int2 cPixel, float2 cClip) {
     float3 cNormal = GetNormal(cPixel);
 
     // Prepare random sampling
-    float rAng = 0.f;
+    float rAng = dot(cClip, float2(73.f, 197.f));
     float2 rSinCos; sincos(rAng, rSinCos.x, rSinCos.y);
     float2x2 mRot = float2x2(rSinCos.y, -rSinCos.x, 
                              rSinCos.x, +rSinCos.y);
@@ -79,8 +79,7 @@ float ComputeAO(int2 cPixel, float2 cClip) {
 }
 
 [numthreads(1024, 1, 1)]
-void main(uint3 groupThreadId : SV_GroupThreadID, 
-          uint3 dispatchThreadId : SV_DispatchThreadID)
+void main(uint3 groupThreadId : SV_GroupThreadID, uint3 dispatchThreadId : SV_DispatchThreadID)
 {
 	uint2 CurPixel = uint2(dispatchThreadId.x % _Res.x, dispatchThreadId.x / _Res.x);
 

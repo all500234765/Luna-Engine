@@ -53,7 +53,7 @@ private:
     IDXGIAdapter3 *gAdapter3 = nullptr;
 
     // RTVs
-    ID3D11RenderTargetView *gRTV;
+    ID3D11RenderTargetView *gRTV; ID3D11ShaderResourceView *gRTV_SRV;
     ID3D11DepthStencilView *gDSV; ID3D11ShaderResourceView *gDSV_SRV;
 
     // Textures
@@ -67,10 +67,10 @@ private:
     DirectXConfig cfg;
 
     // Descs
-    D3D11_DEPTH_STENCIL_VIEW_DESC pDesc2;
-    D3D11_TEXTURE2D_DESC pTex2DDesc;
-    D3D11_DEPTH_STENCIL_DESC pDSD;
-    DXGI_SWAP_CHAIN_DESC1 scd;
+    D3D11_DEPTH_STENCIL_VIEW_DESC   pDesc2;
+    D3D11_TEXTURE2D_DESC            pTex2DDesc;
+    D3D11_DEPTH_STENCIL_DESC        pDSD;
+    DXGI_SWAP_CHAIN_DESC1           scd;
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC pSCFDesc;
 
 public:
