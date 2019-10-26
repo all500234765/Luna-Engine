@@ -73,6 +73,8 @@ RenderBufferDepth2D *bDepth, *bZBuffer_Editor;
 RenderBufferColor3Depth *bGBuffer;
 RenderBufferColor1 *bSSLR, *bDeferred, *bShadows;
 
+RenderTarget2DColor3Depth *rtGBuffer;
+
 // Queries
 Query *pQuery;
 
@@ -322,9 +324,10 @@ bool _DirectX::FrameFunction() {
     ID3D11RenderTargetView *pEmptyRTV = nullptr;
     gContext->OMSetRenderTargets(1, &pEmptyRTV, nullptr);
 
-    bGBuffer->Bind();
-    bGBuffer->Clear(Clear, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
-    //                                        Default is 1 ^^^
+    rtGBuffer->Bind();
+    //bGBuffer->Clear(Clear, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
+    rtGBuffer->Clear(0.f, 0);
+    //               ^                        Default is 1 ^^^
 
     // Render scene
     RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
@@ -603,7 +606,7 @@ bool _DirectX::FrameFunction() {
     c2DScreen->BindBuffer(Shader::Vertex, 0);
     
     // Diffuse
-    gContext->PSSetShaderResources(0, 1, &_Color0->pSRV);
+    gContext->PSSetShaderResources(0, 1, &rtGBuffer->GetBuffer<0>()->pSRV);
     sPoint->Bind(Shader::Pixel, 0);
 
     // SSLR
@@ -1279,6 +1282,12 @@ void _DirectX::Load() {
     bDepth->Create(2048, 2048, 32);
     bDepth->SetName("Shadow map depth buffer");
 
+    rtGBuffer = new RenderTarget2DColor3Depth(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
+    rtGBuffer->Create(32);
+    rtGBuffer->Create(0, DXGI_FORMAT_R16G16B16A16_FLOAT,
+                         DXGI_FORMAT_R16G16B16A16_FLOAT, 
+                         DXGI_FORMAT_R8G8B8A8_UNORM);
+
     // Deferred buffer
     bDeferred->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
     bDeferred->CreateColor0(scd.Format);
@@ -1857,6 +1866,8 @@ void _DirectX::Unload() {
     bShadows->Release();
     bSSLR->Release();
     bZBuffer_Editor->Release();
+
+    SAFE_RELEASE(rtGBuffer);
     
     // Text engine
     fRegular->Release();
