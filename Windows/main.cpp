@@ -73,7 +73,7 @@ RenderBufferDepth2D *bDepth, *bZBuffer_Editor;
 RenderBufferColor3Depth *bGBuffer;
 RenderBufferColor1 *bSSLR, *bDeferred, *bShadows;
 
-RenderTarget2DColor3Depth *rtGBuffer;
+RenderTarget2DColor3DepthMSAA *rtGBuffer;
 
 // Queries
 Query *pQuery;
@@ -327,13 +327,15 @@ bool _DirectX::FrameFunction() {
     rtGBuffer->Bind();
     //bGBuffer->Clear(Clear, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
     rtGBuffer->Clear(0.f, 0);
+    rtGBuffer->Clear(Clear0);
     //               ^                        Default is 1 ^^^
 
     // Render scene
     RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
 
     // Done rendering to GBuffer
-    bGBuffer->MSAAResolve();
+    // Resolve MSAA
+    rtGBuffer->MSAAResolve();
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -916,6 +918,11 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Camera speed", &fSpeed, 0.f, 2000.f);
     ImGui::SliderFloat("Light radius", &LightPos.w, 0.f, 200.f);
 
+    // MSAA
+    static bool gMSAACheckbox = false;
+    if( gMSAACheckbox != rtGBuffer->IsMSAAEnabled() ) 
+        gMSAACheckbox = rtGBuffer->IsMSAAEnabled();
+
     // HDR; Eye Adaptation; Bloom; Bokeh; DoF
     static float White             = 21.53f;
     static float MidGray           = 20.863f;
@@ -938,6 +945,17 @@ void _DirectX::ComposeUI() {
     static float gEdgeDistThreshold  = .45f;
     static float gReflScale          = 1.f;
     static float gDepthBias          = .5f;
+
+    // GUI
+    if( ImGui::Checkbox("MSAA GBuffer", &gMSAACheckbox) ) {
+        UINT w = rtGBuffer->GetWidth();
+        UINT h = rtGBuffer->GetHeight();
+
+        if( gMSAACheckbox ) rtGBuffer->EnableMSAA();
+        else                rtGBuffer->DisableMSAA();
+
+        rtGBuffer->Resize(w, h);
+    }
 
     ImGui::Text("SSLR Settings");
     ImGui::SliderFloat("View angle Threshold"   , &gViewAngleThreshold, -.25f, 1.f  );
@@ -967,6 +985,7 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Bokeh Color Scale" , &gBokehColorScale , 0.f,   1.f);
     ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f,   1.f);
 
+    // 
     const float gFarScale = 100.f;
 
     // 
@@ -1052,6 +1071,8 @@ void _DirectX::Resize() {
     bShadows->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
     bZBuffer_Editor->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
 
+    rtGBuffer->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
+
     // Resize HDR Post processing textures
     gHDRPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
     gSSAOPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
@@ -1121,6 +1142,7 @@ void _DirectX::Resize() {
 void _DirectX::Load() {
     // Enable MSAA
     RenderBufferBase::GlobalInit();
+    RenderTargetMSAA::GlobalInit();
 
     // Post processing
     gHDRPostProcess  = new HDRPostProcess;
@@ -1282,11 +1304,12 @@ void _DirectX::Load() {
     bDepth->Create(2048, 2048, 32);
     bDepth->SetName("Shadow map depth buffer");
 
-    rtGBuffer = new RenderTarget2DColor3Depth(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
+    rtGBuffer = new RenderTarget2DColor3DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
+    //rtGBuffer->EnableMSAA();
     rtGBuffer->Create(32);
-    rtGBuffer->Create(0, DXGI_FORMAT_R16G16B16A16_FLOAT,
-                         DXGI_FORMAT_R16G16B16A16_FLOAT, 
-                         DXGI_FORMAT_R8G8B8A8_UNORM);
+    rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,
+                             DXGI_FORMAT_R16G16B16A16_FLOAT, 
+                             DXGI_FORMAT_R8G8B8A8_UNORM);
 
     // Deferred buffer
     bDeferred->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
@@ -2083,6 +2106,7 @@ int main() {
 
     // 
     RenderBufferBase::GlobalRelease();
+    RenderTargetMSAA::GlobalRelease();
 
     gWindow->Destroy();
     gDirectX->Unload();

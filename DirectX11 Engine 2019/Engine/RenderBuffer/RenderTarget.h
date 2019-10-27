@@ -23,10 +23,10 @@ enum RenderTargetFlags {
 
 struct implRenderTarget {
     // Target unit
-    std::variant<ID3D11DepthStencilView*, ID3D11RenderTargetView*> pView;
+    std::variant<bool, ID3D11DepthStencilView*, ID3D11RenderTargetView*> pView;
 
     // Texture unit
-    std::variant<ID3D11Texture1D*, ID3D11Texture2D*, ID3D11Texture3D*> pTexture;
+    std::variant<bool, ID3D11Texture1D*, ID3D11Texture2D*, ID3D11Texture3D*> pTexture;
 
     // Format unit
     std::variant<DXGI_FORMAT, UINT> mFormat;
@@ -38,51 +38,196 @@ struct implRenderTarget {
     ID3D11ShaderResourceView  *pSRV;
 
     void Release() {
-        if( mFlags & dim_1 && std::get<ID3D11Texture1D*>(pTexture) ) { std::get<ID3D11Texture1D*>(pTexture)->Release(); }
-        if( mFlags & dim_2 && std::get<ID3D11Texture2D*>(pTexture) ) { std::get<ID3D11Texture2D*>(pTexture)->Release(); }
-        if( mFlags & dim_3 && std::get<ID3D11Texture3D*>(pTexture) ) { std::get<ID3D11Texture3D*>(pTexture)->Release(); }
+        if( pTexture.index() > 0 ) {
+            if( (mFlags & dim_1) && std::get<ID3D11Texture1D*>(pTexture) ) { std::get<ID3D11Texture1D*>(pTexture)->Release(); }
+            if( (mFlags & dim_2) && std::get<ID3D11Texture2D*>(pTexture) ) { std::get<ID3D11Texture2D*>(pTexture)->Release(); }
+            if( (mFlags & dim_3) && std::get<ID3D11Texture3D*>(pTexture) ) { std::get<ID3D11Texture3D*>(pTexture)->Release(); }
+        }
 
-        if( mFlags & _Depth ) {
-            if( std::get<ID3D11DepthStencilView*>(pView) ) { std::get<ID3D11DepthStencilView*>(pView)->Release(); }
-        } else {
-            if( std::get<ID3D11RenderTargetView*>(pView) ) { std::get<ID3D11RenderTargetView*>(pView)->Release(); }
+        if( pView.index() > 0 ) {
+            if( mFlags & _Depth ) {
+                if( pUAV == nullptr ) {
+                    auto q = std::get<ID3D11DepthStencilView*>(pView);
+                    if( q ) { q->Release(); }
+                }
+            } else {
+                auto q = std::get<ID3D11RenderTargetView*>(pView);
+                if( q ) { q->Release(); }
+            }
         }
 
         if( pSRV ) { pSRV->Release(); }
         if( pUAV ) { pUAV->Release(); }
+
+        pSRV = nullptr;
+        pUAV = nullptr;
+        pView = false;
+        pTexture = false;
     }
 };
 
-template<size_t dim, size_t BufferNum, bool DepthBuffer=false, size_t ArraySize=1, bool WillHaveMSAA=false, bool Cube=false>
-class RenderTarget: public DirectXChild {
+class RenderTargetMSAA: public DirectXChild {
+protected:
+
+    struct _MSAA_DepthResolve {
+        uint2 _Dim;       // Depth buffer dimensions
+        uint1 _Samples;   // MSAA Sample count
+        uint1 _Alignment; // Empty
+    };
+
+    // MSAA Resolve resources
+    static Shader*         g_shMSAADepthResolve;
+    static ConstantBuffer* g_MSAAConstantBuffer;
+    //static Texture*        g_MSAATextureUAV;
+
+public:
+    static void GlobalInit() {
+        g_shMSAADepthResolve = new Shader();
+        g_shMSAADepthResolve->LoadFile("shMSAADepthResolveCS.cso", Shader::Compute);
+        g_shMSAADepthResolve->ReleaseBlobs();
+
+        g_MSAAConstantBuffer = new ConstantBuffer();
+        g_MSAAConstantBuffer->CreateDefault(sizeof(_MSAA_DepthResolve));
+    }
+
+    static void GlobalRelease() {
+        if( g_shMSAADepthResolve ) {
+            g_shMSAADepthResolve->Release();
+            delete g_shMSAADepthResolve;
+        }
+
+        if( g_MSAAConstantBuffer ) {
+            g_MSAAConstantBuffer->Release();
+            delete g_MSAAConstantBuffer;
+        }
+    }
+
+};
+
+template<size_t dim, size_t BufferNum, bool DepthBuffer=false, 
+         size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps 
+                                                     to create per RT buffer   */
+         bool WillHaveMSAA=false, bool Cube=false>
+class RenderTarget: public RenderTargetMSAA {
 private:
     UINT mWidth, mHeight, mDepth;
     D3D11_VIEWPORT mViewPort;
 
+    // Offset with respect to DepthBuffers count
+    size_t mOffset = (DepthBuffer ? (1 + (WillHaveMSAA ? 2 : 0)) : 0);
+
     // MSAA
     // 0, 1=Depth, 2=Color0, ..., N=ColorN
-    UINT mMSAASamples[2 * DepthBuffer + BufferNum];
+    std::array<UINT, 2 * DepthBuffer + BufferNum> mMSAASamples;
 
-    implRenderTarget *mRenderTargets[(UINT(dim == 2) * WillHaveMSAA + 1) * (BufferNum + DepthBuffer)];
+    std::array<implRenderTarget*, 
+               (DepthBuffer ? (1 + (WillHaveMSAA ? 2 : 0)) : 0) + 
+                              (1 + (WillHaveMSAA ? 1 : 0)) * BufferNum> mRenderTargets;
 
+    // RT Base Name
     const char* mName;
 
     // Is MSAA enabled
     bool mMSAA = false;
 
+    // MSAA
+    void MSAACheck(DXGI_FORMAT format, UINT& SampleCount, UINT& Quality) {
+        if( mMSAA ) {
+            // Check for MSAA Support
+            UINT uQuality = 0;
+            UINT Samples = D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT;
+
+            // Find max number of samples and quality level
+            for( ; Samples > 1; Samples /= 2 ) {
+                gDirectX->gDevice->CheckMultisampleQualityLevels(format, Samples, &uQuality);
+                if( uQuality > 0 ) { break; }
+            }
+
+            // Update
+            if( uQuality > 0 ) {
+                SampleCount = Samples;
+                Quality     = uQuality;
+
+                std::cout << "Found MSAA Quality and Sample Count combination (Samples="
+                          << SampleCount << "; Quality=" << Quality << ")" << std::endl;
+            } else {
+                std::cout << "Failed to find MSAA Quality and Sample Count combination" << std::endl;
+            }
+        }
+    }
+    
+    template<size_t dim, size_t BufferNum, bool DepthBuffer=false, 
+             size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps 
+                                                         to create per RT buffer   */
+             bool WillHaveMSAA=false, bool Cube=false>
+    static void MSAAResolveDepth(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>* RT) {
+        float Width  = (float)RT->GetWidth();
+        float Height = (float)RT->GetHeight();
+
+        // Resolve Depth Buffer MSAA
+        // Update constant buffer
+        _MSAA_DepthResolve* BuffInst = (_MSAA_DepthResolve*)g_MSAAConstantBuffer->Map();
+            BuffInst->_Dim     = { (UINT)Width, (UINT)Height };
+            BuffInst->_Samples = RT->GetSampleNum(1);
+        g_MSAAConstantBuffer->Unmap();
+
+        // Calculate dispatch dimensions
+        UINT X = (UINT)ceil(Width  / 16.f);
+        UINT Y = (UINT)ceil(Height / 16.f);
+
+        // Bind resourses
+        implRenderTarget* SRVOrig  = RT->GetDepthBuffer<0, false>();
+        implRenderTarget* SRVNoUAV = RT->GetDepthBuffer<1, false>();
+        implRenderTarget* UAV      = RT->GetDepthBuffer();
+
+        RT->BindResource(UAV, Shader::Compute, 0, true); // UAV
+        RT->BindResource(SRVOrig, Shader::Compute, 0);   // SRV
+        g_MSAAConstantBuffer->Bind(Shader::Compute, 0);  // CB
+
+        // Resolve MSAA
+        g_shMSAADepthResolve->Dispatch(X, Y, 1);
+
+        // Discard resources
+        {
+            ID3D11UnorderedAccessView *pEmpty = nullptr;
+            gDirectX->gContext->CSSetUnorderedAccessViews(0, 1, &pEmpty, 0);
+        }
+
+        {
+            ID3D11Buffer *pEmpty = nullptr;
+            gDirectX->gContext->CSSetConstantBuffers(0, 1, &pEmpty);
+        }
+
+        {
+            ID3D11ShaderResourceView *pEmpty = nullptr;
+            gDirectX->gContext->CSSetShaderResources(0, 1, &pEmpty);
+        }
+
+        // Copy resources from UAV db to DSV db (depth buffer)
+        gDirectX->gContext->CopyResource(ChooseS(RT->GetDim(), SRVNoUAV->pTexture),
+                                         ChooseS(RT->GetDim(), UAV->pTexture));
+    }
+
+    // Choose texture
     ID3D11Resource* Choose(ID3D11Texture1D* _1D, ID3D11Texture2D* _2D, ID3D11Texture3D* _3D) const {
         if( dim == 1 ) return _1D;
         if( dim == 2 ) return _2D;
         return _3D;
     }
 
-    ID3D11Resource* Choose(std::variant<ID3D11Texture1D*, ID3D11Texture2D*, ID3D11Texture3D*> pTexture) const {
+    ID3D11Resource* Choose(std::variant<bool, ID3D11Texture1D*, ID3D11Texture2D*, ID3D11Texture3D*> pTexture) const {
         if( dim == 1 ) return std::get<ID3D11Texture1D*>(pTexture);
         if( dim == 2 ) return std::get<ID3D11Texture2D*>(pTexture);
         return std::get<ID3D11Texture3D*>(pTexture);
     }
 
-    void SetSize(UINT w, UINT h, UINT d = 1) {
+    static ID3D11Resource* ChooseS(UINT DIM, std::variant<bool, ID3D11Texture1D*, ID3D11Texture2D*, ID3D11Texture3D*> pTexture) {
+        if( DIM == 1 ) return std::get<ID3D11Texture1D*>(pTexture);
+        if( DIM == 2 ) return std::get<ID3D11Texture2D*>(pTexture);
+        return std::get<ID3D11Texture3D*>(pTexture);
+    }
+
+    void SetSize(UINT w, UINT h, UINT d=1) {
         mViewPort.TopLeftX = 0.f;
         mViewPort.TopLeftY = 0.f;
         mViewPort.MinDepth = 0.f;
@@ -95,10 +240,9 @@ private:
         mDepth = d;
     }
 
-
     // 
     implRenderTarget* CreateRenderTarget(bool Depth, std::variant<DXGI_FORMAT, UINT> format, 
-                                         bool UAV=false, UINT index=2+WillHaveMSAA) {
+                                         bool UAV=false, UINT index=mOffset, implRenderTarget* Out=nullptr) {
         union {
             ID3D11DepthStencilView* _DSV;
             ID3D11RenderTargetView* _RTV;
@@ -141,15 +285,17 @@ private:
 
         // MSAA
         UINT SampleCount = 1, Quality = 0;
-        //if( !UAV && dim == 2 ) MSAACheck(format, SampleCount, Quality);
+        if( !UAV && dim == 2 ) MSAACheck(formatTex, SampleCount, Quality);
 
         // Store sample count
-        if( (Depth && index < 2) || !Depth ) mMSAASamples[Depth ? (UAV ? 1 : 0) : index] = SampleCount;
+        if( (Depth && index < 2) || !Depth ) {
+            mMSAASamples[Depth ? (UAV ? 1 : 0) : (index - mOffset + 1)] = SampleCount;
+        }
 
         // Try to create a texture
         UINT BindFlags = D3D11_BIND_SHADER_RESOURCE
                        | (UAV   ? D3D11_BIND_UNORDERED_ACCESS : 0)
-                       | (Depth ? D3D11_BIND_DEPTH_STENCIL    : D3D11_BIND_RENDER_TARGET);
+                       | (Depth ? (UAV ? 0 : D3D11_BIND_DEPTH_STENCIL) : D3D11_BIND_RENDER_TARGET);
         HRESULT res = S_FALSE;
         if( dim == 1 ) {
             // Create Texture 1D
@@ -386,7 +532,7 @@ private:
             std::cout << "[RT]: Failed to create SRV" << std::endl;
         }
 
-        implRenderTarget* Out = new implRenderTarget();
+        if( Out == nullptr ) Out = new implRenderTarget();
 
         // Set view
             if( Depth ) Out->pView = pView._DSV;
@@ -408,7 +554,7 @@ private:
 public:
     RenderTarget() = delete;
 
-    RenderTarget(UINT w, UINT h, UINT d=1, const char* name="") {
+    RenderTarget(UINT w, UINT h, UINT d=1, const char* name="UnnamedRT") {
         SetSize(w, h, d);
 
         mName = name;
@@ -428,9 +574,27 @@ public:
         } else std::cout << "[RT]: Can't enable MSAA on RenderTarget<" << dim << ", ...>\n";
     }
 
+    void MSAAResolve() {
+        if( mMSAA ) {
+            // Unbind views
+            ID3D11RenderTargetView* nullRTV = nullptr;
+            gDirectX->gContext->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+            // Resolve color buffers
+            for( size_t i = mOffset; i < mOffset + BufferNum; i++ ) {
+                gDirectX->gContext->ResolveSubresource(Choose(mRenderTargets[i + BufferNum]->pTexture), 0, 
+                                                       Choose(mRenderTargets[i + 0        ]->pTexture), 0, 
+                                                       std::get<DXGI_FORMAT>(mRenderTargets[i]->mFormat));
+            }
+
+            // Resolve depth buffer
+            MSAAResolveDepth(this);
+        }
+    }
+
     // Main
-    void Create(UINT bpp) {
-        mRenderTargets[0] = CreateRenderTarget(true, bpp, false, 0);
+    void Create(UINT bpp, bool rct=false) {
+        mRenderTargets[0] = CreateRenderTarget(true, bpp, false, 0, rct ? mRenderTargets[0] : nullptr);
         SetName(" D0", mRenderTargets[0]);
 
         if( mMSAA ) {
@@ -438,25 +602,29 @@ public:
             DisableMSAA();
 
             // Create non-MSAA RTV
-            mRenderTargets[1] = CreateRenderTarget(true, bpp, false, 1); SetName(" D1 No MSAA, No UAV", mRenderTargets[1]);
-            mRenderTargets[2] = CreateRenderTarget(true, bpp, true , 2); SetName(" D2 No MSAA, w/ UAV", mRenderTargets[2]);
+            mRenderTargets[1] = CreateRenderTarget(true, bpp, false, 1, rct ? mRenderTargets[1] : nullptr);
+            SetName(" D1 No MSAA, No UAV", mRenderTargets[1]);
+
+            mRenderTargets[2] = CreateRenderTarget(true, bpp, true , 2, rct ? mRenderTargets[2] : nullptr);
+            SetName(" D2 No MSAA, w/ UAV", mRenderTargets[2]);
 
             // Eban MSAA back again
             EnableMSAA();
         }
     }
 
-    void Create(DXGI_FORMAT format, UINT slot=0, bool UAV=false) {
-        UINT index = slot + (1 + 2 * WillHaveMSAA);
+    void Create(DXGI_FORMAT format, UINT slot=0, bool UAV=false, bool rct=false) {
+        UINT index = slot + mOffset;
 
-        mRenderTargets[index] = CreateRenderTarget(false, format, UAV, index);
+        mRenderTargets[index] = CreateRenderTarget(false, format, UAV, index, rct ? mRenderTargets[index] : nullptr);
         SetName(UAV ? " w/ UAV" : " No UAV", mRenderTargets[index]);
 
         if( mMSAA ) {
             // Disable MSAA to create non-MSAA RTV
             DisableMSAA();
 
-            mRenderTargets[index + BufferNum] = CreateRenderTarget(false, format, UAV, BufferNum + index);
+            mRenderTargets[index + BufferNum] = CreateRenderTarget(false, format, UAV, index, 
+                                                                   rct ? mRenderTargets[index + BufferNum] : nullptr);
             SetName(UAV ? " w/ UAV No MSAA" : " No UAV No MSAA", mRenderTargets[BufferNum + index]);
 
             // Eban MSAA back again
@@ -466,9 +634,9 @@ public:
 
     // slot=0
     template<typename ...FORMAT>
-    void Create(UINT slot=0, FORMAT... formats) {
+    void CreateList(UINT slot=0, FORMAT... formats) {
         if( typeid(DXGI_FORMAT) == typeid(FORMAT) ) 
-            static_assert("[RT::Create(FORMAT... formats)]: Arguments must be DXGI_FORMAT.");
+            static_assert("[RT::Create(UINT slot=0, FORMAT... formats)]: Arguments must be DXGI_FORMAT.");
 
         std::array<DXGI_FORMAT, sizeof...(formats)> mFormats{ formats... };
 
@@ -482,19 +650,76 @@ public:
             mRenderTargets[i]->Release();
     }
 
-    void Resize(UINT w, UINT h);
+    void Resize(UINT w, UINT h, UINT d=1) {
+        SetSize(w, h, d);
+
+        // Store MSAA state
+        bool oldMSAA = mMSAA;
+        
+        // Depth
+        if( DepthBuffer ) {
+            UINT bpp = std::get<UINT>(mRenderTargets[0]->mFormat);
+
+            // Release resources
+            if( mRenderTargets[0] != nullptr ) {
+                mRenderTargets[0]->Release();
+                ///delete mRenderTargets[0];
+            }
+
+            if( WillHaveMSAA ) {
+                if( mRenderTargets[1] != nullptr ) {
+                    mRenderTargets[1]->Release();
+                    ///delete mRenderTargets[1];
+                }
+
+                if( mRenderTargets[2] != nullptr ) {
+                    mRenderTargets[2]->Release();
+                    ///delete mRenderTargets[2];
+                }
+            }
+
+            // Re-create DSV
+            Create(bpp, true);
+        }
+
+        if( BufferNum > 0 ) {
+            for( size_t i = mOffset; i < mOffset + BufferNum; i++ ) {
+                DXGI_FORMAT format = std::get<DXGI_FORMAT>(mRenderTargets[i]->mFormat);
+                bool UAV = (mRenderTargets[i]->pUAV != nullptr);
+
+                // Release resources
+                if( mRenderTargets[i] != nullptr ) {
+                    mRenderTargets[i]->Release();
+                    ///delete mRenderTargets[i];
+                }
+
+                if( WillHaveMSAA ) {
+                    if( mRenderTargets[i + BufferNum] != nullptr ) {
+                        mRenderTargets[i + BufferNum]->Release();
+                        ///delete mRenderTargets[i + BufferNum];
+                    }
+                }
+
+                // Re-create RTV
+                Create(format, i - mOffset, UAV, true);
+            }
+        }
+
+        // Restore MSAA state
+        mMSAA = oldMSAA;
+    }
 
     // Clear RTV
     void Clear(const FLOAT Color0[4]) {
-        for( UINT i = 0; i < BufferNum * (WillHaveMSAA + 1); i++ ) {
-            auto rt = std::get<ID3D11RenderTargetView*>(mRenderTargets[1 + 2 * WillHaveMSAA + i]->pView);
+        for( UINT i = 0; i < BufferNum * (mMSAA + 1); i++ ) {
+            auto rt = std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + i]->pView);
             if( rt ) gDirectX->gContext->ClearRenderTargetView(rt, Color0);
         }
     }
 
     // Clear DSV
     void Clear(FLOAT Depth, UINT8 Stencil, UINT flags=D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL) {
-        for( UINT i = 0; i < DepthBuffer * (1 + 2 * WillHaveMSAA); i++ ) {
+        for( UINT i = 0; i < (mMSAA ? mOffset : 1); i++ ) {
             auto rt = std::get<ID3D11DepthStencilView*>(mRenderTargets[i]->pView);
             if( rt ) gDirectX->gContext->ClearDepthStencilView(rt, flags, Depth, Stencil);
         }
@@ -502,27 +727,104 @@ public:
 
     // Bind RTVs and DSV
     void Bind() {
+        ID3D11DepthStencilView *ptrDSV = nullptr;
         ID3D11RenderTargetView *ptrRTV[BufferNum];
         for( size_t i = 0; i < BufferNum; i++ )
-            ptrRTV[i] = std::get<ID3D11RenderTargetView*>(mRenderTargets[1 + 2 * WillHaveMSAA + i]->pView);
+            ptrRTV[i] = std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + i]->pView);
 
-        gDirectX->gContext->OMSetRenderTargets(BufferNum, ptrRTV, DepthBuffer ? 
-                                               std::get<ID3D11DepthStencilView*>(mRenderTargets[0]->pView) : nullptr);
+        if( DepthBuffer && (mRenderTargets[0]->pUAV == nullptr) ) {
+            ptrDSV = std::get<ID3D11DepthStencilView*>(mRenderTargets[0]->pView);
+        }
+
+        gDirectX->gContext->OMSetRenderTargets(BufferNum, ptrRTV, ptrDSV);
     }
 
-    template<UINT T>
-    inline implRenderTarget* GetBuffer() const { return mRenderTargets[1 + 2 * WillHaveMSAA + T]; }
+    // Getters
+    template<UINT index, bool noMSAA=true>
+    inline implRenderTarget* GetBuffer() const {
+        if( !BufferNum ) return nullptr;
+        return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum];
+    }
+
+    template<UINT index, bool noMSAA=true>
+    inline ID3D11ShaderResourceView* GetBufferSRV() const {
+        if( !BufferNum ) return nullptr;
+        return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pSRV;
+    }
+
+    template<UINT index=0, bool noMSAA=true>
+    inline implRenderTarget* GetDepthBuffer() const {
+        if( !DepthBuffer ) return nullptr;
+        return mRenderTargets[index + 2 * noMSAA * mMSAA];
+    }
 
     // Bind
-    void BindResource(sRenderBuffer* data, Shader::ShaderType type, UINT slot=0, bool UAV=false);
+    void BindResource(implRenderTarget* rt, Shader::ShaderType type, UINT slot=0, bool UAV=false) {
+        switch( type ) {
+            case Shader::Vertex  : gDirectX->gContext->VSSetShaderResources(slot, 1, &rt->pSRV); break;
+            case Shader::Pixel   : gDirectX->gContext->PSSetShaderResources(slot, 1, &rt->pSRV); break;
+            case Shader::Geometry: gDirectX->gContext->GSSetShaderResources(slot, 1, &rt->pSRV); break;
+            case Shader::Hull    : gDirectX->gContext->HSSetShaderResources(slot, 1, &rt->pSRV); break;
+            case Shader::Domain  : gDirectX->gContext->DSSetShaderResources(slot, 1, &rt->pSRV); break;
+            case Shader::Compute :
+                if( UAV ) {
+                    UINT InitCount = { 0 };
+                    gDirectX->gContext->CSSetUnorderedAccessViews(slot, 1, &rt->pUAV, &InitCount);
+                } else {
+                    gDirectX->gContext->CSSetShaderResources(slot, 1, &rt->pSRV);
+                }
+                break;
+        }
+    }
 
-    // Get
+    // index = [0; BufferNum + DepthBuffer]
+    void Bind(UINT index, Shader::ShaderType type, UINT slot=0, bool UAV=false) {
+        if( index == 0 ) {
+            // Bind depth
+            if( DepthBuffer ) {
+                Bind(mRenderTargets[mMSAA ? 2 : 0], type, slot, UAV);
+                return;
+            }
+        }
+
+        // There is no depth buffer!
+        // Bind a non-depth buffer
+        Bind(mRenderTargets[mOffset + index + mMSAA * BufferNum], type, slot, UAV);
+    }
+
+    // Get Dims
     inline size_t GetWidth()  const { return mWidth;  }
     inline size_t GetHeight() const { return mHeight; }
     inline size_t GetDepth()  const { return (dim == 3) ? mDepth : 0; }
+
     inline UINT GetSampleNum(UINT i) const { return mMSAASamples[i];  }
 
+    // Template arguments and boolean checks
+    inline bool HasMinDim(size_t minDim) const { return dim >= minDim; }
+    inline bool HasMinBuff(size_t minB ) const { return BufferNum >= minB; }
+    inline bool HasDepth()               const { return DepthBuffer; }
+    inline bool HasMSAA()                const { return WillHaveMSAA; }
+    inline bool IsMSAAEnabled()          const { return mMSAA; }
+    inline size_t GetDim()               const { return dim; }
 };
+
+// MSAA Resolve
+//template<size_t dim, size_t BufferNum, bool DepthBuffer, 
+//         size_t ArraySize,    /* if Cube == true  => specify how many cubemaps 
+//                                                     to create per RT buffer   */
+//         bool WillHaveMSAA, bool Cube>
+//Shader* RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>::g_shMSAADepthResolve = 0;
+//
+//// 
+//template<size_t dim, size_t BufferNum, bool DepthBuffer, 
+//         size_t ArraySize,    /* if Cube == true  => specify how many cubemaps 
+//                                                     to create per RT buffer   */
+//         bool WillHaveMSAA, bool Cube>
+//ConstantBuffer* RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>::g_MSAAConstantBuffer = 0;
+
+Shader*         RenderTargetMSAA::g_shMSAADepthResolve = 0;
+ConstantBuffer* RenderTargetMSAA::g_MSAAConstantBuffer = 0;
+//Texture* RenderTargetMSAA::g_MSAATextureUAV = 0;
 
 // RenderTarget[dim]D_[num buffers]_[depth]_[array size]_[MSAA support]
 using RenderTarget2D_1_0_1 = RenderTarget<2, 1, false, 1, false>;
@@ -566,6 +868,23 @@ using RenderTarget2DColor8Depth = RenderTarget<2, 8, true, 1, false>;
 
 using RenderTarget2DDepth = RenderTarget<2, 0, true, 1, false>;
 
-// With MSAA
-using RenderTarget2DDepthMSAA = RenderTarget<2, 0, true, 1, true>;
+// MSAA variants
+using RenderTarget2DColor1MSAA = RenderTarget<2, 1, false, 1, true>;
+using RenderTarget2DColor2MSAA = RenderTarget<2, 2, false, 1, true>;
+using RenderTarget2DColor3MSAA = RenderTarget<2, 3, false, 1, true>;
+using RenderTarget2DColor4MSAA = RenderTarget<2, 4, false, 1, true>;
+using RenderTarget2DColor5MSAA = RenderTarget<2, 5, false, 1, true>;
+using RenderTarget2DColor6MSAA = RenderTarget<2, 6, false, 1, true>;
+using RenderTarget2DColor7MSAA = RenderTarget<2, 7, false, 1, true>;
+using RenderTarget2DColor8MSAA = RenderTarget<2, 8, false, 1, true>;
 
+using RenderTarget2DColor1DepthMSAA = RenderTarget<2, 1, true, 1, true>;
+using RenderTarget2DColor2DepthMSAA = RenderTarget<2, 2, true, 1, true>;
+using RenderTarget2DColor3DepthMSAA = RenderTarget<2, 3, true, 1, true>;
+using RenderTarget2DColor4DepthMSAA = RenderTarget<2, 4, true, 1, true>;
+using RenderTarget2DColor5DepthMSAA = RenderTarget<2, 5, true, 1, true>;
+using RenderTarget2DColor6DepthMSAA = RenderTarget<2, 6, true, 1, true>;
+using RenderTarget2DColor7DepthMSAA = RenderTarget<2, 7, true, 1, true>;
+using RenderTarget2DColor8DepthMSAA = RenderTarget<2, 8, true, 1, true>;
+
+using RenderTarget2DDepthMSAA = RenderTarget<2, 0, true, 1, true>;
