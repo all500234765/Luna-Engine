@@ -95,7 +95,11 @@ public:
     // Normals must be encoded in spherical coordinates
     // RenderBuffer is used to get depth buffer and size
     // Depth and Normal buffers must be same size
-    void Begin(RenderBufferBase* RB, sRenderBuffer* Normals, const SSAOArgs& args) {
+    template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
+             size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps
+                                                         to create per RT buffer   */
+             bool WillHaveMSAA=false, bool Cube=false>
+    void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB, const SSAOArgs& args) {
         // Unbind views
         ID3D11RenderTargetView* nullRTV = nullptr;
         gDirectX->gContext->OMSetRenderTargets(1, &nullRTV, nullptr);
@@ -122,10 +126,10 @@ public:
         cbDownscaling->Unmap();
 
         /////////////////////////////////////// Depth Normal Downscaling ///////////////////////////////////////
-        sbDepthNDS->Bind(Shader::Compute, 0, true);            // UAV
-        cbDownscaling->Bind(Shader::Compute, 0);               // CB
-        RB->BindResource(RB->GetDepthB(), Shader::Compute, 0); // Texture2D; SRV
-        RB->BindResource(Normals, Shader::Compute, 1);         // Texture2D; SRV
+        sbDepthNDS->Bind(Shader::Compute, 0, true); // UAV
+        cbDownscaling->Bind(Shader::Compute, 0);    // CB
+        RB->Bind(0u, Shader::Compute, 0);           // Texture2D; SRV // Depth
+        RB->Bind(2u, Shader::Compute, 1);           // Texture2D; SRV // Normals
 
         shDownscaleDepthNormal->Dispatch(X, 1, 1);
 

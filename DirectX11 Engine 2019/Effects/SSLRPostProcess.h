@@ -36,7 +36,7 @@ private:
     BlendState *bsAdditive;
     DepthStencilState *dssReadOnly;
 
-    RenderBufferColor1Depth *rtSSLR;
+    RenderTarget2DColor1Depth *rtSSLR;
 
     ConstantBuffer *cbMatrices;
     ConstantBuffer *cbSSLRSettings;
@@ -101,11 +101,10 @@ public:
         UINT Height = 768;
 
         // Create texture
-        rtSSLR = new RenderBufferColor1Depth();
-        rtSSLR->SetSize(Width, Height);
+        rtSSLR = new RenderTarget2DColor1Depth(Width, Height, 1, "[PostProcess]: SSLR Buffer");
         //rtSSLR->EnableMSAA();
-        rtSSLR->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT);
-        rtSSLR->CreateDepth(32);
+        rtSSLR->Create(32);
+        rtSSLR->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
         // Create constant buffers
         cbMatrices = new ConstantBuffer();
@@ -153,7 +152,11 @@ public:
 
     // RB must contain depth buffer
     // RB must contain diffuse buffer
-    void Begin(RenderBufferBase* RB, sRenderBuffer* Normals, const SSLRArgs& args) {
+    template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
+             size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps
+                                                         to create per RT buffer   */
+             bool WillHaveMSAA=false, bool Cube=false>
+    void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB, const SSLRArgs& args) {
         // Get depth buffer size
         fWidth  = RB->GetWidth();
         fHeight = RB->GetHeight();
@@ -182,10 +185,11 @@ public:
         const float Color[4] = { 0.f, 0.f, 0.f, 1.f };
         // Bind RT
         rtSSLR->Bind();
-        rtSSLR->Clear(Color, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f);
+        rtSSLR->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
+        rtSSLR->Clear(Color);
 
         // Copy depth
-        gDirectX->gContext->CopyResource(rtSSLR->GetDepthB()->pTexture2D, RB->GetDepthB()->pTexture2D);
+        gDirectX->gContext->CopyResource(rtSSLR->GetDepthBufferTexture(), RB->GetDepthBufferTexture());
 
         // Set new dss state
         dssReadOnly->Bind();
@@ -197,9 +201,9 @@ public:
         cbSSLRSettings->Bind(Shader::Pixel, 0);
         cbMatrices->Bind(Shader::Vertex, 0);
 
-        RB->BindResource(RB->GetColor0(), Shader::Pixel, 0); // SRV
-        RB->BindResource(Normals        , Shader::Pixel, 1); // SRV
-        RB->BindResource(RB->GetDepthB(), Shader::Pixel, 2); // SRV
+        RB->Bind(1u, Shader::Pixel, 0); // SRV // Diffuse
+        RB->Bind(2u, Shader::Pixel, 1); // SRV // Normals
+        RB->Bind(0u, Shader::Pixel, 2); // SRV // Depth
 
         _PointSampler->Bind(Shader::Pixel, 0);
     }

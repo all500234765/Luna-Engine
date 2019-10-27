@@ -137,12 +137,15 @@ float GSmith(float3 N, float3 V, float3 L, float _Rougness) {
     return ggx1 * ggx2;
 }
 
-GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
+GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_SampleIndex, 
+             out uint OutCoverage : SV_Coverage, in uint InCoverage : SV_Coverage) {
+    OutCoverage = 1;//((1 << 8) - 1) & InCoverage;
+
     const half3 _LightPos = half3(100.f, 10.f, 0.f);
     const half3 _LightColor = half3(.7f, .9f, .8f);
 
     // Opacity check
-    [branch] if( _OpacityTexture.Sample(_OpacitySampler, In.Texcoord).r < .1 ) { discard; }
+    [flatten] if( _OpacityTexture.Sample(_OpacitySampler, In.Texcoord).r < .1 ) { discard; }
 
     // Calculate normal
     half3 N;

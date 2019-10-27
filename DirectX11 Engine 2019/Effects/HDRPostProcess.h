@@ -316,13 +316,17 @@ public:
     // Render Buffer MUST contain
     //  - Diffuse HDR texture in slot 0
     //  - Depth buffer
-    void Begin(RenderBufferBase *RB) {
+    template<size_t dim, size_t BufferNum, bool DepthBuffer=false, 
+             size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps 
+                                                         to create per RT buffer   */
+             bool WillHaveMSAA=false, bool Cube=false>
+    void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB) {
         // Avg luminance pass
         // 1st Pass
-        RB->BindResource(RB->GetColor0(), Shader::Compute, 0); // SRV
-        sbILuminance->Bind(Shader::Compute, 0, true);          // UAV
-        _HDRDS->Bind(Shader::Compute, 1, true);                // RWTexture2D; _HDRDS
-        cbDownScale->Bind(Shader::Compute, 0);                 // CB
+        RB->Bind(1, Shader::Compute, 0);              // SRV
+        sbILuminance->Bind(Shader::Compute, 0, true); // UAV
+        _HDRDS->Bind(Shader::Compute, 1, true);       // RWTexture2D; _HDRDS
+        cbDownScale->Bind(Shader::Compute, 0);        // CB
         
         fWidth  = RB->GetWidth();
         fHeight = RB->GetHeight();
@@ -348,10 +352,10 @@ public:
         LunaEngine::CSDiscardCB <1>();
 
         // Bloom pass
-        _HDRDS->Bind(Shader::Compute, 0);             // Texture2D
-        sbALuminance->Bind(Shader::Compute, 1);       // SRV
-        _Bloom->Bind(Shader::Compute, 0, true);       // UAV
-        cbDownScale->Bind(Shader::Compute, 0);        // CB
+        _HDRDS->Bind(Shader::Compute, 0);       // Texture2D
+        sbALuminance->Bind(Shader::Compute, 1); // SRV
+        _Bloom->Bind(Shader::Compute, 0, true); // UAV
+        cbDownScale->Bind(Shader::Compute, 0);  // CB
 
         shBloom->Dispatch(X, 1, 1);
 
@@ -365,9 +369,9 @@ public:
 
         //////////////////////////// Bloom Blur ////////////////////////////
         // Horizontal pass
-        cbDownScale->Bind(Shader::Compute, 0);        // CB
-        _Bloom->Bind(Shader::Compute, 0);             // Texture2D; _Input
-        _Bloom2->Bind(Shader::Compute, 0, true);      // RWTexture2D; _Output
+        cbDownScale->Bind(Shader::Compute, 0);   // CB
+        _Bloom->Bind(Shader::Compute, 0);        // Texture2D; _Input
+        _Bloom2->Bind(Shader::Compute, 0, true); // RWTexture2D; _Output
 
         shHorizontalFilter->Dispatch((UINT)ceil(fWidth / (4.f * (128.f - 12.f))), (UINT)ceil(fHeight / 4.f), 1);
 
@@ -377,9 +381,9 @@ public:
         LunaEngine::CSDiscardCB <1>();
 
         // Vertical pass
-        cbDownScale->Bind(Shader::Compute, 0);       // CB
-        _Bloom2->Bind(Shader::Compute, 0);           // Texture2D; _Input
-        _Bloom->Bind(Shader::Compute, 0, true);      // RWTexture2D; _Output
+        cbDownScale->Bind(Shader::Compute, 0);  // CB
+        _Bloom2->Bind(Shader::Compute, 0);      // Texture2D; _Input
+        _Bloom->Bind(Shader::Compute, 0, true); // RWTexture2D; _Output
 
         shVerticalFilter->Dispatch((UINT)ceil(fWidth / 4.f), (UINT)ceil(fHeight / (4.f * (128.f - 12.f))), 1);
 
@@ -415,9 +419,9 @@ public:
         LunaEngine::CSDiscardCB <2>();*/
 
         // Horizontal pass
-        cbDownScale->Bind(Shader::Compute, 0);       // CB
-        _Blur->Bind(Shader::Compute, 0);             // Texture2D; _Input; SRV
-        _BlurOut->Bind(Shader::Compute, 0, true);    // RWTexture2D; _Output; UAV
+        cbDownScale->Bind(Shader::Compute, 0);    // CB
+        _Blur->Bind(Shader::Compute, 0);          // Texture2D; _Input; SRV
+        _BlurOut->Bind(Shader::Compute, 0, true); // RWTexture2D; _Output; UAV
 
         shVerticalFilter->Dispatch((UINT)ceil(fWidth / 4.f), (UINT)ceil(fHeight / (4.f * (128.f - 12.f))), 1);
 
@@ -427,9 +431,9 @@ public:
         LunaEngine::CSDiscardCB <1>();
 
         // Vertical pass
-        cbDownScale->Bind(Shader::Compute, 0);        // CB
-        _BlurOut->Bind(Shader::Compute, 0);           // Texture2D; _Input
-        _Blur->Bind(Shader::Compute, 0, true);        // RWTexture2D; _Output
+        cbDownScale->Bind(Shader::Compute, 0); // CB
+        _BlurOut->Bind(Shader::Compute, 0);    // Texture2D; _Input
+        _Blur->Bind(Shader::Compute, 0, true); // RWTexture2D; _Output
 
         shHorizontalFilter->Dispatch((UINT)ceil(fWidth / (4.f * (128.f - 12.f))), (UINT)ceil(fHeight / 4.f), 1);
 
@@ -439,12 +443,12 @@ public:
         LunaEngine::CSDiscardCB <1>();
 
         //////////////////////////// Bokeh reveal ////////////////////////////
-        RB->BindResource(RB->GetColor0(), Shader::Compute, 0); // Texture2D; SRV
-        RB->BindResource(RB->GetDepthB(), Shader::Compute, 1); // Texture2D; SRV
-        sbALuminance->Bind(Shader::Compute, 2);                // SRV
-        cbDownScale->Bind(Shader::Compute, 0);                 // CB
-        cbFinalPass->Bind(Shader::Compute, 1);                 // CB
-        abBokeh->Bind(Shader::Compute, 0, true);               // UAV
+        RB->Bind(1u, Shader::Compute, 0);        // Texture2D; SRV  // Diffuse
+        RB->Bind(0u, Shader::Compute, 1);        // Texture2D; SRV  // Depth
+        sbALuminance->Bind(Shader::Compute, 2);  // SRV
+        cbDownScale->Bind(Shader::Compute, 0);   // CB
+        cbFinalPass->Bind(Shader::Compute, 1);   // CB
+        abBokeh->Bind(Shader::Compute, 0, true); // UAV
 
         shBloomReveal->Dispatch((UINT)ceil(fWidth * fHeight / 1024.f), 1, 1);
 

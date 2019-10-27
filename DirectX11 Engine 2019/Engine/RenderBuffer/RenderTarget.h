@@ -2,6 +2,7 @@
 
 #include "Engine/DirectX/DirectXChild.h"
 #include <variant>
+#include <algorithm>
 
 template<typename A, typename ...B> 
 constexpr bool is_all_same() {
@@ -180,8 +181,8 @@ private:
         implRenderTarget* SRVNoUAV = RT->GetDepthBuffer<1, false>();
         implRenderTarget* UAV      = RT->GetDepthBuffer();
 
-        RT->BindResource(UAV, Shader::Compute, 0, true); // UAV
-        RT->BindResource(SRVOrig, Shader::Compute, 0);   // SRV
+        RT->Bind(UAV, Shader::Compute, 0, true);         // UAV
+        RT->Bind(SRVOrig, Shader::Compute, 0);           // SRV
         g_MSAAConstantBuffer->Bind(Shader::Compute, 0);  // CB
 
         // Resolve MSAA
@@ -289,7 +290,7 @@ private:
 
         // Store sample count
         if( (Depth && index < 2) || !Depth ) {
-            mMSAASamples[Depth ? (UAV ? 1 : 0) : (index - mOffset + 1)] = SampleCount;
+            mMSAASamples[Depth ? (UAV ? 1 : 0) : (index - mOffset + (mOffset > 0))] = SampleCount;
         }
 
         // Try to create a texture
@@ -646,8 +647,12 @@ public:
     }
 
     void Release() {
-        for( UINT i = 0; i < (UINT(dim == 2) * WillHaveMSAA + 1) * (BufferNum + DepthBuffer); i++ ) 
-            mRenderTargets[i]->Release();
+        for( UINT i = 0; i < (UINT(dim == 2) * WillHaveMSAA + 1) * (BufferNum + DepthBuffer); i++ ) {
+            if( mRenderTargets[i] != nullptr ) {
+                mRenderTargets[i]->Release();
+                delete mRenderTargets[i];
+            }
+        }
     }
 
     void Resize(UINT w, UINT h, UINT d=1) {
@@ -728,15 +733,26 @@ public:
     // Bind RTVs and DSV
     void Bind() {
         ID3D11DepthStencilView *ptrDSV = nullptr;
-        ID3D11RenderTargetView *ptrRTV[BufferNum];
-        for( size_t i = 0; i < BufferNum; i++ )
-            ptrRTV[i] = std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + i]->pView);
 
+        // Get depth buffer view if avaliable
         if( DepthBuffer && (mRenderTargets[0]->pUAV == nullptr) ) {
             ptrDSV = std::get<ID3D11DepthStencilView*>(mRenderTargets[0]->pView);
         }
 
-        gDirectX->gContext->OMSetRenderTargets(BufferNum, ptrRTV, ptrDSV);
+        if( BufferNum > 0 ) {
+            ID3D11RenderTargetView *ptrRTV[std::max((size_t)1, BufferNum)];
+            for( size_t i = 0; i < BufferNum; i++ )
+                ptrRTV[i] = std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + i]->pView);
+
+            // 
+            gDirectX->gContext->OMSetRenderTargets(BufferNum, ptrRTV, ptrDSV);
+        } else {
+            // Depth only
+            gDirectX->gContext->OMSetRenderTargets(0, nullptr, ptrDSV);
+        }
+        
+        // Bind viewport
+        gDirectX->gContext->RSSetViewports(1, &mViewPort);
     }
 
     // Getters
@@ -757,9 +773,21 @@ public:
         if( !DepthBuffer ) return nullptr;
         return mRenderTargets[index + 2 * noMSAA * mMSAA];
     }
+    
+    template<UINT index=0, bool noMSAA=true>
+    inline ID3D11Resource* GetDepthBufferTexture() const {
+        if( !DepthBuffer ) return nullptr;
+        return Choose(mRenderTargets[index + 2 * noMSAA * mMSAA]->pTexture);
+    }
+    
+    template<UINT index=0, bool noMSAA=true>
+    inline ID3D11Resource* GetBufferTexture() const {
+        if( !BufferNum ) return nullptr;
+        return Choose(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pTexture);
+    }
 
-    // Bind
-    void BindResource(implRenderTarget* rt, Shader::ShaderType type, UINT slot=0, bool UAV=false) {
+    // Bind resource
+    void Bind(implRenderTarget* rt, Shader::ShaderType type, UINT slot=0, bool UAV=false) const {
         switch( type ) {
             case Shader::Vertex  : gDirectX->gContext->VSSetShaderResources(slot, 1, &rt->pSRV); break;
             case Shader::Pixel   : gDirectX->gContext->PSSetShaderResources(slot, 1, &rt->pSRV); break;
@@ -778,18 +806,22 @@ public:
     }
 
     // index = [0; BufferNum + DepthBuffer]
-    void Bind(UINT index, Shader::ShaderType type, UINT slot=0, bool UAV=false) {
+    void Bind(UINT index, Shader::ShaderType type, UINT slot=0, bool UAV=false) const {
         if( index == 0 ) {
             // Bind depth
             if( DepthBuffer ) {
-                Bind(mRenderTargets[mMSAA ? 2 : 0], type, slot, UAV);
+                Bind(mRenderTargets[mMSAA * 2], type, slot, UAV);
                 return;
             }
         }
 
         // There is no depth buffer!
         // Bind a non-depth buffer
-        Bind(mRenderTargets[mOffset + index + mMSAA * BufferNum], type, slot, UAV);
+        Bind(mRenderTargets[mOffset + index - UINT(DepthBuffer) + mMSAA * BufferNum], type, slot, UAV);
+    }
+
+    void BindResources(Shader::ShaderType type, UINT slot=0) const {
+        for( UINT i = 0; i < BufferNum + DepthBuffer; i++ ) Bind(i, type, slot);
     }
 
     // Get Dims

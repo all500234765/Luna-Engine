@@ -69,9 +69,8 @@ Material *mDefault;
 CubemapTexture *pCubemap;
 
 // Render Targets
-RenderBufferDepth2D *bDepth, *bZBuffer_Editor;
-RenderBufferColor3Depth *bGBuffer;
-RenderBufferColor1 *bSSLR, *bDeferred, *bShadows;
+RenderTarget2DDepth *rtDepth;
+RenderTarget2DColor1 *rtSSLR, *rtDeferred, *rtShadows;
 
 RenderTarget2DColor3DepthMSAA *rtGBuffer;
 
@@ -86,9 +85,6 @@ Music *mscMainTheme;
 BlendState *pBlendState0;
 RasterState *rsFrontCull;
 //ID3D11RasterizerState *rsFrontCull;
-
-// Viewports
-D3D11_VIEWPORT vpDepth, vpMain;
 
 // Physical objects
 PhysicsCollider *pColliderSphere, *pColliderPlane;
@@ -204,7 +200,7 @@ bool _DirectX::FrameFunction() {
             sMipLinearRougness->Bind(Shader::Pixel, 3);
 
             // Bind depth buffer
-            bDepth->BindResources(Shader::Pixel, 4);
+            rtDepth->Bind(0u, Shader::Pixel, 4);
             sPointClamp->Bind(Shader::Pixel, 4);
 
             // Bind noise texture
@@ -287,24 +283,13 @@ bool _DirectX::FrameFunction() {
         cPlayer->BuildView();
     }
 
-#pragma region Render depth buffer for Editor mouse picking
-    bZBuffer_Editor->Bind();
-    bZBuffer_Editor->Clear();
-
-    rsFrontCull->Bind();
-    gContext->RSSetViewports(1, &vpMain);
-    gContext->OMSetDepthStencilState(pDSS_Default, 1);
-
-    RenderScene(cPlayer, RendererFlags::DepthPass | RendererFlags::OpaquePass);
-#pragma endregion
-
 #pragma region Render depth buffer for directional light
-    bDepth->Bind();
-    bDepth->Clear(D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
+    rtDepth->Bind();
+    rtDepth->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
     //                                        Default is 1 ^^^
 
-    rsFrontCull->Bind();
-    gContext->RSSetViewports(1, &vpDepth);
+    //rsFrontCull->Bind();
+    //gContext->RSSetViewports(1, &vpDepth);
     gContext->OMSetDepthStencilState(pDSS_Default, 1);
 
     RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
@@ -318,7 +303,7 @@ bool _DirectX::FrameFunction() {
     }
 
 #pragma region Render to gbuffer
-    gContext->RSSetViewports(1, &vpMain);
+    //gContext->RSSetViewports(1, &vpMain);
 
     //gContext->OMSetRenderTargets(1, &gRTV, gDSV);
     ID3D11RenderTargetView *pEmptyRTV = nullptr;
@@ -405,18 +390,18 @@ bool _DirectX::FrameFunction() {
     gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     gContext->RSSetState(gRSDefault);
 
-    sRenderBuffer* _Depth2 = bDepth->GetDepthB();    // Shadow map
-    sRenderBuffer* _Depth  = bGBuffer->GetDepthB();  // Depth
-    sRenderBuffer* _Color0 = bGBuffer->GetColor0();  // Diffuse
-    sRenderBuffer* _Color1 = bGBuffer->GetColor1();  // Normal
-    sRenderBuffer* _Color2 = bGBuffer->GetColor2();  // Specular
-    sRenderBuffer* _ColorD = bDeferred->GetColor0(); // Diffuse deferred
-    sRenderBuffer* _SSLRBf = bSSLR->GetColor0();     // SSLR
-    sRenderBuffer* _Shadow = bShadows->GetColor0();  // Shadow buffer
+    implRenderTarget* _Depth2 = rtDepth->GetDepthBuffer();    // Shadow map
+    implRenderTarget* _Depth  = rtGBuffer->GetDepthBuffer();  // Depth
+    implRenderTarget* _Color0 = rtGBuffer->GetBuffer<0>();    // Diffuse
+    implRenderTarget* _Color1 = rtGBuffer->GetBuffer<1>();    // Normal
+    implRenderTarget* _Color2 = rtGBuffer->GetBuffer<2>();    // Specular
+    implRenderTarget* _ColorD = rtDeferred->GetBuffer<0>();   // Diffuse deferred
+    implRenderTarget* _SSLRBf = rtSSLR->GetBuffer<0>();       // SSLR
+    implRenderTarget* _Shadow = rtShadows->GetBuffer<0>();    // Shadow buffer
 
 #pragma region Deferred rendering pass 1
-    bDeferred->Bind();              // Set Render Target
-    bDeferred->Clear(Clear0);       // Clear Render Target
+    rtDeferred->Bind();             // Set Render Target
+    rtDeferred->Clear(Clear0);      // Clear Render Target
     shDeferredPointLight->Bind();   // Set Shader
 
     // 
@@ -551,7 +536,7 @@ bool _DirectX::FrameFunction() {
             PlotUpdate(gHDRPlot, ms);
         });
 
-        gHDRPostProcess->Begin(bGBuffer);
+        gHDRPostProcess->Begin(rtGBuffer);
     }
 #pragma endregion
 
@@ -561,7 +546,7 @@ bool _DirectX::FrameFunction() {
             PlotUpdate(gSSAOPlot, ms);
         });
 
-        gSSAOPostProcess->Begin(bGBuffer, bGBuffer->GetColor1(), *gSSAOArgs);
+        gSSAOPostProcess->Begin(rtGBuffer, *gSSAOArgs);
     }
 #pragma endregion
 
@@ -570,7 +555,7 @@ bool _DirectX::FrameFunction() {
         LunaEngine::PSDiscardSRV<2>();
 
         // Begin
-        gSSLRPostProcess->Begin(bGBuffer, bGBuffer->GetColor1(), *gSSLRArgs);
+        gSSLRPostProcess->Begin(rtGBuffer, *gSSLRArgs);
 
         // Render scene w/o depth writing.
         RenderScene(cPlayer, OpaquePass | DepthPass | DontBindShaders | DontBindTextures, nullptr, [](mfloat4x4 m) {
@@ -579,8 +564,8 @@ bool _DirectX::FrameFunction() {
         });
 
         // End
-        bSSLR->Bind();
-        bSSLR->Clear(Clear0);
+        rtSSLR->Bind();
+        rtSSLR->Clear(Clear0);
         gSSLRPostProcess->End();
     }
 #pragma endregion
@@ -598,7 +583,7 @@ bool _DirectX::FrameFunction() {
 
     gSSAOPostProcess->BindAO(Shader::Pixel, 8);
 
-    bGBuffer->BindResource(_Depth, Shader::Pixel, 7);
+    rtGBuffer->Bind(_Depth, Shader::Pixel, 7);
 
     sLinear->Bind(Shader::Pixel, 5);
 
@@ -654,7 +639,7 @@ bool _DirectX::FrameFunction() {
             //bZBuffer_Editor->GetDepth()->pSRV,
             _SSLRBf->pSRV,
             _ColorD->pSRV, 
-            bGBuffer->GetColor1()->pSRV, 
+            rtGBuffer->GetBuffer<1>()->pSRV, 
             gSSAOPostProcess->GetSSAOSRV()
         };
         
@@ -1065,12 +1050,9 @@ void _DirectX::Resize() {
     gRTV->Release();
 
     // Resize buffers
-    bGBuffer->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bSSLR->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bDeferred->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bShadows->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bZBuffer_Editor->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
-
+    rtSSLR->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
+    rtDeferred->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
+    rtShadows->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
     rtGBuffer->Resize(cfg.CurrentWidth, cfg.CurrentHeight);
 
     // Resize HDR Post processing textures
@@ -1123,25 +1105,17 @@ void _DirectX::Resize() {
 
     // Set up the viewport
     D3D11_VIEWPORT vp;
-    vp.Width = static_cast<float>(cfg.CurrentWidth);
-    vp.Height = static_cast<float>(cfg.CurrentHeight);
+    vp.Width    = static_cast<float>(cfg.CurrentWidth);
+    vp.Height   = static_cast<float>(cfg.CurrentHeight);
     vp.MinDepth = 0.0f;
     vp.MaxDepth = 1.0f;
     vp.TopLeftX = 0;
     vp.TopLeftY = 0;
     gContext->RSSetViewports(1, &vp);
-
-    vpMain.MinDepth = 0.f;
-    vpMain.MaxDepth = 1.f;
-    vpMain.TopLeftX = 0;
-    vpMain.TopLeftY = 0;
-    vpMain.Width    = vp.Width;
-    vpMain.Height   = vp.Height;
 }
 
 void _DirectX::Load() {
     // Enable MSAA
-    RenderBufferBase::GlobalInit();
     RenderTargetMSAA::GlobalInit();
 
     // Post processing
@@ -1245,13 +1219,6 @@ void _DirectX::Load() {
 
     mDefault = new Material();
 
-    bDepth          = new RenderBufferDepth2D();
-    bGBuffer        = new RenderBufferColor3Depth();
-    bSSLR           = new RenderBufferColor1();
-    bDeferred       = new RenderBufferColor1();
-    bShadows        = new RenderBufferColor1();
-    bZBuffer_Editor = new RenderBufferDepth2D();
-
     pCubemap = new CubemapTexture();
 
     pQuery = new Query();
@@ -1295,53 +1262,29 @@ void _DirectX::Load() {
     cbSSLRMatrixInst->CreateDefault(sizeof(cbSSLRMatrix));
 
     // 
-    bShadows->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bShadows->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
-    bShadows->SetName("SS-RT-SM buffer");
+    rtShadows = new RenderTarget2DColor1(cfg.CurrentWidth, cfg.CurrentHeight, 1, "SS-RT-SM Buffer");
+    rtShadows->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM);
 
     // Create depth buffer
     //bDepth->EnableMSAA();
-    bDepth->Create(2048, 2048, 32);
-    bDepth->SetName("Shadow map depth buffer");
+    rtDepth = new RenderTarget2DDepth(2048, 2048, 1, "Shadow map depth buffer");
+    rtDepth->Create(32);
 
+    // Geometry Buffer
     rtGBuffer = new RenderTarget2DColor3DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
-    //rtGBuffer->EnableMSAA();
+    //if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
     rtGBuffer->Create(32);
     rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,
                              DXGI_FORMAT_R16G16B16A16_FLOAT, 
                              DXGI_FORMAT_R8G8B8A8_UNORM);
 
     // Deferred buffer
-    bDeferred->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bDeferred->CreateColor0(scd.Format);
-    bDeferred->SetName("Deferred buffer");
+    rtDeferred = new RenderTarget2DColor1(cfg.CurrentWidth, cfg.CurrentHeight, 1, "Deferred Buffer");
+    rtDeferred->CreateList(0, scd.Format);
 
     // Screen-Space Local Reflections buffer
-    bSSLR->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
-    bSSLR->CreateColor0(DXGI_FORMAT_R8G8B8A8_UNORM);
-    bSSLR->SetName("Local Reflections Buffer");
-
-    // Geometry Buffer
-    {
-        bGBuffer->SetSize(cfg.CurrentWidth, cfg.CurrentHeight);
-
-        // Create buffers with MSAA
-        if( this->cfg.MSAA ) bGBuffer->EnableMSAA();
-
-        bGBuffer->CreateDepth(32);
-        bGBuffer->CreateColor0(DXGI_FORMAT_R16G16B16A16_FLOAT); // Diffuse
-        bGBuffer->CreateColor1(DXGI_FORMAT_R16G16B16A16_FLOAT); // Normal
-        bGBuffer->CreateColor2(DXGI_FORMAT_R8G8B8A8_UNORM);     // Specular
-
-        bGBuffer->SetName(0, "GBuffer Diffuse");
-        bGBuffer->SetName(1, "GBuffer Normal");
-        bGBuffer->SetName(2, "GBuffer Specular");
-        bGBuffer->SetName(-1, "GBuffer Depth");
-    }
-
-    // 
-    bZBuffer_Editor->Create(cfg.CurrentWidth, cfg.CurrentHeight, 32);
-    bZBuffer_Editor->SetName("ZBuffer");
+    rtSSLR = new RenderTarget2DColor1(cfg.CurrentWidth, cfg.CurrentHeight, 1, "Local Reflections Buffer");
+    rtSSLR->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM);
 #pragma endregion
 
 #pragma region Create states
@@ -1467,15 +1410,6 @@ void _DirectX::Load() {
     cPlayer->BuildProj();
     cPlayer->BuildView();
 
-    /*vpMain.MinDepth = cfg2.fNear;
-    vpMain.MaxDepth = cfg2.fFar;*/
-    vpMain.MinDepth = 0.f;
-    vpMain.MaxDepth = 1.f;
-    vpMain.TopLeftX = 0.f;
-    vpMain.TopLeftY = 0.f;
-    vpMain.Width    = static_cast<float>(cfg.CurrentWidth);
-    vpMain.Height   = static_cast<float>(cfg.CurrentHeight);
-
     // Save aspect for further use
     fAspect = cfg2.fAspect;
 
@@ -1523,15 +1457,6 @@ void _DirectX::Load() {
     cLight->SetParams(cfg2);
     cLight->BuildProj();
     cLight->BuildView();
-
-    /*vpDepth.MinDepth = cfg2.fNear;
-    vpDepth.MaxDepth = cfg2.fFar;*/
-    vpDepth.MinDepth = 0.f;
-    vpDepth.MaxDepth = 1.f;
-    vpDepth.TopLeftX = 0.f;
-    vpDepth.TopLeftY = 0.f;
-    vpDepth.Width    = static_cast<float>(bDepth->GetWidth());
-    vpDepth.Height   = static_cast<float>(bDepth->GetHeight());
 #pragma endregion
 
 #pragma region Load Shaders
@@ -1883,12 +1808,10 @@ void _DirectX::Unload() {
     mUnitSphereUV->Release();
 
     // Release buffers
-    bDepth->Release();
-    bGBuffer->Release();
-    bDeferred->Release();
-    bShadows->Release();
-    bSSLR->Release();
-    bZBuffer_Editor->Release();
+    SAFE_RELEASE(rtDepth);
+    SAFE_RELEASE(rtDeferred);
+    SAFE_RELEASE(rtShadows);
+    SAFE_RELEASE(rtSSLR);
 
     SAFE_RELEASE(rtGBuffer);
     
@@ -2046,14 +1969,7 @@ int main() {
     dxCFG.DeferredContext = false;
     dxCFG.Windowed        = winCFG.Windowed;
     dxCFG.Ansel           = USE_ANSEL;
-    dxCFG.MSAA            = !true;
-
-    // <strike>TODO: MSAA Support</strike>
-    // TODO: Remove MSAA from here
-    // TODO: Add TAA support
-    //dxCFG.MSAA = false;
-    //dxCFG.MSAA_Samples = 1;
-    //dxCFG.MSAA_Quality = 0;
+    dxCFG.MSAA            = true;
 
     // Create device and swap chain
     if( gDirectX->ShowError(gDirectX->Create(dxCFG)) ) { return 1; }
@@ -2105,7 +2021,6 @@ int main() {
 #endif
 
     // 
-    RenderBufferBase::GlobalRelease();
     RenderTargetMSAA::GlobalRelease();
 
     gWindow->Destroy();

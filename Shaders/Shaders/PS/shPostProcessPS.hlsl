@@ -165,7 +165,7 @@ half4 main(PS In): SV_Target0 {
     //Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
 
     // Depth of Field
-    /*float depth = 1.f - _DepthTexture.Sample(_LinearSampler, In.Texcoord);
+    float depth = 1.f - _DepthTexture.Sample(_LinearSampler, In.Texcoord);
 
     // We don't wanna process far plane pixels
     [flatten] if( depth > 0.f ) {
@@ -189,7 +189,7 @@ half4 main(PS In): SV_Target0 {
     Diff.rgb += _BloomScale * _BloomTexture.Sample(_LinearSampler, In.Texcoord).rgb;
     
     // Eye Adaptation And Tonemapping
-    Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);*/
+    Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);
 
     // 
     return Diff;
