@@ -1,17 +1,14 @@
 #pragma once
 
 #include "Engine/DirectX/DirectXChild.h"
+#include "Engine Includes/Types.h"
 #include <variant>
 #include <algorithm>
-
-template<typename A, typename ...B> 
-constexpr bool is_all_same() {
-    return (typeid(A) == typeid(B));
-}
 
 // TODO: 
 //  TextureCube
 //  TextureCubeArray
+//  Fix MSAA only 1 sample
 //  
 
 enum RenderTargetFlags {
@@ -841,19 +838,6 @@ public:
 };
 
 // MSAA Resolve
-//template<size_t dim, size_t BufferNum, bool DepthBuffer, 
-//         size_t ArraySize,    /* if Cube == true  => specify how many cubemaps 
-//                                                     to create per RT buffer   */
-//         bool WillHaveMSAA, bool Cube>
-//Shader* RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>::g_shMSAADepthResolve = 0;
-//
-//// 
-//template<size_t dim, size_t BufferNum, bool DepthBuffer, 
-//         size_t ArraySize,    /* if Cube == true  => specify how many cubemaps 
-//                                                     to create per RT buffer   */
-//         bool WillHaveMSAA, bool Cube>
-//ConstantBuffer* RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>::g_MSAAConstantBuffer = 0;
-
 Shader*         RenderTargetMSAA::g_shMSAADepthResolve = 0;
 ConstantBuffer* RenderTargetMSAA::g_MSAAConstantBuffer = 0;
 //Texture* RenderTargetMSAA::g_MSAATextureUAV = 0;

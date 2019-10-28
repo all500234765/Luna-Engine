@@ -93,7 +93,7 @@ public:
     }
 
     // Normals must be encoded in spherical coordinates
-    // RenderBuffer is used to get depth buffer and size
+    // RenderTarget is used to get depth buffer and size
     // Depth and Normal buffers must be same size
     template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
              size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps

@@ -26,10 +26,6 @@ struct PlotData {
 PlotData<120> *gHDRPlot;
 PlotData<120> *gSSAOPlot;
 
-//float2 gMinMaxHDR, gMinMaxSSAO;
-//std::array<float, 120> gHDRPlot, gSSAOPlot, gATemp120;
-//uint32_t gHDRPlotIndex = 0, gSSAOPlotIndex = 0;
-
 HDRPostProcess *gHDRPostProcess;
 SSAOPostProcess *gSSAOPostProcess;
 SSLRPostProcess *gSSLRPostProcess;

@@ -42,11 +42,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Materials\TextureMaps.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Model.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferBase.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor1.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor2Depth.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor3Depth.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderTarget.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderTarget\RenderTarget.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RendererFlags.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\DepthStencilState.h" />
@@ -98,14 +94,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Model.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.h" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferBase.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor1.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor1Depth.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor1Depth.h" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor2Depth.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferColor3Depth.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferDepth2D.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\RenderBuffer\RenderBufferDepth2D.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\DepthStencilState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\RasterState.cpp" />
