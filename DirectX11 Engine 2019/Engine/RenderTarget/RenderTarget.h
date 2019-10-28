@@ -6,9 +6,9 @@
 #include <algorithm>
 
 // TODO: 
-//  TextureCube
-//  TextureCubeArray
-//  Fix MSAA only 1 sample
+//   TextureCube
+//   TextureCubeArray
+// * Fix MSAA only 1 sample
 //  
 
 enum RenderTargetFlags {
