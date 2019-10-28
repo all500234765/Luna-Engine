@@ -6,6 +6,29 @@
 I made trello panel, so you can see what i want to do, what i already done and what i am working on atm.
 https://trello.com/b/T8T6vkBN/directx-11-engine-2019
 
+# Version 0.1.111
+* MSAA support for RenderTargets
+
+* Deleted old RenderBuffer* classes
+* Created RenderTarget class
+    * 1D/2D/3D RTV/DSV support
+    * UAV for RTVs if needed
+    * MSAA support
+    * ArraySize support
+    * Custom amount of RenderBuffers [0-8]
+    * Depth buffer can present if needed
+    * Cubemaps and Cubemap arrays will be added later
+```cpp
+RenderTarget<
+    size_t dim, 
+    size_t BufferNum, 
+    bool DepthBuffer=false, 
+    size_t ArraySize=1, 
+    bool WillHaveMSAA=false, 
+    bool Cube=false
+>
+```
+
 # Version 0.1.101
 * Screen-Space Ambient Occlusion
 * Memory usage functions
