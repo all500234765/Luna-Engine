@@ -80,7 +80,6 @@ Music *mscMainTheme;
 // States
 BlendState *pBlendState0;
 RasterState *rsFrontCull;
-//ID3D11RasterizerState *rsFrontCull;
 
 // Physical objects
 PhysicsCollider *pColliderSphere, *pColliderPlane;
@@ -285,7 +284,6 @@ bool _DirectX::FrameFunction() {
     //                                        Default is 1 ^^^
 
     //rsFrontCull->Bind();
-    //gContext->RSSetViewports(1, &vpDepth);
     gContext->OMSetDepthStencilState(pDSS_Default, 1);
 
     RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
@@ -299,9 +297,6 @@ bool _DirectX::FrameFunction() {
     }
 
 #pragma region Render to gbuffer
-    //gContext->RSSetViewports(1, &vpMain);
-
-    //gContext->OMSetRenderTargets(1, &gRTV, gDSV);
     ID3D11RenderTargetView *pEmptyRTV = nullptr;
     gContext->OMSetRenderTargets(1, &pEmptyRTV, nullptr);
 
@@ -1312,7 +1307,7 @@ void _DirectX::Load() {
     pDesc_.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
     pDesc_.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
     pDesc_.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
+    
     pDesc_.AlphaToCoverageEnable = false;
     pDesc_.IndependentBlendEnable = false;
 
