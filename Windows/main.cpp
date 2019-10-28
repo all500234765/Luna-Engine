@@ -1636,7 +1636,7 @@ void _DirectX::Load() {
     mScreenPlane->DisableDefaultTexture();
 
     mSpaceShip = new Model("Bunny model"); //LevelModelOBJ
-    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/bunny.obj");
+    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Landscape1.obj");
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Shadow test model");
