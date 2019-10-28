@@ -137,12 +137,12 @@ float GSmith(float3 N, float3 V, float3 L, float _Rougness) {
     return ggx1 * ggx2;
 }
 
-GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
+GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_SampleIndex) {
     const half3 _LightPos = half3(100.f, 10.f, 0.f);
     const half3 _LightColor = half3(.7f, .9f, .8f);
 
     // Opacity check
-    [branch] if( _OpacityTexture.Sample(_OpacitySampler, In.Texcoord).r < .1 ) { discard; }
+    [flatten] if( _OpacityTexture.Sample(_OpacitySampler, In.Texcoord).r < .1 ) { discard; }
 
     // Calculate normal
     half3 N;
@@ -168,6 +168,8 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
     half4 Diff = _DiffuseTexture.Sample(_DiffuseSampler, In.Texcoord);
     half Metal = _SpecularTexture.Sample(_SpecularSampler, In.Texcoord).r;
     half Rough = _RougnessTexture.Sample(_RougnessSampler, In.Texcoord);
+
+    //Diff.rgb = pow(Diff.rgb, 2.2f);
 
     // Vectors
     float3 L = normalize(In.LightPos.xyz - In.WorldPos);
@@ -214,6 +216,8 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace) {
 
     // Shadows
     Diff.rgb *= S;
+    
+    //Diff.rgb = pow(Diff.rgb, 1.f / 2.2f);
 
     // 
     GBuffer Out;

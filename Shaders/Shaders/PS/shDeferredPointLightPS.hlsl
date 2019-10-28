@@ -5,6 +5,7 @@ cbuffer bGlobal : register(b0) {
     float1 PADDING0;    // 
     float4 _ProjValues; // 1 / m[0][0], 1 / m[1][1], m[3][2], -m[2][2]
     float4x4 _mInvView; // 
+    float4x4 _mInvProj; // 
     float4 vCameraPos;  // Camera position
 }
 
@@ -33,12 +34,11 @@ half3 NormalDecode(half2 enc) {
 }
 
 float Depth2Linear(float z) {
-    return _ProjValues.z / (z + _ProjValues.w);
+    return _ProjValues.x / (z + _ProjValues.y);
 }
 
-float3 GetWorldPos(float2 ClipSpace, float lDepth) {
-    float4 p = float4(ClipSpace * _ProjValues.xy * lDepth, lDepth, 1.);
-    return mul(_mInvView, p).xyz;
+float3 GetWorldPos(float2 ClipSpace, float z) {
+    return mul(_mInvView, mul(_mInvProj, float4(ClipSpace * _ProjValues.zw * z, -z, 1.))).xyz;
 }
 
 struct PS {
@@ -54,7 +54,7 @@ half3 PointLight(float3 p, float3 n) {
     float dist = length(lDir);
 
     // Lambertian
-    return dot(n, lDir / dist) * _LightDiffuse * _LightData.y;
+    return dot(n, lDir / dist);// * _LightDiffuse * _LightData.y;
 
     // Specular
 
@@ -74,5 +74,5 @@ half4 main(PS In) : SV_Target0 {
 
 
 
-    return Final;
+    return half4(half3(In.Texcoord, 0.f) + 0*Normal + 0*Final.rgb + 0*(WorldPos), 1.f);
 }

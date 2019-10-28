@@ -1,16 +1,19 @@
 #pragma once
 
 #include "Shader.h"
-#include "DirectXChild.h"
+#include "Engine/States/PipelineState.h"
 
 #include <vector>
 
-class PolygonLayout: public DirectXChild {
+class PolygonLayout: public PipelineState<PolygonLayout> {
 private:
     ID3D11InputLayout *il;
     std::vector<D3D11_INPUT_ELEMENT_DESC> descs;
+    bool Released = false;
 
 public:
+    //~PolygonLayout() { Release(); }
+
     ID3D11InputLayout* GetLayout();
     void Begin();
     void Push(D3D11_INPUT_ELEMENT_DESC desc);

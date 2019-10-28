@@ -10,22 +10,23 @@ struct VS {
     float2 Texcoord : TEXCOORD0;
 };
 
-struct PS {
+/*struct PS {
     float4 Position : SV_Position;
     float4 LightPos : TEXCOORD0;
     float3 vLightPs : TEXCOORD1; // View
     float4 WorldPos : TEXCOORD2;
-};
+};*/
 
-PS main(VS In) {
-    In.Position.xyz *= vPosition.w;
-
-    float4 WorldPos = mul(mWorld, float4(In.Position, 1.f));
-
-    PS Out;
-        Out.Position = mul(mProj, mul(mView, WorldPos));
-        Out.vLightPs = mul(mView, float4(vPosition.xyz, 1.)).xyz;
-        Out.LightPos = vPosition;
-        Out.WorldPos = Out.Position;
-    return Out;
+float4 main(VS In) : SV_Position {
+    return 0.f;
+    //float3 p = vPosition.xyz * vPosition.w; //In.Position.xyz *= vPosition.w;
+    //
+    //float4 WorldPos = mul(mWorld, float4(p, 1.f));
+    //
+    //PS Out;
+    //    Out.Position = mul(mProj, mul(mView, WorldPos));
+    //    Out.vLightPs = mul(mView, float4(vPosition.xyz, 1.)).xyz;
+    //    Out.LightPos = vPosition;
+    //    Out.WorldPos = Out.Position;
+    //return Out;
 }

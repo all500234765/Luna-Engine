@@ -1,5 +1,7 @@
 #pragma once
 
+#include "HighLevel/DirectX/Utlities.h"
+
 #include "Engine/Extensions/Default.h"
 
 // Core engine includes
@@ -36,23 +38,5 @@ static PhysicsEngine *gPhysicsEngine = 0;
 static Gamepad* gGamepad[NUM_GAMEPAD] = {};
 #endif
 
-typedef float               float1;
-typedef DirectX::XMFLOAT2   float2;
-typedef DirectX::XMFLOAT3   float3;
-typedef DirectX::XMFLOAT4   float4;
-typedef DirectX::XMVECTOR   vfloat;
-typedef DirectX::XMFLOAT4X4 float4x4;
-typedef DirectX::XMMATRIX   mfloat4x4;
-typedef UINT                uint;
-typedef UINT                uint1;
-typedef DirectX::XMUINT2    uint2;
-typedef DirectX::XMUINT3    uint3;
-typedef DirectX::XMUINT4    uint4;
-typedef INT                  int1;
-typedef DirectX::XMINT2      int2;
-typedef DirectX::XMINT3      int3;
-typedef DirectX::XMINT4      int4;
-typedef double               double1;
-
-#include "HighLevel/DirectX/Utlities.h"
+#include "Types.h"
 

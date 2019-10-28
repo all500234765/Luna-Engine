@@ -58,7 +58,7 @@ public:
     inline void SetRotation(DirectX::XMFLOAT3 r) { pRot = r; };
 
     inline void SetWorldMatrix(DirectX::XMMATRIX w) { mWorld = w; }
-    inline DirectX::XMMATRIX GetWorldMatrix(DirectX::XMMATRIX w) const { return mWorld; }
+    inline DirectX::XMMATRIX GetWorldMatrix() const { return mWorld; }
 
     inline void SetViewMatrix(DirectX::XMMATRIX view) { mView = view; }
     inline DirectX::XMMATRIX GetViewMatrix() const { return mView; }
