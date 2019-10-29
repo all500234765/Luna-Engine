@@ -98,6 +98,42 @@ void Shader::DeleteShaders() {
     delete pl;
 }
 
+void Shader::Remove(ShaderType type) {
+    // Remove linked
+    if( !__HLK(type) ) {
+        switch( type ) {
+            case Vertex  : sVertex   = nullptr; break;
+            case Pixel   : sPixel    = nullptr; break;
+            case Geometry: sGeometry = nullptr; break;
+            case Hull    : sHull     = nullptr; break;
+            case Domain  : sDomain   = nullptr; break;
+            case Compute : sCompute  = nullptr; break;
+        }
+
+        Linked &= ~type;
+        return;
+    }
+
+    // Remove loaded
+    switch( type ) {
+        case Vertex    : if( sVertex   ) sVertex->Release();   break;
+        case Pixel     : if( sPixel    ) sPixel->Release();    break;
+        case Geometry  :
+        case GeometrySO: if( sGeometry ) sGeometry->Release(); break;
+        case Hull      : if( sHull     ) sHull->Release();     break;
+        case Domain    : if( sDomain   ) sDomain->Release();   break;
+        case Compute   : if( sCompute  ) sCompute->Release();  break;
+    }
+
+    // Remove from bitfield
+    Type &= ~type;
+}
+
+void Shader::Reload(std::string fname, ShaderType type, D3D11_SO_DECLARATION_ENTRY* pSODecl, UINT SODeclNum, UINT* Strides, UINT NumStrides, UINT RStream) {
+    Remove(type);
+    LoadFile(fname, type, pSODecl, SODeclNum, Strides, NumStrides, RStream);
+}
+
 void Shader::ReleaseBlobs() {
     for( int i = 0; i < Count; i++ ) {
         char j = 1 << i;

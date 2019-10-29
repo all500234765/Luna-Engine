@@ -58,6 +58,13 @@ public:
                   UINT SODeclNum=0, UINT* Strides={0}, UINT NumStrides=0, UINT RStream=0);
     void DeleteShaders();
 
+    // > Can be called only after ReleaseBlobs
+    // > To prevent >>>MEMORY LEAKS<<<
+    void Remove(ShaderType type);
+    void Reload(std::string fname, ShaderType type, 
+                  D3D11_SO_DECLARATION_ENTRY* pSODecl=(D3D11_SO_DECLARATION_ENTRY*)0, 
+                  UINT SODeclNum=0, UINT* Strides={0}, UINT NumStrides=0, UINT RStream=0);
+
     void ReleaseBlobs();
     ID3DBlob* GetBlob(ShaderType type);
 

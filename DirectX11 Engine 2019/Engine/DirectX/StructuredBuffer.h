@@ -42,7 +42,7 @@ public:
             pUAVDesc.Buffer.Flags        = UAVFlag;
 
             const char* UAVBuffType[] = { "", "Raw", "Append", "Counter" };
-            UINT tUAV = ceil(log2(pUAVDesc.Buffer.Flags + 1));
+            UINT tUAV = (UINT)ceil(log2(pUAVDesc.Buffer.Flags + 1));
             if( (hr = gDirectX->gDevice->CreateUnorderedAccessView(pBuff, &pUAVDesc, &pUAV)) != S_OK ) {
                 std::cout << "Failed to create UAV for " << UAVBuffType[tUAV] << "StructuredBuffer (error=" << hr << ")" << std::endl;
                 return;

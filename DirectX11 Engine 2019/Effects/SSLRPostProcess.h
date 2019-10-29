@@ -158,8 +158,8 @@ public:
              bool WillHaveMSAA=false, bool Cube=false>
     void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB, const SSLRArgs& args) {
         // Get depth buffer size
-        fWidth  = RB->GetWidth();
-        fHeight = RB->GetHeight();
+        fWidth  = (float)RB->GetWidth();
+        fHeight = (float)RB->GetHeight();
 
         // Prepare constant buffers
         float fQ = args._CameraFar / (args._CameraNear - args._CameraFar);
@@ -174,7 +174,7 @@ public:
             SSLRSett->_DepthBias          = args._DepthBias;
             SSLRSett->_ReflScale          = args._ReflScale;
             SSLRSett->_PixelSize          = 2.f / fHeight;
-            SSLRSett->_NumSteps           = fWidth;
+            SSLRSett->_NumSteps           = (uint1)fWidth;
             SSLRSett->_mProj              = args._mProj;
         cbSSLRSettings->Unmap();
 

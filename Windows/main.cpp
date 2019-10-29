@@ -11,6 +11,25 @@
 #include "Effects/SSAOPostProcess.h"
 #include "Effects/SSLRPostProcess.h"
 #include "Effects/SSLFPostProcess.h"
+#include "Effects/CascadeShadowMapping.h"
+
+// DEBUG
+// Not recommended to use
+
+// If you don't fear anything, then uncomment next line:
+#define CheckNumberOfAllocations
+#ifdef CheckNumberOfAllocations
+static size_t gNumberOfAllocations = 0;
+static size_t gSizeAllocated = 0;
+
+void* operator new(size_t size) {
+    gNumberOfAllocations++;
+    gSizeAllocated += size;
+    return malloc(size);
+}
+#endif
+
+// 
 
 #pragma region Heap allocated instances
 TimerLog *gTimerLog = new TimerLog;
@@ -30,6 +49,7 @@ HDRPostProcess *gHDRPostProcess;
 SSAOPostProcess *gSSAOPostProcess;
 SSLRPostProcess *gSSLRPostProcess;
 SSLFPostProcess *gSSLFPostProcess;
+CascadeShadowMapping<3, false> *gCascadeShadowMapping;
 
 SSLRArgs *gSSLRArgs;
 SSAOArgs *gSSAOArgs;
@@ -894,11 +914,6 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Camera speed", &fSpeed, 0.f, 2000.f);
     ImGui::SliderFloat("Light radius", &LightPos.w, 0.f, 200.f);
 
-    // MSAA
-    static bool gMSAACheckbox = false;
-    if( gMSAACheckbox != rtGBuffer->IsMSAAEnabled() ) 
-        gMSAACheckbox = rtGBuffer->IsMSAAEnabled();
-
     // HDR; Eye Adaptation; Bloom; Bokeh; DoF
     static float White             = 21.53f;
     static float MidGray           = 20.863f;
@@ -915,6 +930,7 @@ void _DirectX::ComposeUI() {
     static float gSSAOOffsetRad = 10.f;
     static float gSSAORadius    = 13.f;
     static float gSSAOPower     = 5.f;
+    static bool  gSSAOBlur      = true;
 
     // SSLR
     static float gViewAngleThreshold = .2f;
@@ -922,15 +938,32 @@ void _DirectX::ComposeUI() {
     static float gReflScale          = 1.f;
     static float gDepthBias          = .5f;
 
-    // GUI
+    // MSAA
+    static int gMSAAMaxLevel  = 3;
+    static bool gMSAACheckbox = false;
+    if( gMSAACheckbox != rtGBuffer->IsMSAAEnabled() )
+        gMSAACheckbox = rtGBuffer->IsMSAAEnabled();
+    
     if( ImGui::Checkbox("MSAA GBuffer", &gMSAACheckbox) ) {
-        UINT w = rtGBuffer->GetWidth();
-        UINT h = rtGBuffer->GetHeight();
+        size_t w = rtGBuffer->GetWidth();
+        size_t h = rtGBuffer->GetHeight();
 
         if( gMSAACheckbox ) rtGBuffer->EnableMSAA();
         else                rtGBuffer->DisableMSAA();
 
-        rtGBuffer->Resize(w, h);
+        rtGBuffer->Resize((UINT)w, (UINT)h);
+    }
+
+    // Choose number of samples
+    if( gMSAACheckbox ) {
+        if( ImGui::SliderInt("MSAA Max Samples", &gMSAAMaxLevel, 1, 5) ) {
+            // Re-create RT
+            size_t w = rtGBuffer->GetWidth();
+            size_t h = rtGBuffer->GetHeight();
+
+            rtGBuffer->SetMSAAMaxLevel(1u << (UINT)gMSAAMaxLevel);
+            rtGBuffer->Resize((UINT)w, (UINT)h);
+        }
     }
 
     ImGui::Text("SSLR Settings");
@@ -940,15 +973,16 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Depth bias"             , &gDepthBias         , 0.f  , 1.5f );
 
     ImGui::Text("SSAO Settings");
-    ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), gSSAOPlot->mPlot.size());
+    ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), (int)gSSAOPlot->mPlot.size());
     ImGui::Text("Min: %f\nMax: %f", gSSAOPlot->mMinMax.x, gSSAOPlot->mMinMax.y);
 
     ImGui::SliderFloat("Offset radius", &gSSAOOffsetRad , 0.f, 20.f);
     ImGui::SliderFloat("Radius"       , &gSSAORadius    , 0.f, 50.f);
     ImGui::SliderFloat("Power"        , &gSSAOPower     , .1f, 5.f);
+    ImGui::Checkbox(   "Blur"         , &gSSAOBlur);
     
     ImGui::Text("HDR Settings");
-    ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), gHDRPlot->mPlot.size());
+    ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), (int)gHDRPlot->mPlot.size());
     ImGui::Text("Min: %f\nMax: %f", gHDRPlot->mMinMax.x, gHDRPlot->mMinMax.y);
     ImGui::SliderFloat("White"             , &White            , 0.f,  60.f);
     ImGui::SliderFloat("Middle Gray"       , &MidGray          , 0.f,  60.f);
@@ -1006,6 +1040,7 @@ void _DirectX::ComposeUI() {
     gSSAOArgs->_OffsetRad  = gSSAOOffsetRad;
     gSSAOArgs->_Radius     = gSSAORadius;
     gSSAOArgs->_Power      = gSSAOPower;
+    gSSAOArgs->_Blur       = gSSAOBlur;
 
     gSSLRArgs->_mProj              = cPlayer->GetProjMatrix();
     gSSLRArgs->_CameraFar          = fFar;
@@ -1113,6 +1148,7 @@ void _DirectX::Load() {
     gHDRPostProcess  = new HDRPostProcess;
     gSSAOPostProcess = new SSAOPostProcess;
     gSSLRPostProcess = new SSLRPostProcess;
+    gCascadeShadowMapping = new CascadeShadowMapping;
 
     gSSLRArgs = new SSLRArgs;
     gSSAOArgs = new SSAOArgs;
@@ -1263,7 +1299,8 @@ void _DirectX::Load() {
 
     // Geometry Buffer
     rtGBuffer = new RenderTarget2DColor3DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
-    //if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
+    if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
+    rtGBuffer->SetMSAAMaxLevel(8);
     rtGBuffer->Create(32);
     rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,
                              DXGI_FORMAT_R16G16B16A16_FLOAT, 
@@ -1289,7 +1326,7 @@ void _DirectX::Load() {
     rDesc2.DepthClipEnable = true;
     rDesc2.FillMode = D3D11_FILL_SOLID;
     rDesc2.FrontCounterClockwise = false;
-    rDesc2.MultisampleEnable = false;
+    rDesc2.MultisampleEnable = this->cfg.MSAA;
     rDesc2.ScissorEnable = false;
     rDesc2.SlopeScaledDepthBias = 0.0f;
     
@@ -1636,7 +1673,7 @@ void _DirectX::Load() {
     mScreenPlane->DisableDefaultTexture();
 
     mSpaceShip = new Model("Bunny model"); //LevelModelOBJ
-    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Landscape1.obj");
+    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/LevelModelOBJ.obj");
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Shadow test model");
@@ -1678,13 +1715,13 @@ void _DirectX::Load() {
     //miSpaceShip->SetModel(mModel1);
     miSpaceShip->SetModel(mSpaceShip);
     miSpaceShip->SetShader(shSurface);
-    miSpaceShip->SetWorldMatrix(//DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
-                                //DirectX::XMMatrixTranslation(-500, -50, 500) * 
+    miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
+                                DirectX::XMMatrixTranslation(-500, -50, 500) * 
                                 //DirectX::XMMatrixScaling(.0625, .0625, .0625) * 
-                                //DirectX::XMMatrixScaling(.125, .125, .125) * 
+                                DirectX::XMMatrixScaling(.125, .125, .125) * 
                                 //DirectX::XMMatrixScaling(400, 400, 400) * 
                                 //DirectX::XMMatrixScaling(50, 50, 50) * 
-                                DirectX::XMMatrixScaling(8, 8, 8) *
+                                //DirectX::XMMatrixScaling(8, 8, 8) *
                                 //DirectX::XMMatrixTranslation(-.5f, -.5f, 0.f) * 
                                 DirectX::XMMatrixIdentity()
     );
@@ -1734,6 +1771,7 @@ void _DirectX::Unload() {
     delete gHDRPostProcess;
     delete gSSAOPostProcess;
     delete gSSLRPostProcess;
+    delete gCascadeShadowMapping;
 
     // Release states
     rsFrontCull->Release();
@@ -2001,6 +2039,15 @@ int main() {
 
     // Load game data
     gDirectX->Load();
+
+    // 
+#ifdef CheckNumberOfAllocations 
+    std::cout << "[new]: Used " << gNumberOfAllocations << " times." << std::endl;
+    std::cout << "[new]: Allocated " << gSizeAllocated << " bytes." << std::endl;
+    std::cout << "[new]: Allocated " << gSizeAllocated / 1024 << " Kbytes." << std::endl;
+    std::cout << "[new]: Allocated " << gSizeAllocated / 1024 / 1024 << " Mbytes." << std::endl;
+    std::cout << "[new]: Allocated " << gSizeAllocated / 1024 / 1024 / 1024 << " Gbytes." << std::endl;
+#endif
 
     // Start rendering loop
     gWindow->Loop();

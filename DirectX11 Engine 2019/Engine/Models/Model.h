@@ -1,11 +1,5 @@
 #pragma once
 
-#ifdef _WIN64
-#pragma comment(lib, "Assimp/x64/assimp-x64.lib")
-#else
-#pragma comment(lib, "Assimp/x86/assimp-x86.lib")
-#endif
-
 #undef min
 #undef max
 #include "Vendor/Assimp/Importer.hpp"
