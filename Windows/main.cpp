@@ -17,7 +17,7 @@
 // Not recommended to use
 
 // If you don't fear anything, then uncomment next line:
-#define CheckNumberOfAllocations
+//#define CheckNumberOfAllocations
 #ifdef CheckNumberOfAllocations
 static size_t gNumberOfAllocations = 0;
 static size_t gSizeAllocated = 0;
@@ -914,6 +914,17 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Camera speed", &fSpeed, 0.f, 2000.f);
     ImGui::SliderFloat("Light radius", &LightPos.w, 0.f, 200.f);
 
+    // Rendering flags
+    uint1 _RenderFlags = 0;
+    static bool gRenderSSLR          = true;
+    static bool gRenderSSAO          = true;
+    static bool gRenderEyeAdaptation = true;
+    static bool gRenderDepthOfField  = true;
+    static bool gRenderBloom         = true;
+    static bool gRenderBokeh         = true;
+    static bool gRenderDiffuse       = true;
+    static bool gRenderLight         = true;
+
     // HDR; Eye Adaptation; Bloom; Bokeh; DoF
     static float White             = 21.53f;
     static float MidGray           = 20.863f;
@@ -966,11 +977,15 @@ void _DirectX::ComposeUI() {
         }
     }
 
+    ImGui::Checkbox("Render Diffuse", &gRenderDiffuse);
+    ImGui::Checkbox("Render Light"  , &gRenderLight);
+
     ImGui::Text("SSLR Settings");
     ImGui::SliderFloat("View angle Threshold"   , &gViewAngleThreshold, -.25f, 1.f  );
     ImGui::SliderFloat("Edge distance Threshold", &gEdgeDistThreshold , 0.f  , .999f);
     ImGui::SliderFloat("Reflect scale"          , &gReflScale         , 0.f  , 1.f  );
     ImGui::SliderFloat("Depth bias"             , &gDepthBias         , 0.f  , 1.5f );
+    ImGui::Checkbox(   "Render SSLR"            , &gRenderSSLR);
 
     ImGui::Text("SSAO Settings");
     ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), (int)gSSAOPlot->mPlot.size());
@@ -980,6 +995,7 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Radius"       , &gSSAORadius    , 0.f, 50.f);
     ImGui::SliderFloat("Power"        , &gSSAOPower     , .1f, 5.f);
     ImGui::Checkbox(   "Blur"         , &gSSAOBlur);
+    ImGui::Checkbox(   "Render SSAO"  , &gRenderSSAO);
     
     ImGui::Text("HDR Settings");
     ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), (int)gHDRPlot->mPlot.size());
@@ -994,6 +1010,18 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Bokeh Threshold"   , &gBokehThreshold  , 0.f,  25.f);
     ImGui::SliderFloat("Bokeh Color Scale" , &gBokehColorScale , 0.f,   1.f);
     ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f,   1.f);
+    ImGui::Checkbox("Render Eye Adaptation", &gRenderEyeAdaptation);
+    ImGui::Checkbox("Render Bloom"         , &gRenderBloom);
+    ImGui::Checkbox("Render Depth Of Field", &gRenderDepthOfField);
+    ImGui::Checkbox("Render Bokeh"         , &gRenderBokeh);
+
+    // Update flags
+    //                        0            1            2
+    std::array<bool, 8> _val{ gRenderSSLR, gRenderSSAO, gRenderEyeAdaptation,
+    //  3                    4             5             6               7
+        gRenderDepthOfField, gRenderBloom, gRenderBokeh, gRenderDiffuse, gRenderLight };
+
+    for( size_t i = 0; i < _val.size(); i++ ) if( _val[i] ) _RenderFlags |= 1 << i;
 
     // 
     const float gFarScale = 100.f;
@@ -1021,6 +1049,7 @@ void _DirectX::ComposeUI() {
         __q->_BokehThreshold  = gBokehThreshold;
         __q->_ColorScale      = gBokehColorScale;
         __q->_RadiusScale     = gBokehRadiusScale;
+        __q->_RenderFlags     = _RenderFlags;
     gHDRPostProcess->UnmapFinalPass();
 
     const WindowConfig& cfg = gWindow->GetCFG();

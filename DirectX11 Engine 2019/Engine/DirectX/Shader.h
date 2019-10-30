@@ -7,6 +7,8 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <stdint.h>
+#include <initializer_list>
 
 #include "DirectXChild.h"
 #include "Engine/States/PipelineState.h"
@@ -35,7 +37,15 @@ private:
 
     PolygonLayout *pl;
 
-    char Type = 0 /* Original */, Linked = 0 /* Linked from another shader */;
+    // Original shader / Loaded shaders
+    uint8_t Type = 0;
+
+    // Linked shaders from different shaders
+    uint8_t Linked = 0;
+
+    // Shader slots that won't be bound to null
+    // If this shader doesn't have any
+    uint8_t DTouch = 0;
 
 public:
     typedef enum {
@@ -57,6 +67,8 @@ public:
                   D3D11_SO_DECLARATION_ENTRY* pSODecl=(D3D11_SO_DECLARATION_ENTRY*)0, 
                   UINT SODeclNum=0, UINT* Strides={0}, UINT NumStrides=0, UINT RStream=0);
     void DeleteShaders();
+
+    void DontTouch(std::initializer_list<Shader::ShaderType> types);
 
     // > Can be called only after ReleaseBlobs
     // > To prevent >>>MEMORY LEAKS<<<

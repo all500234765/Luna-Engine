@@ -67,4 +67,11 @@ public:
     inline DirectX::XMMATRIX GetProjMatrix() const { return mProj; }
 
     inline float GetAspect() const { return cfg.fAspect; }
+    inline float GetNear() const { return cfg.fNear; }
+    inline float GetFar() const { return cfg.fFar; }
+
+    // TODO: Store inverse view matrix (world matrix for camera) 1st
+    //inline float3 GetRight() const { return reinterpret_cast<const DirectX::XMFLOAT3*>(&mCameraWorld._11); }
+    //inline float3 GetUp() const { return reinterpret_cast<const DirectX::XMFLOAT3*>(&mCameraWorld._21); }
+    //inline float3 GetForward() const { return reinterpret_cast<const DirectX::XMFLOAT3*>(&mCameraWorld._31); }
 };

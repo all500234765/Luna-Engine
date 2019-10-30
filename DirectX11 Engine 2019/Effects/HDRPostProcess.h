@@ -46,7 +46,7 @@ struct FinalPassInst {
     float1 _RadiusScale;
     float1 _BokehThreshold;
 
-    float1 _Alignment;
+    uint1 _RenderFlags;
 };
 
 class HDRPostProcess {

@@ -14,6 +14,7 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Effects\CascadeShadowMapping.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\HDRPostProcess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSAOPostProcess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSLFPostProcess.h" />
@@ -74,7 +75,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectX.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectXChild.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Buffer.h" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\IndexBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\IndexBuffer.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\PolygonLayout.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\Query.cpp" />
@@ -92,7 +92,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Materials\Texture.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Model.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\DepthStencilState.cpp" />
