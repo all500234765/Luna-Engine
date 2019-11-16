@@ -6,6 +6,67 @@
 I made trello panel, so you can see what i want to do, what i already done and what i am working on atm.
 https://trello.com/b/T8T6vkBN/directx-11-engine-2019
 
+# Version 0.1.120
+* Added Attribute Vertex Clouds example. Quick and dirty.
+* Some basic profiling tools for graphics debugging
+    * ScopedRangeProfiler
+          * Basically it calls RangeProfiler::Begin(ScopeName) and (when out of scope) RangeProfiler::End() for you.
+    * RangeProfiler
+          * RangeProfiler::Begin(Name); - Enters event scope
+          * RangeProfiler::End(); - End of last event scope
+
+When using RenderDoc you will see this:
+
+![RenderDoc](https://user-images.githubusercontent.com/8898684/68993358-c83a9880-08a9-11ea-8a74-a85246d0034e.png)
+
+```cpp
+{
+    ScopedRangeProfiler s1(L"Render depth buffer for directional light");
+    rtDepth->Bind();
+    rtDepth->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
+    //                                        Default is 1 ^^^
+
+    //rsFrontCull->Bind();
+    gContext->OMSetDepthStencilState(pDSS_Default, 1);
+
+    RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
+}
+```
+
+
+Didn't mentioned it in any of the prev. updates. Engine now uses inverse depth buffer. So the logic for shaders and CPU side code must consider this.
+
+For example, depth msaa resolve function was: 
+```cpp
+[unroll(16)] // 32 - is max; 8 - max for me
+for( uint i = 0; i < _SampleCount; i++ )
+    depth = min(depth, _In.Load(DTid.xy, i));
+```
+
+Now it is:
+```cpp
+[unroll(16)] // 32 - is max; 8 - max for me
+for( uint i = 0; i < _SampleCount; i++ )
+    depth = max(depth, _In.Load(DTid.xy, i));
+```
+
+Depth sampling was:
+```cpp
+float depth = _DepthTexture.Sample(_LinearSampler, In.Texcoord);
+```
+Now:
+```cpp
+float depth = 1.f - _DepthTexture.Sample(_LinearSampler, In.Texcoord);
+```
+Clear for depth buffer was:
+```cpp
+rtDepth->Clear(1.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
+```
+Now:
+```cpp
+rtDepth->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
+```
+
 # Version 0.1.111
 * MSAA support for RenderTargets
 
