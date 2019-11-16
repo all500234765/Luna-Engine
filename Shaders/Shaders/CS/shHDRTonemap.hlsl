@@ -27,7 +27,7 @@ RWTexture2D<float4> _Texture    : register(u0);
 StructuredBuffer<float> _AvgLum : register(t0);
 
 float3 EyeAdaptationNtoneMapping(float3 HDR) {
-    float3 LScale = dot(HDR, _LumFactor);
+    float3 LScale = dot(HDR, _LumFactor.rgb);
 
     LScale *= _MiddleGrey / _AvgLum[0];
     LScale = (LScale + LScale * LScale / _LumWhiteSqr) / (1.f + LScale);

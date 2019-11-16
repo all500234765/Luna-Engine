@@ -46,7 +46,7 @@ struct FinalPassInst {
     float1 _RadiusScale;
     float1 _BokehThreshold;
 
-    float1 _Alignment;
+    uint1 _RenderFlags;
 };
 
 class HDRPostProcess {
@@ -174,10 +174,10 @@ public:
         // Intermidiate luminance
         sbILuminance = new StructuredBuffer<float1>();
         std::vector<float1> _LumData;
-        int num = ceil(float(Width * Height) / (16.f * 1024.f));
+        size_t num = (size_t)ceil(float(Width * Height) / (16.f * 1024.f));
         _LumData.resize(num);
 
-        sbILuminance->CreateDefault(num, &_LumData[0], true);
+        sbILuminance->CreateDefault((UINT)num, &_LumData[0], true);
 
         // Average luminance
         sbALuminance = new StructuredBuffer<float1>();
@@ -321,6 +321,8 @@ public:
                                                          to create per RT buffer   */
              bool WillHaveMSAA=false, bool Cube=false>
     void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB) {
+        ScopedRangeProfiler s1(L"HDR Pass");
+
         // Avg luminance pass
         // 1st Pass
         RB->Bind(1, Shader::Compute, 0);              // SRV
@@ -328,9 +330,9 @@ public:
         _HDRDS->Bind(Shader::Compute, 1, true);       // RWTexture2D; _HDRDS
         cbDownScale->Bind(Shader::Compute, 0);        // CB
         
-        fWidth  = RB->GetWidth();
-        fHeight = RB->GetHeight();
-        UINT X = ceil(fWidth * fHeight / (16.f * 1024.f));
+        fWidth  = (float)RB->GetWidth();
+        fHeight = (float)RB->GetHeight();
+        UINT X  = (UINT)ceil(fWidth * fHeight / (16.f * 1024.f));
         shLuminanceDownScale1->Dispatch(X, 1, 1);
         
         // Unbind slots
@@ -477,6 +479,9 @@ public:
 
     // After post-processing
     void End() {
+        ScopedRangeProfiler s1(L"HDR swap");
+
+        // 
         gDirectX->gContext->CopyResource(sbPLuminance->GetBuffer(), sbALuminance->GetBuffer());
 
         // Update constant buffer

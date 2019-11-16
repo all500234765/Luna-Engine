@@ -5,12 +5,13 @@ cbuffer Downscaling : register(b0) {
     float _OffsetRad;   // Radius for random points
     float _Radius;      // Sphere radius
     float _SSAOPower;   // Power of SSAO
-    float _Alignment;   // Empty
+    float _NoiseSize;   // Empty
     float4x4 _mView;    // View matrix
 };
 
-StructuredBuffer<float4> _DepthNDS : register(t0);
-RWTexture2D<float> _AO             : register(u0);
+StructuredBuffer<float4> _DepthNDS  : register(t0);
+Texture2D<float2> _BlueNoiseTexture : register(t1);
+RWTexture2D<float> _AO              : register(u0);
 
 groupshared float _SharedDepth[1024];
 
@@ -61,7 +62,7 @@ float ComputeAO(int2 cPixel, float2 cClip) {
     [unroll(NumSamples)]
     for( uint i = 0; i < NumSamples; i++ ) {
         // Get offset and sample depth
-        float2 sOffset = _OffsetRad * mul(mRot, SampleOffsets[i]);
+        float2 sOffset = _OffsetRad * _BlueNoiseTexture[cPixel % _NoiseSize]; //mul(mRot, SampleOffsets[i]);
         float curDepth = GetDepth(cPixel + sOffset * float2(1.f, -1.f));
 
         // Calc view space pos

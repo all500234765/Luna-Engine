@@ -30,7 +30,8 @@ cbuffer _FinalPass : register(b0) {
     float1 _RadiusScale;
     float1 _BokehThreshold;
 
-    float1 _Alignment3;
+    uint1 _RenderFlags;
+    //float1 _Alignment3;
 };
 
 StructuredBuffer<float> _AvgLum : register(t4);
@@ -137,10 +138,13 @@ half4 main(PS In): SV_Target0 {
     //_Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
 
     // 
-    half4 Diff = _Texture.Sample(_Sampler, In.Texcoord);
+    half4 Diff = 1.f;
+    [flatten] if( _RenderFlags & 64 ) {
+        Diff = _Texture.Sample(_Sampler, In.Texcoord);
+    }
     
     //Diff.rgb = pow(Diff.rgb, 2.2f);
-    if( Diff.a < .5f ) { discard; }
+    [flatten] if( Diff.a < .5f ) { discard; }
 
     // Screen-Space Snow here
     //half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
@@ -165,31 +169,41 @@ half4 main(PS In): SV_Target0 {
     //Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
 
     // Depth of Field
-    float depth = 1.f - _DepthTexture.Sample(_LinearSampler, In.Texcoord);
+    [flatten] if( _RenderFlags & 8 ) {
+        float depth = 1.f - _DepthTexture.Sample(_LinearSampler, In.Texcoord);
 
-    // We don't wanna process far plane pixels
-    [flatten] if( depth > 0.f ) {
-        // Convert depth to linear space
-        depth = Depth2Linear(depth);
+        // We don't wanna process far plane pixels
+        [flatten] if( depth > 0.f ) {
+            // Convert depth to linear space
+            depth = Depth2Linear(depth);
 
-        // Get blurred color
-        float3 Blur = _BlurTexture.Sample(_LinearSampler, In.Texcoord).rgb;
+            // Get blurred color
+            float3 Blur = _BlurTexture.Sample(_LinearSampler, In.Texcoord).rgb;
 
-        // Compute final color
-        Diff.rgb = DistDoF(Diff.rgb, Blur, depth);
+            // Compute final color
+            Diff.rgb = DistDoF(Diff.rgb, Blur, depth);
+        }
     }
 
     // Deferred lightning
-    //Diff.rgb = Deferred;
+    [flatten] if( _RenderFlags & 128 ) {
+        //Diff.rgb = Deferred;
+    }
 
     // Ambient Occlusion
-    Diff.rgb *= _AmbientOcclusion.Sample(_LinearSampler, In.Texcoord);
+    [flatten] if( _RenderFlags & 2 ) {
+        Diff.rgb *= _AmbientOcclusion.Sample(_LinearSampler, In.Texcoord);
+    }
     
     // Bloom
-    Diff.rgb += _BloomScale * _BloomTexture.Sample(_LinearSampler, In.Texcoord).rgb;
+    [flatten] if( _RenderFlags & 16 ) {
+        Diff.rgb += _BloomScale * _BloomTexture.Sample(_LinearSampler, In.Texcoord).rgb;
+    }
     
     // Eye Adaptation And Tonemapping
-    Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);
+    [flatten] if( _RenderFlags & 4 ) {
+        Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);
+    }
 
     // 
     return Diff;

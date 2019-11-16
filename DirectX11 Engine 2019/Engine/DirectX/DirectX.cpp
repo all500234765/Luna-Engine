@@ -52,13 +52,13 @@ int _DirectX::Create(const DirectXConfig& config) {
     std::cout << "DirectX 11 Device created with ";
 
     switch( level ) {
-        case D3D_FEATURE_LEVEL_12_1: std::cout << "12.1"; break;
-        case D3D_FEATURE_LEVEL_12_0: std::cout << "12.0"; break;
+        case D3D_FEATURE_LEVEL_12_1: std::cout << "11.3"; break;
+        case D3D_FEATURE_LEVEL_12_0: std::cout << "11.2"; break;
         case D3D_FEATURE_LEVEL_11_1: std::cout << "11.1"; break;
         case D3D_FEATURE_LEVEL_11_0: std::cout << "11.0"; break;
     }
 
-    std::cout << " version" << std::endl;
+    std::cout << " feature level" << std::endl;
 
     // Get factory // Prob just IDXGIDevice
     IDXGIDevice2 *pDXGIDevice = nullptr;

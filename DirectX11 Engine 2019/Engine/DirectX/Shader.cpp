@@ -98,6 +98,46 @@ void Shader::DeleteShaders() {
     delete pl;
 }
 
+void Shader::DontTouch(std::initializer_list<Shader::ShaderType> types) {
+    for( ShaderType type : types ) { DTouch |= type; }
+}
+
+void Shader::Remove(ShaderType type) {
+    // Remove linked
+    if( !__HLK(type) ) {
+        switch( type ) {
+            case Vertex  : sVertex   = nullptr; break;
+            case Pixel   : sPixel    = nullptr; break;
+            case Geometry: sGeometry = nullptr; break;
+            case Hull    : sHull     = nullptr; break;
+            case Domain  : sDomain   = nullptr; break;
+            case Compute : sCompute  = nullptr; break;
+        }
+
+        Linked &= ~type;
+        return;
+    }
+
+    // Remove loaded
+    switch( type ) {
+        case Vertex    : if( sVertex   ) sVertex->Release();   break;
+        case Pixel     : if( sPixel    ) sPixel->Release();    break;
+        case Geometry  :
+        case GeometrySO: if( sGeometry ) sGeometry->Release(); break;
+        case Hull      : if( sHull     ) sHull->Release();     break;
+        case Domain    : if( sDomain   ) sDomain->Release();   break;
+        case Compute   : if( sCompute  ) sCompute->Release();  break;
+    }
+
+    // Remove from bitfield
+    Type &= ~type;
+}
+
+void Shader::Reload(std::string fname, ShaderType type, D3D11_SO_DECLARATION_ENTRY* pSODecl, UINT SODeclNum, UINT* Strides, UINT NumStrides, UINT RStream) {
+    Remove(type);
+    LoadFile(fname, type, pSODecl, SODeclNum, Strides, NumStrides, RStream);
+}
+
 void Shader::ReleaseBlobs() {
     for( int i = 0; i < Count; i++ ) {
         char j = 1 << i;
@@ -141,17 +181,19 @@ void Shader::AttachShader(Shader* origin, ShaderType type) {
     Type |= type;
 }
 
+#define _DTouchGeo ((DTouch & Geometry) == 0 && (DTouch & GeometrySO) == 0)
+
 void Shader::Bind() {
     gState = this; // 
 
     pl->Bind();
 
-    if( __Has(Vertex  ) ) { gDirectX->gContext->VSSetShader(sVertex  , NULL, 0); } else { gDirectX->gContext->VSSetShader(nullptr, NULL, 0); }
-    if( __Has(Pixel   ) ) { gDirectX->gContext->PSSetShader(sPixel   , NULL, 0); } else { gDirectX->gContext->PSSetShader(nullptr, NULL, 0); }
-    if( __GSO           ) { gDirectX->gContext->GSSetShader(sGeometry, NULL, 0); } else { gDirectX->gContext->GSSetShader(nullptr, NULL, 0); }
-    if( __Has(Hull    ) ) { gDirectX->gContext->HSSetShader(sHull    , NULL, 0); } else { gDirectX->gContext->HSSetShader(nullptr, NULL, 0); }
-    if( __Has(Domain  ) ) { gDirectX->gContext->DSSetShader(sDomain  , NULL, 0); } else { gDirectX->gContext->DSSetShader(nullptr, NULL, 0); }
-//  if( __Has(Compute ) ) { gDirectX->gContext->CSSetShader(sCompute , NULL, 0); } else { gDirectX->gContext->CSSetShader(nullptr, NULL, 0); }
+    if( __Has(Vertex  ) ) { gDirectX->gContext->VSSetShader(sVertex  , NULL, 0); } else if( (DTouch & Vertex ) == 0 ) { gDirectX->gContext->VSSetShader(nullptr, NULL, 0); }
+    if( __Has(Pixel   ) ) { gDirectX->gContext->PSSetShader(sPixel   , NULL, 0); } else if( (DTouch & Pixel  ) == 0 ) { gDirectX->gContext->PSSetShader(nullptr, NULL, 0); }
+    if( __GSO           ) { gDirectX->gContext->GSSetShader(sGeometry, NULL, 0); } else if( _DTouchGeo              ) { gDirectX->gContext->GSSetShader(nullptr, NULL, 0); }
+    if( __Has(Hull    ) ) { gDirectX->gContext->HSSetShader(sHull    , NULL, 0); } else if( (DTouch & Hull   ) == 0 ) { gDirectX->gContext->HSSetShader(nullptr, NULL, 0); }
+    if( __Has(Domain  ) ) { gDirectX->gContext->DSSetShader(sDomain  , NULL, 0); } else if( (DTouch & Domain ) == 0 ) { gDirectX->gContext->DSSetShader(nullptr, NULL, 0); }
+//  if( __Has(Compute ) ) { gDirectX->gContext->CSSetShader(sCompute , NULL, 0); } else if( (DTouch & Compute) == 0 ) { gDirectX->gContext->CSSetShader(nullptr, NULL, 0); }
 }
 
 void Shader::Dispatch(UINT x, UINT y, UINT z) {
@@ -165,6 +207,7 @@ void Shader::Dispatch(UINT x, UINT y, UINT z) {
 #undef __GSO
 #undef __LNK
 #undef __HLK
+#undef _DTouchGeo
 
 HRESULT Shader::CreateInputLayoutDescFromVertexShaderSignature(ID3D11InputLayout** pInputLayout, int* inputLayoutByteLength) {
     std::vector<D3D11_INPUT_ELEMENT_DESC> q;

@@ -25,6 +25,10 @@
 #include "HBAOPlus.h"
 #include "ImGui.h"
 
+//#include "Profiling.h"
+#include "Engine/Profiler/RangeProfiler.h"
+#include "Engine/Profiler/ScopedRangeProfiler.h"
+
 // Global game instances
 static _DirectX      *gDirectX       = 0;
 static Window        *gWindow        = 0;

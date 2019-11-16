@@ -25,7 +25,7 @@ public:
     virtual void Release()                  { if( pBuff ) pBuff->Release(); pBuff = 0; }
 
     // Set the vertex buffer to active in the input assembler so it can be rendered.
-    virtual void BindVertex(UINT Slot) {
+    virtual void BindVertex(UINT Slot=0) {
         gDirectX->gContext->IASetVertexBuffers(Slot, 1, &pBuff, &Stride, &Offset);
     }
 

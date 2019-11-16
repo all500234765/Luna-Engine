@@ -96,6 +96,10 @@ public:
         ImGui_ImplWin32_Shutdown();
 #endif
 
+#if defined(_DEBUG_BUILD) || defined(_DEBUG)
+        RangeProfiler::Release();
+#endif
+
         gWindow->Destroy();
         gDirectX->Unload();
     }
@@ -108,7 +112,7 @@ public:
         if( !cfg.Resized ) { return cfg; }                                     // Window isn't resized
         if( cfg.CurrentWidth <= 0 && cfg.CurrentHeight2 <= 0 ) { return cfg; } // Window was minimazed
 
-        //std::cout << "Window/DirectX resize event (w=" << cfg.CurrentWidth << ", h=" << cfg.CurrentHeight << ")" << std::endl;
+        std::cout << "Window/DirectX resize event (w=" << cfg.CurrentWidth << ", h=" << cfg.CurrentHeight << ")" << std::endl;
 
         // Release targets
         gDirectX->gContext->OMSetRenderTargets(0, 0, 0);

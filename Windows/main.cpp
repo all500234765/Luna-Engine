@@ -11,6 +11,25 @@
 #include "Effects/SSAOPostProcess.h"
 #include "Effects/SSLRPostProcess.h"
 #include "Effects/SSLFPostProcess.h"
+#include "Effects/CascadeShadowMapping.h"
+
+// DEBUG
+// Not recommended to use
+
+// If you don't fear anything, then uncomment next line:
+//#define CheckNumberOfAllocations
+#ifdef CheckNumberOfAllocations
+static size_t gNumberOfAllocations = 0;
+static size_t gSizeAllocated = 0;
+
+void* operator new(size_t size) {
+    gNumberOfAllocations++;
+    gSizeAllocated += size;
+    return malloc(size);
+}
+#endif
+
+// 
 
 #pragma region Heap allocated instances
 TimerLog *gTimerLog = new TimerLog;
@@ -30,6 +49,7 @@ HDRPostProcess *gHDRPostProcess;
 SSAOPostProcess *gSSAOPostProcess;
 SSLRPostProcess *gSSLRPostProcess;
 SSLFPostProcess *gSSLFPostProcess;
+CascadeShadowMapping<3, false> *gCascadeShadowMapping;
 
 SSLRArgs *gSSLRArgs;
 SSAOArgs *gSSAOArgs;
@@ -161,12 +181,16 @@ float4 LightPos = { 0.f, 0.f, 0.f, 100.f };
 
 // Define Frame Function
 bool _DirectX::FrameFunction() {
+    ScopedRangeProfiler s0(__FUNCTION__);
+
     // Resize event
     Resize();
     
 #pragma region Scene rendering
     auto RenderScene = [&](Camera *cam, uint32_t flags=RendererFlags::None, Camera *light=nullptr, 
                            void(*PreRender)(DirectX::XMMATRIX m)=[](DirectX::XMMATRIX m)->void{}) {
+        ScopedRangeProfiler s0("RenderScene");
+
         // 
         auto DrawBall = [&](Camera* camera, const pFloat3& pos, float radius) {
             camera->SetWorldMatrix(DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z));
@@ -279,14 +303,17 @@ bool _DirectX::FrameFunction() {
     }
 
 #pragma region Render depth buffer for directional light
-    rtDepth->Bind();
-    rtDepth->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
-    //                                        Default is 1 ^^^
+    {
+        ScopedRangeProfiler s1(L"Render depth buffer for directional light");
+        rtDepth->Bind();
+        rtDepth->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
+        //                                        Default is 1 ^^^
 
-    //rsFrontCull->Bind();
-    gContext->OMSetDepthStencilState(pDSS_Default, 1);
+        //rsFrontCull->Bind();
+        gContext->OMSetDepthStencilState(pDSS_Default, 1);
 
-    RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
+        RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
+    }
 #pragma endregion
 
     // Reset to defaults
@@ -295,23 +322,27 @@ bool _DirectX::FrameFunction() {
     } else {
         gContext->RSSetState(gRSDefault);
     }
-
+    
 #pragma region Render to gbuffer
-    ID3D11RenderTargetView *pEmptyRTV = nullptr;
-    gContext->OMSetRenderTargets(1, &pEmptyRTV, nullptr);
+    {
+        ScopedRangeProfiler s1(L"Render to gbuffer");
 
-    rtGBuffer->Bind();
-    //bGBuffer->Clear(Clear, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
-    rtGBuffer->Clear(0.f, 0);
-    rtGBuffer->Clear(Clear0);
-    //               ^                        Default is 1 ^^^
+        ID3D11RenderTargetView *pEmptyRTV = nullptr;
+        gContext->OMSetRenderTargets(1, &pEmptyRTV, nullptr);
 
-    // Render scene
-    RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
+        rtGBuffer->Bind();
+        //bGBuffer->Clear(Clear, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
+        rtGBuffer->Clear(0.f, 0);
+        rtGBuffer->Clear(Clear0);
+        //               ^                        Default is 1 ^^^
 
-    // Done rendering to GBuffer
-    // Resolve MSAA
-    rtGBuffer->MSAAResolve();
+        // Render scene
+        RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
+
+        // Done rendering to GBuffer
+        // Resolve MSAA
+        rtGBuffer->MSAAResolve();
+    }
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -391,53 +422,57 @@ bool _DirectX::FrameFunction() {
     implRenderTarget* _Shadow = rtShadows->GetBuffer<0>();    // Shadow buffer
 
 #pragma region Deferred rendering pass 1
-    rtDeferred->Bind();             // Set Render Target
-    rtDeferred->Clear(Clear0);      // Clear Render Target
-    shDeferredPointLight->Bind();   // Set Shader
+    {
+        ScopedRangeProfiler s1(L"Deferred rendering pass 1");
 
-    // 
-    gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+        rtDeferred->Bind();             // Set Render Target
+        rtDeferred->Clear(Clear0);      // Clear Render Target
+        shDeferredPointLight->Bind();   // Set Shader
 
-    // Build & Bind Constant buffer
-    cPlayer->SetWorldMatrix(
-        //DirectX::XMMatrixScaling(LightPos.w, LightPos.w, LightPos.w) *
-        DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z));
-    cPlayer->BuildConstantBuffer({ LightPos.x, LightPos.y, LightPos.z, LightPos.w });
-    cPlayer->BindBuffer(Shader::Domain, 0);
+        // 
+        gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 
-    // Update matrix
-    float FOV          = cPlayer->GetParams().FOV;
-    float fFar         = cPlayer->GetParams().fFar;
-    float fNear        = cPlayer->GetParams().fNear;
-    mfloat4x4 mProjTmp = cPlayer->GetProjMatrix();
-    float fHalfTanFov  = tanf(DirectX::XMConvertToRadians(FOV * .5f)); // dtan(fov * .5)
+        // Build & Bind Constant buffer
+        cPlayer->SetWorldMatrix(
+            //DirectX::XMMatrixScaling(LightPos.w, LightPos.w, LightPos.w) *
+            DirectX::XMMatrixTranslation(LightPos.x, LightPos.y, LightPos.z));
+        cPlayer->BuildConstantBuffer({ LightPos.x, LightPos.y, LightPos.z, LightPos.w });
+        cPlayer->BindBuffer(Shader::Domain, 0);
 
-    float fQ = fFar / (fNear - fFar);
+        // Update matrix
+        float FOV = cPlayer->GetParams().FOV;
+        float fFar = cPlayer->GetParams().fFar;
+        float fNear = cPlayer->GetParams().fNear;
+        mfloat4x4 mProjTmp = cPlayer->GetProjMatrix();
+        float fHalfTanFov = tanf(DirectX::XMConvertToRadians(FOV * .5f)); // dtan(fov * .5)
 
-    float4x4 dest;
-    DirectX::XMStoreFloat4x4(&dest, DirectX::XMMatrixTranspose(mProjTmp));
+        float fQ = fFar / (fNear - fFar);
 
-    cbDeferredGlobal* data = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
-        data->_mInvView   = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
-        data->_mInvProj   = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(mProjTmp), mProjTmp);
-        data->_TanAspect  = { fHalfTanFov * fAspect, -fHalfTanFov };
-        data->_Texel      = { 1.f / cfg.Width, 1.f / cfg.Height };
-        data->_Far        = fFar;
-        data->PADDING0    = 0;
+        float4x4 dest;
+        DirectX::XMStoreFloat4x4(&dest, DirectX::XMMatrixTranspose(mProjTmp));
+
+        cbDeferredGlobal* data = (cbDeferredGlobal*)cbDeferredGlobalInst->Map();
+        data->_mInvView = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(cPlayer->GetViewMatrix()), cPlayer->GetViewMatrix());
+        data->_mInvProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(mProjTmp), mProjTmp);
+        data->_TanAspect = { fHalfTanFov * fAspect, -fHalfTanFov };
+        data->_Texel = { 1.f / cfg.Width, 1.f / cfg.Height };
+        data->_Far = fFar;
+        data->PADDING0 = 0;
         data->_ProjValues = { fNear * fQ, fQ, 1.f / dest.m[0][0], 1.f / dest.m[1][1] };
-    cbDeferredGlobalInst->Unmap();
+        cbDeferredGlobalInst->Unmap();
 
-    // Bind buffers
-    cbDeferredGlobalInst->Bind(Shader::Pixel, 0);
-    cbDeferredLightInst->Bind(Shader::Pixel, 1);
+        // Bind buffers
+        cbDeferredGlobalInst->Bind(Shader::Pixel, 0);
+        cbDeferredLightInst->Bind(Shader::Pixel, 1);
 
-    gContext->PSSetShaderResources(0, 1, &_Color1->pSRV);
-    gContext->PSSetShaderResources(1, 1, &_Depth->pSRV);
+        gContext->PSSetShaderResources(0, 1, &_Color1->pSRV);
+        gContext->PSSetShaderResources(1, 1, &_Depth->pSRV);
 
-    sPoint->Bind(Shader::Pixel, 0);
-    sPoint->Bind(Shader::Pixel, 1);
+        sPoint->Bind(Shader::Pixel, 0);
+        sPoint->Bind(Shader::Pixel, 1);
 
-    gContext->Draw(2, 0);
+        gContext->Draw(2, 0);
+    }
 #pragma endregion
 
     // Defaults
@@ -543,6 +578,8 @@ bool _DirectX::FrameFunction() {
 
 #pragma region SSLR
     {
+        ScopedRangeProfiler s1(L"SSLR Pass");
+
         LunaEngine::PSDiscardSRV<2>();
 
         // Begin
@@ -562,48 +599,51 @@ bool _DirectX::FrameFunction() {
 #pragma endregion
 
 #pragma region Render to screen, Final Post Process Pass
-    gContext->OMSetRenderTargets(1, &gRTV, nullptr);
-    
-    shPostProcess->Bind();
+    {
+        ScopedRangeProfiler s1(L"Final Post Process Pass");
+        gContext->OMSetRenderTargets(1, &gRTV, nullptr);
+        
+        shPostProcess->Bind();
 
-    // HDR Post Processing; Eye Adaptation; Bloom; Depth of Field
-    gHDRPostProcess->BindFinalPass(Shader::Pixel, 0);
-    gHDRPostProcess->BindLuminance(Shader::Pixel, 4);
-    gHDRPostProcess->BindBloom(Shader::Pixel, 5);
-    gHDRPostProcess->BindBlur(Shader::Pixel, 6);
+        // HDR Post Processing; Eye Adaptation; Bloom; Depth of Field
+        gHDRPostProcess->BindFinalPass(Shader::Pixel, 0);
+        gHDRPostProcess->BindLuminance(Shader::Pixel, 4);
+        gHDRPostProcess->BindBloom(Shader::Pixel, 5);
+        gHDRPostProcess->BindBlur(Shader::Pixel, 6);
 
-    gSSAOPostProcess->BindAO(Shader::Pixel, 8);
+        gSSAOPostProcess->BindAO(Shader::Pixel, 8);
 
-    rtGBuffer->Bind(_Depth, Shader::Pixel, 7);
+        rtGBuffer->Bind(_Depth, Shader::Pixel, 7);
 
-    sLinear->Bind(Shader::Pixel, 5);
+        sLinear->Bind(Shader::Pixel, 5);
 
-    // 
-    c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
-    c2DScreen->BuildConstantBuffer(); // Constant buffer
-    c2DScreen->BindBuffer(Shader::Vertex, 0);
-    
-    // Diffuse
-    gContext->PSSetShaderResources(0, 1, &rtGBuffer->GetBuffer<0>()->pSRV);
-    sPoint->Bind(Shader::Pixel, 0);
+        // 
+        c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
+        c2DScreen->BuildConstantBuffer(); // Constant buffer
+        c2DScreen->BindBuffer(Shader::Vertex, 0);
+        
+        // Diffuse
+        gContext->PSSetShaderResources(0, 1, &rtGBuffer->GetBuffer<0>()->pSRV);
+        sPoint->Bind(Shader::Pixel, 0);
 
-    // SSLR
-    gContext->PSSetShaderResources(1, 1, &_SSLRBf->pSRV);
-    sPoint->Bind(Shader::Pixel, 1);
+        // SSLR
+        gContext->PSSetShaderResources(1, 1, &_SSLRBf->pSRV);
+        sPoint->Bind(Shader::Pixel, 1);
 
-    // Shadows
-    gContext->PSSetShaderResources(2, 1, &_Shadow->pSRV);
-    sPoint->Bind(Shader::Pixel, 2);
+        // Shadows
+        gContext->PSSetShaderResources(2, 1, &_Shadow->pSRV);
+        sPoint->Bind(Shader::Pixel, 2);
 
-    // Deferred
-    gContext->PSSetShaderResources(3, 1, &_ColorD->pSRV);
-    sPoint->Bind(Shader::Pixel, 3);
+        // Deferred
+        gContext->PSSetShaderResources(3, 1, &_ColorD->pSRV);
+        sPoint->Bind(Shader::Pixel, 3);
 
-    // 
-    gContext->Draw(6, 0);
+        // 
+        gContext->Draw(6, 0);
+
+    }
 
 #pragma endregion
-
     // HDR Post Processing
     // Swap buffer data
     gHDRPostProcess->End();
@@ -625,6 +665,8 @@ bool _DirectX::FrameFunction() {
 
     // Render debug GUI
     if( bDebugGUI ) {
+        ScopedRangeProfiler s1(L"Debug");
+
         // 3 is best number here
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
             //bZBuffer_Editor->GetDepth()->pSRV,
@@ -672,7 +714,10 @@ bool _DirectX::FrameFunction() {
     }
 
     // 2D Rendering
-    ComposeUI();
+    {
+        ScopedRangeProfiler s1(L"GUI");
+        ComposeUI();
+    }
 
     // TODO: MT support
     if( cfg.DeferredContext ) {
@@ -894,10 +939,16 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Camera speed", &fSpeed, 0.f, 2000.f);
     ImGui::SliderFloat("Light radius", &LightPos.w, 0.f, 200.f);
 
-    // MSAA
-    static bool gMSAACheckbox = false;
-    if( gMSAACheckbox != rtGBuffer->IsMSAAEnabled() ) 
-        gMSAACheckbox = rtGBuffer->IsMSAAEnabled();
+    // Rendering flags
+    uint1 _RenderFlags = 0;
+    static bool gRenderSSLR          = true;
+    static bool gRenderSSAO          = true;
+    static bool gRenderEyeAdaptation = true;
+    static bool gRenderDepthOfField  = true;
+    static bool gRenderBloom         = true;
+    static bool gRenderBokeh         = true;
+    static bool gRenderDiffuse       = true;
+    static bool gRenderLight         = true;
 
     // HDR; Eye Adaptation; Bloom; Bokeh; DoF
     static float White             = 21.53f;
@@ -915,6 +966,7 @@ void _DirectX::ComposeUI() {
     static float gSSAOOffsetRad = 10.f;
     static float gSSAORadius    = 13.f;
     static float gSSAOPower     = 5.f;
+    static bool  gSSAOBlur      = true;
 
     // SSLR
     static float gViewAngleThreshold = .2f;
@@ -922,33 +974,56 @@ void _DirectX::ComposeUI() {
     static float gReflScale          = 1.f;
     static float gDepthBias          = .5f;
 
-    // GUI
+    // MSAA
+    static int gMSAAMaxLevel  = 3;
+    static bool gMSAACheckbox = false;
+    if( gMSAACheckbox != rtGBuffer->IsMSAAEnabled() )
+        gMSAACheckbox = rtGBuffer->IsMSAAEnabled();
+    
     if( ImGui::Checkbox("MSAA GBuffer", &gMSAACheckbox) ) {
-        UINT w = rtGBuffer->GetWidth();
-        UINT h = rtGBuffer->GetHeight();
+        size_t w = rtGBuffer->GetWidth();
+        size_t h = rtGBuffer->GetHeight();
 
         if( gMSAACheckbox ) rtGBuffer->EnableMSAA();
         else                rtGBuffer->DisableMSAA();
 
-        rtGBuffer->Resize(w, h);
+        rtGBuffer->Resize((UINT)w, (UINT)h);
     }
+
+    // Choose number of samples
+    if( gMSAACheckbox ) {
+        if( ImGui::SliderInt("MSAA Max Samples", &gMSAAMaxLevel, 1, 5) ) {
+            // Re-create RT
+            size_t w = rtGBuffer->GetWidth();
+            size_t h = rtGBuffer->GetHeight();
+
+            rtGBuffer->SetMSAAMaxLevel(1u << (UINT)gMSAAMaxLevel);
+            rtGBuffer->Resize((UINT)w, (UINT)h);
+        }
+    }
+
+    ImGui::Checkbox("Render Diffuse", &gRenderDiffuse);
+    ImGui::Checkbox("Render Light"  , &gRenderLight);
 
     ImGui::Text("SSLR Settings");
     ImGui::SliderFloat("View angle Threshold"   , &gViewAngleThreshold, -.25f, 1.f  );
     ImGui::SliderFloat("Edge distance Threshold", &gEdgeDistThreshold , 0.f  , .999f);
     ImGui::SliderFloat("Reflect scale"          , &gReflScale         , 0.f  , 1.f  );
     ImGui::SliderFloat("Depth bias"             , &gDepthBias         , 0.f  , 1.5f );
+    ImGui::Checkbox(   "Render SSLR"            , &gRenderSSLR);
 
     ImGui::Text("SSAO Settings");
-    ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), gSSAOPlot->mPlot.size());
+    ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), (int)gSSAOPlot->mPlot.size());
     ImGui::Text("Min: %f\nMax: %f", gSSAOPlot->mMinMax.x, gSSAOPlot->mMinMax.y);
 
     ImGui::SliderFloat("Offset radius", &gSSAOOffsetRad , 0.f, 20.f);
     ImGui::SliderFloat("Radius"       , &gSSAORadius    , 0.f, 50.f);
     ImGui::SliderFloat("Power"        , &gSSAOPower     , .1f, 5.f);
+    ImGui::Checkbox(   "Blur"         , &gSSAOBlur);
+    ImGui::Checkbox(   "Render SSAO"  , &gRenderSSAO);
     
     ImGui::Text("HDR Settings");
-    ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), gHDRPlot->mPlot.size());
+    ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), (int)gHDRPlot->mPlot.size());
     ImGui::Text("Min: %f\nMax: %f", gHDRPlot->mMinMax.x, gHDRPlot->mMinMax.y);
     ImGui::SliderFloat("White"             , &White            , 0.f,  60.f);
     ImGui::SliderFloat("Middle Gray"       , &MidGray          , 0.f,  60.f);
@@ -960,6 +1035,18 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Bokeh Threshold"   , &gBokehThreshold  , 0.f,  25.f);
     ImGui::SliderFloat("Bokeh Color Scale" , &gBokehColorScale , 0.f,   1.f);
     ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f,   1.f);
+    ImGui::Checkbox("Render Eye Adaptation", &gRenderEyeAdaptation);
+    ImGui::Checkbox("Render Bloom"         , &gRenderBloom);
+    ImGui::Checkbox("Render Depth Of Field", &gRenderDepthOfField);
+    ImGui::Checkbox("Render Bokeh"         , &gRenderBokeh);
+
+    // Update flags
+    //                        0            1            2
+    std::array<bool, 8> _val{ gRenderSSLR, gRenderSSAO, gRenderEyeAdaptation,
+    //  3                    4             5             6               7
+        gRenderDepthOfField, gRenderBloom, gRenderBokeh, gRenderDiffuse, gRenderLight };
+
+    for( size_t i = 0; i < _val.size(); i++ ) if( _val[i] ) _RenderFlags |= 1 << i;
 
     // 
     const float gFarScale = 100.f;
@@ -987,6 +1074,7 @@ void _DirectX::ComposeUI() {
         __q->_BokehThreshold  = gBokehThreshold;
         __q->_ColorScale      = gBokehColorScale;
         __q->_RadiusScale     = gBokehRadiusScale;
+        __q->_RenderFlags     = _RenderFlags;
     gHDRPostProcess->UnmapFinalPass();
 
     const WindowConfig& cfg = gWindow->GetCFG();
@@ -1006,6 +1094,7 @@ void _DirectX::ComposeUI() {
     gSSAOArgs->_OffsetRad  = gSSAOOffsetRad;
     gSSAOArgs->_Radius     = gSSAORadius;
     gSSAOArgs->_Power      = gSSAOPower;
+    gSSAOArgs->_Blur       = gSSAOBlur;
 
     gSSLRArgs->_mProj              = cPlayer->GetProjMatrix();
     gSSLRArgs->_CameraFar          = fFar;
@@ -1113,6 +1202,7 @@ void _DirectX::Load() {
     gHDRPostProcess  = new HDRPostProcess;
     gSSAOPostProcess = new SSAOPostProcess;
     gSSLRPostProcess = new SSLRPostProcess;
+    gCascadeShadowMapping = new CascadeShadowMapping;
 
     gSSLRArgs = new SSLRArgs;
     gSSAOArgs = new SSAOArgs;
@@ -1263,7 +1353,8 @@ void _DirectX::Load() {
 
     // Geometry Buffer
     rtGBuffer = new RenderTarget2DColor3DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
-    //if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
+    if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
+    rtGBuffer->SetMSAAMaxLevel(8);
     rtGBuffer->Create(32);
     rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,
                              DXGI_FORMAT_R16G16B16A16_FLOAT, 
@@ -1289,7 +1380,7 @@ void _DirectX::Load() {
     rDesc2.DepthClipEnable = true;
     rDesc2.FillMode = D3D11_FILL_SOLID;
     rDesc2.FrontCounterClockwise = false;
-    rDesc2.MultisampleEnable = false;
+    rDesc2.MultisampleEnable = this->cfg.MSAA;
     rDesc2.ScissorEnable = false;
     rDesc2.SlopeScaledDepthBias = 0.0f;
     
@@ -1636,7 +1727,7 @@ void _DirectX::Load() {
     mScreenPlane->DisableDefaultTexture();
 
     mSpaceShip = new Model("Bunny model"); //LevelModelOBJ
-    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/Landscape1.obj");
+    mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/LevelModelOBJ.obj");
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Shadow test model");
@@ -1678,13 +1769,13 @@ void _DirectX::Load() {
     //miSpaceShip->SetModel(mModel1);
     miSpaceShip->SetModel(mSpaceShip);
     miSpaceShip->SetShader(shSurface);
-    miSpaceShip->SetWorldMatrix(//DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
-                                //DirectX::XMMatrixTranslation(-500, -50, 500) * 
+    miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
+                                DirectX::XMMatrixTranslation(-500, -50, 500) * 
                                 //DirectX::XMMatrixScaling(.0625, .0625, .0625) * 
-                                //DirectX::XMMatrixScaling(.125, .125, .125) * 
+                                DirectX::XMMatrixScaling(.125, .125, .125) * 
                                 //DirectX::XMMatrixScaling(400, 400, 400) * 
                                 //DirectX::XMMatrixScaling(50, 50, 50) * 
-                                DirectX::XMMatrixScaling(8, 8, 8) *
+                                //DirectX::XMMatrixScaling(8, 8, 8) *
                                 //DirectX::XMMatrixTranslation(-.5f, -.5f, 0.f) * 
                                 DirectX::XMMatrixIdentity()
     );
@@ -1734,6 +1825,7 @@ void _DirectX::Unload() {
     delete gHDRPostProcess;
     delete gSSAOPostProcess;
     delete gSSLRPostProcess;
+    delete gCascadeShadowMapping;
 
     // Release states
     rsFrontCull->Release();
@@ -2002,6 +2094,15 @@ int main() {
     // Load game data
     gDirectX->Load();
 
+    // 
+#ifdef CheckNumberOfAllocations 
+    std::cout << "[new]: Used " << gNumberOfAllocations << " times." << std::endl;
+    std::cout << "[new]: Allocated " << gSizeAllocated << " bytes." << std::endl;
+    std::cout << "[new]: Allocated " << gSizeAllocated / 1024 << " Kbytes." << std::endl;
+    std::cout << "[new]: Allocated " << gSizeAllocated / 1024 / 1024 << " Mbytes." << std::endl;
+    std::cout << "[new]: Allocated " << gSizeAllocated / 1024 / 1024 / 1024 << " Gbytes." << std::endl;
+#endif
+
     // Start rendering loop
     gWindow->Loop();
 
@@ -2010,6 +2111,8 @@ int main() {
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
 #endif
+
+    RangeProfiler::Release();
 
     // 
     RenderTargetMSAA::GlobalRelease();

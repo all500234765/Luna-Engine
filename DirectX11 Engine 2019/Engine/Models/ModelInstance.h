@@ -15,18 +15,26 @@ private:
     UINT BindBufferSlot = 0;
 
 public:
-    void SetModel(Model* model);
-    void SetShader(Shader* shader);
+    inline void SetModel(Model* model) { mModel = model; }
+    inline void SetShader(Shader* shader) { shShader = shader; }
 
     inline D3D11_PRIMITIVE_TOPOLOGY GetTopology() const { return Topology; }
     inline DirectX::XMMATRIX GetWorldMatrix() const { return World; }
 
     // Optional
-    void SetTopology(D3D11_PRIMITIVE_TOPOLOGY pTopology);
-    void SetBindBuffer(Shader::ShaderType BB, UINT Slot=0);
-    void SetWorldMatrix(DirectX::XMMATRIX mWorld);
+    inline void SetTopology(D3D11_PRIMITIVE_TOPOLOGY pTopology)   { Topology = pTopology; }
+    inline void SetBindBuffer(Shader::ShaderType BB, UINT Slot=0) { BindBuffer = BB; BindBufferSlot = Slot; }
+    inline void SetWorldMatrix(DirectX::XMMATRIX mWorld)          { World = mWorld; }
 
-    void Bind(Camera* cam);
-    void Render(bool bBindTextures=true);
-    void Render(UINT Num, bool bBindTextures=true);
+    void Bind(Camera* cam) {
+        shShader->Bind();
+        gDirectX->gContext->IASetPrimitiveTopology(Topology);
+
+        cam->SetWorldMatrix(World);
+        cam->BindBuffer(BindBuffer, BindBufferSlot);
+        cam->BuildConstantBuffer();
+    }
+
+    inline void Render(bool bBindTextures=true) { mModel->Render(1, bBindTextures); }
+    inline void Render(UINT Num, bool bBindTextures=true) { mModel->Render(Num, bBindTextures); }
 };

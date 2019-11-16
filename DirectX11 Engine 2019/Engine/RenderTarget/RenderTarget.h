@@ -122,6 +122,9 @@ private:
                (DepthBuffer ? (1 + (WillHaveMSAA ? 2 : 0)) : 0) + 
                               (1 + (WillHaveMSAA ? 1 : 0)) * BufferNum> mRenderTargets;
 
+    // Max MSAA level for this RT
+    UINT mMSAAMaxLevel = 8;
+
     // RT Base Name
     const char* mName;
 
@@ -159,6 +162,8 @@ private:
                                                          to create per RT buffer   */
              bool WillHaveMSAA=false, bool Cube=false>
     static void MSAAResolveDepth(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>* RT) {
+        ScopedRangeProfiler s1(L"MSAA Resolve depth buffer");
+
         float Width  = (float)RT->GetWidth();
         float Height = (float)RT->GetHeight();
 
@@ -202,8 +207,8 @@ private:
         }
 
         // Copy resources from UAV db to DSV db (depth buffer)
-        gDirectX->gContext->CopyResource(ChooseS(RT->GetDim(), SRVNoUAV->pTexture),
-                                         ChooseS(RT->GetDim(), UAV->pTexture));
+        gDirectX->gContext->CopyResource(ChooseS((UINT)RT->GetDim(), SRVNoUAV->pTexture),
+                                         ChooseS((UINT)RT->GetDim(), UAV->pTexture));
     }
 
     // Choose texture
@@ -229,13 +234,13 @@ private:
         mViewPort.TopLeftX = 0.f;
         mViewPort.TopLeftY = 0.f;
         mViewPort.MinDepth = 0.f;
-        mViewPort.MaxDepth = (dim == 3) ? (float)d : 1.f;
-        mViewPort.Width = w;
-        mViewPort.Height = h;
+        mViewPort.MaxDepth = (dim == 3) ? (FLOAT)d : 1.f;
+        mViewPort.Width  = (FLOAT)w;
+        mViewPort.Height = (FLOAT)h;
 
-        mWidth = w;
+        mWidth  = w;
         mHeight = h;
-        mDepth = d;
+        mDepth  = d;
     }
 
     // 
@@ -283,10 +288,15 @@ private:
 
         // MSAA
         UINT SampleCount = 1, Quality = 0;
-        if( !UAV && dim == 2 ) MSAACheck(formatTex, SampleCount, Quality);
+        if( !UAV && dim == 2 ) {
+            MSAACheck(formatTex, SampleCount, Quality);
+
+            // Limit amount of samples depending on current setting
+            SampleCount = std::min(mMSAAMaxLevel, SampleCount);
+        }
 
         // Store sample count
-        if( (Depth && index < 2) || !Depth ) {
+        if( mMSAA && ((Depth && index < 2) || !Depth) ) {
             mMSAASamples[Depth ? (UAV ? 1 : 0) : (index - mOffset + (mOffset > 0))] = SampleCount;
         }
 
@@ -555,11 +565,18 @@ public:
     RenderTarget(UINT w, UINT h, UINT d=1, const char* name="UnnamedRT") {
         SetSize(w, h, d);
 
+        mMSAAMaxLevel = 8;
         mName = name;
     }
 
+    // Setters
     void SetName(const char* name, implRenderTarget* rt) {
         if( rt ) _SetName(Choose(rt->pTexture), (std::string(mName) + std::string(name)).c_str());
+    }
+
+    // [1 - 32]; Power of 2
+    inline void SetMSAAMaxLevel(UINT level) {
+        mMSAAMaxLevel = std::clamp(level, 1u, 32u);
     }
 
     // MSAA
@@ -574,6 +591,8 @@ public:
 
     void MSAAResolve() {
         if( mMSAA ) {
+            ScopedRangeProfiler s1(L"MSAA Resolve");
+
             // Unbind views
             ID3D11RenderTargetView* nullRTV = nullptr;
             gDirectX->gContext->OMSetRenderTargets(1, &nullRTV, nullptr);
@@ -612,7 +631,7 @@ public:
     }
 
     void Create(DXGI_FORMAT format, UINT slot=0, bool UAV=false, bool rct=false) {
-        UINT index = slot + mOffset;
+        UINT index = UINT(slot + mOffset);
 
         mRenderTargets[index] = CreateRenderTarget(false, format, UAV, index, rct ? mRenderTargets[index] : nullptr);
         SetName(UAV ? " w/ UAV" : " No UAV", mRenderTargets[index]);
@@ -703,7 +722,7 @@ public:
                 }
 
                 // Re-create RTV
-                Create(format, i - mOffset, UAV, true);
+                Create(format, (UINT)(i - mOffset), UAV, true);
             }
         }
 
@@ -835,6 +854,7 @@ public:
     inline bool HasMSAA()                const { return WillHaveMSAA; }
     inline bool IsMSAAEnabled()          const { return mMSAA; }
     inline size_t GetDim()               const { return dim; }
+    inline UINT   GetMaxSampleCount()    const { return mMSAAMaxLevel; };
 };
 
 // MSAA Resolve

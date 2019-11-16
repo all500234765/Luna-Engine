@@ -72,6 +72,25 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shBokehGS.hlsl">
       <ShaderType>Geometry</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shCSM2GS.hlsl">
+      <ShaderType>Geometry</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shCSM3GS.hlsl">
+      <ShaderType>Geometry</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shRenderAVCCubeGS.hlsl">
+      <ShaderType>Geometry</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shRenderAVCCubePS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shRenderAVCCubeVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\GS\shCSMGS.hlsli">
+      <ShaderType>Geometry</ShaderType>
+      <FileType>Document</FileType>
+    </None>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shFurGS.hlsl">
       <ShaderType>Geometry</ShaderType>
     </FxCompile>
