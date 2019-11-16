@@ -321,6 +321,8 @@ public:
                                                          to create per RT buffer   */
              bool WillHaveMSAA=false, bool Cube=false>
     void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB) {
+        ScopedRangeProfiler s1(L"HDR Pass");
+
         // Avg luminance pass
         // 1st Pass
         RB->Bind(1, Shader::Compute, 0);              // SRV
@@ -477,6 +479,9 @@ public:
 
     // After post-processing
     void End() {
+        ScopedRangeProfiler s1(L"HDR swap");
+
+        // 
         gDirectX->gContext->CopyResource(sbPLuminance->GetBuffer(), sbALuminance->GetBuffer());
 
         // Update constant buffer

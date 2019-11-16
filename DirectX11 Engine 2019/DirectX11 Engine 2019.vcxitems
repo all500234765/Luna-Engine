@@ -43,6 +43,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Materials\TextureMaps.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Model.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Profiler\RangeProfiler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderTarget\RenderTarget.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RendererFlags.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.h" />
@@ -93,6 +94,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\Model.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Models\ModelInstance.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Profiler\RangeProfiler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Profiler\ScopedRangeProfiler.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\DepthStencilState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\RasterState.cpp" />

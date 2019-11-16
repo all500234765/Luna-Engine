@@ -162,6 +162,8 @@ private:
                                                          to create per RT buffer   */
              bool WillHaveMSAA=false, bool Cube=false>
     static void MSAAResolveDepth(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>* RT) {
+        ScopedRangeProfiler s1(L"MSAA Resolve depth buffer");
+
         float Width  = (float)RT->GetWidth();
         float Height = (float)RT->GetHeight();
 
@@ -589,6 +591,8 @@ public:
 
     void MSAAResolve() {
         if( mMSAA ) {
+            ScopedRangeProfiler s1(L"MSAA Resolve");
+
             // Unbind views
             ID3D11RenderTargetView* nullRTV = nullptr;
             gDirectX->gContext->OMSetRenderTargets(1, &nullRTV, nullptr);

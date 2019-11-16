@@ -96,6 +96,10 @@ public:
         ImGui_ImplWin32_Shutdown();
 #endif
 
+#if defined(_DEBUG_BUILD) || defined(_DEBUG)
+        RangeProfiler::Release();
+#endif
+
         gWindow->Destroy();
         gDirectX->Unload();
     }

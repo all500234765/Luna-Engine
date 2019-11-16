@@ -146,6 +146,8 @@ public:
                                                          to create per RT buffer   */
              bool WillHaveMSAA=false, bool Cube=false>
     void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB, const SSAOArgs& args) {
+        ScopedRangeProfiler s1(L"SSAO Pass");
+
         // Unbind views
         ID3D11RenderTargetView* nullRTV = nullptr;
         gDirectX->gContext->OMSetRenderTargets(1, &nullRTV, nullptr);
@@ -204,6 +206,8 @@ public:
 
         //////////////////////////// SSAO Blur ////////////////////////////
         if( args._Blur ) {
+            ScopedRangeProfiler s1(L"SSAO Blur");
+
             // Horizontal pass
             cbBlurArgs->Bind(Shader::Compute, 0);       // CB
             _SSAO->Bind(Shader::Compute, 0);            // Texture2D; _Input
@@ -237,6 +241,8 @@ public:
     }
 
     void End() {
+        ScopedRangeProfiler s1(L"SSAO Unbind");
+
         ID3D11ShaderResourceView *pEmpty = nullptr;
         gDirectX->gContext->PSSetShaderResources(mSlot, 1, &pEmpty);
     }

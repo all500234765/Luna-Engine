@@ -19,18 +19,22 @@ struct AVC_Cube {
 };
 
 bool _DirectX::FrameFunction() {
+    ScopedRangeProfiler s0(__FUNCTION__);
+
     // Resize event
     Resize();
+    {
+        ScopedRangeProfiler s1(L"Clear");
 
-
-    // Bind and clear RTV
-    gContext->OMSetRenderTargets(1, &gRTV, gDSV);
-
-    float Clear[4] = { .2f, .2f, .2f, 1.f }; // RGBA
-    float Clear0[4] = { 0.f, 0.f, 0.f, 1.f }; // RGBA black
-    gContext->ClearRenderTargetView(gRTV, Clear0);
-    gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
-    //                                                                Default is 1 ^^^
+        // Bind and clear RTV
+        gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+        
+        float Clear[4] = { .2f, .2f, .2f, 1.f }; // RGBA
+        float Clear0[4] = { 0.f, 0.f, 0.f, 1.f }; // RGBA black
+        gContext->ClearRenderTargetView(gRTV, Clear0);
+        gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
+        //                                                                Default is 1 ^^^
+    }
 
     // 
     shRenderAVC.Bind();
