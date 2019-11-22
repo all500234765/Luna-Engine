@@ -63,7 +63,7 @@ Sampler *sPoint, *sMipLinear, *sPointClamp, *sMipLinearOpacity, *sMipLinearRougn
 Material *mDefault;
 
 // Render Targets
-RenderBufferDepth2D *rtSnowDepth;
+RenderTarget2DDepth *rtSnowDepth;
 
 // States
 BlendState *pBlendState0, *pBlendStateAdditive;

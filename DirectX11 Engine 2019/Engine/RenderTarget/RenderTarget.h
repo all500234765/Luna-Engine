@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/DirectX/DirectXChild.h"
+#include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine Includes/Types.h"
 #include <variant>
 #include <algorithm>
@@ -678,7 +679,7 @@ public:
         bool oldMSAA = mMSAA;
         
         // Depth
-        if( DepthBuffer ) {
+        if constexpr( DepthBuffer ) {
             UINT bpp = std::get<UINT>(mRenderTargets[0]->mFormat);
 
             // Release resources
@@ -703,7 +704,7 @@ public:
             Create(bpp, true);
         }
 
-        if( BufferNum > 0 ) {
+        if constexpr( BufferNum > 0 ) {
             for( size_t i = mOffset; i < mOffset + BufferNum; i++ ) {
                 DXGI_FORMAT format = std::get<DXGI_FORMAT>(mRenderTargets[i]->mFormat);
                 bool UAV = (mRenderTargets[i]->pUAV != nullptr);
@@ -714,7 +715,7 @@ public:
                     ///delete mRenderTargets[i];
                 }
 
-                if( WillHaveMSAA ) {
+                if constexpr( WillHaveMSAA ) {
                     if( mRenderTargets[i + BufferNum] != nullptr ) {
                         mRenderTargets[i + BufferNum]->Release();
                         ///delete mRenderTargets[i + BufferNum];
@@ -774,31 +775,31 @@ public:
     // Getters
     template<UINT index, bool noMSAA=true>
     inline implRenderTarget* GetBuffer() const {
-        if( !BufferNum ) return nullptr;
+        if constexpr( !BufferNum ) return nullptr;
         return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum];
     }
 
     template<UINT index, bool noMSAA=true>
     inline ID3D11ShaderResourceView* GetBufferSRV() const {
-        if( !BufferNum ) return nullptr;
+        if constexpr( !BufferNum ) return nullptr;
         return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pSRV;
     }
 
     template<UINT index=0, bool noMSAA=true>
     inline implRenderTarget* GetDepthBuffer() const {
-        if( !DepthBuffer ) return nullptr;
+        if constexpr( !DepthBuffer ) return nullptr;
         return mRenderTargets[index + 2 * noMSAA * mMSAA];
     }
     
     template<UINT index=0, bool noMSAA=true>
     inline ID3D11Resource* GetDepthBufferTexture() const {
-        if( !DepthBuffer ) return nullptr;
+        if constexpr( !DepthBuffer ) return nullptr;
         return Choose(mRenderTargets[index + 2 * noMSAA * mMSAA]->pTexture);
     }
     
     template<UINT index=0, bool noMSAA=true>
     inline ID3D11Resource* GetBufferTexture() const {
-        if( !BufferNum ) return nullptr;
+        if constexpr( !BufferNum ) return nullptr;
         return Choose(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pTexture);
     }
 

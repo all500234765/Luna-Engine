@@ -18,10 +18,6 @@ struct CSMArgs {
     // Shadow map resolution for each cascade
     float _Resolution = 2048;
     
-    // Total range for cascades
-    // sum of _CascadeRange[]
-    float _CascadeTotalRange;
-
     // 
     float _CascadeRange[3 + 1];
 };
@@ -43,13 +39,13 @@ private:
 
     // Cascade parameters
     UINT mCascadeNum = CascadeMaxNum;
-    float3 mShadowBoundCenter;
+    mfloat3 mShadowBoundCenter;
     float1 mShadowBoundRadius;
 
-    float3 mShadowBoundCenterC[CascadeMaxNum];
-    float2 mCascadeOffset     [CascadeMaxNum];
-    float1 mCascadeScale      [CascadeMaxNum];
-    float1 mShadowBoundRadiusC[CascadeMaxNum];
+    mfloat3 mShadowBoundCenterC[CascadeMaxNum];
+    float2 mCascadeOffset      [CascadeMaxNum];
+    float  mCascadeScaleV      [CascadeMaxNum];
+    float  mShadowBoundRadiusC [CascadeMaxNum];
 
     mfloat4x4 World2Shadow;
 
@@ -106,49 +102,65 @@ private:
     }
 
     struct FBS {
-        float3 Center;
-        float1 Radius;
+        mfloat3 Center;
+        float1  Radius;
+
+        FBS(mfloat3 C, float1 R): Center(C), Radius(R) {};
     };
 
-    FBS&& FrustrumBoundingSphere(float1 fNear, float1 fFar) const {
+    FBS FrustrumBoundingSphere(float1 fNear, float1 fFar) const {
         // 
-        float3 Pos     = reinterpret_cast<const float3*>(&LightWorld._41);
-        float3 Right   = reinterpret_cast<const float3*>(&LightWorld._11);
-        float3 Up      = reinterpret_cast<const float3*>(&LightWorld._21);
-        float3 Forward = reinterpret_cast<const float3*>(&LightWorld._31);
+        mfloat3 Pos     = { LightWorld._41, LightWorld._42, LightWorld._43 };
+        mfloat3 Right   = { LightWorld._11, LightWorld._12, LightWorld._13 };
+        mfloat3 Up      = { LightWorld._21, LightWorld._22, LightWorld._23 };
+        mfloat3 Forward = { LightWorld._31, LightWorld._32, LightWorld._33 };
 
         float1 TanFoVx = tan(fAspect * fFOV);
         float1 TanFoVy = tan(fAspect);
 
-        float3 Center = Pos + Forward * (fNear + .5f * (fNear + fFar));
-        float1 Radius = DirectX::XMVector3Length(Pos - Center + fFar * (Forward + Up * TanFoVy - Right * TanFoVx));
+        float q = (fNear + .5f * (fNear + fFar));
+        mfloat3 Center = { Pos.m128_f32[0] + Forward.m128_f32[0] * q, 
+                           Pos.m128_f32[1] + Forward.m128_f32[1] * q, 
+                           Pos.m128_f32[2] + Forward.m128_f32[2] * q };
+        mfloat3 q2 = { fFar * (Forward.m128_f32[0] + Up.m128_f32[0] * TanFoVy - Right.m128_f32[0] * TanFoVx), 
+                       fFar * (Forward.m128_f32[1] + Up.m128_f32[1] * TanFoVy - Right.m128_f32[1] * TanFoVx), 
+                       fFar * (Forward.m128_f32[2] + Up.m128_f32[2] * TanFoVy - Right.m128_f32[2] * TanFoVx)};
+        // fFar* (Forward + Up * TanFoVy - Right * TanFoVx);
+        mfloat3 dc = { Pos.m128_f32[0] - Center.m128_f32[0] + q2.m128_f32[0], 
+                       Pos.m128_f32[1] - Center.m128_f32[1] + q2.m128_f32[1],
+                       Pos.m128_f32[2] - Center.m128_f32[2] + q2.m128_f32[2] }; // Pos - Center + q2
+        float1 Radius = DirectX::XMVector3Length(dc).m128_f32[0];
 
         return { Center, Radius };
     }
 
     struct CNU {
-        float3 Offset;
+        mfloat3 Offset;
         bool Res;
+
+        CNU(mfloat3 O, bool R): Offset(O), Res(R) {};
     };
 
-    CNU&& CascadeNeedsUpdate(const mfloat4x4& mShadowView, UINT CascadeIdx, const float3& NewCenter) const {
-        float3 OldCenterInC = DirectX::XMVector3TransformCoord(mShadowBoundCenterC[CascadeIdx], mShadowView);
-        float3 NewCenterInC = DirectX::XMVector3TransformCoord(NewCenter, mShadowView);
+    CNU CascadeNeedsUpdate(const mfloat4x4& mShadowView, UINT CascadeIdx, const mfloat3& NewCenter) const {
+        mfloat3 OldCenterInC = DirectX::XMVector3TransformCoord(mShadowBoundCenterC[CascadeIdx], mShadowView);
+        mfloat3 NewCenterInC = DirectX::XMVector3TransformCoord(NewCenter, mShadowView);
 
-        float3 Diff = NewCenterInC - OldCenterInC;
+        mfloat3 Diff = { NewCenterInC.m128_f32[0] - OldCenterInC.m128_f32[0], 
+                         NewCenterInC.m128_f32[1] - OldCenterInC.m128_f32[1],
+                         NewCenterInC.m128_f32[2] - OldCenterInC.m128_f32[2] };
 
         float1 PixelSize = rtCSM->GetWidth() / (2.f * mShadowBoundRadiusC[CascadeIdx]);
 
-        float1 PixelOffX = Diff.x * PixelSize;
-        float1 PixelOffY = Diff.y * PixelSize;
+        float1 PixelOffX = Diff.m128_f32[0] * PixelSize;
+        float1 PixelOffY = Diff.m128_f32[1] * PixelSize;
 
         bool Update = abs(PixelOffX) > .5f || abs(PixelOffY) > .5f;
-        float3 Offset = 0.f;
+        mfloat3 Offset = { 0.f, 0.f, 0.f };
 
         if( Update ) {
-            Offset.x = floorf(.5f + PixelOffX) / PixelSize;
-            Offset.y = floorf(.5f + PixelOffY) / PixelSize;
-            Offset.z = Diff.z;
+            Offset.m128_f32[0] = floorf(.5f + PixelOffX) / PixelSize;
+            Offset.m128_f32[1] = floorf(.5f + PixelOffY) / PixelSize;
+            Offset.m128_f32[2] = Diff.m128_f32[2];
         }
 
         return { Offset, Update };
@@ -165,13 +177,15 @@ public:
         using namespace std::string_literals;
 
         shCSM = new Shader();
-        shCSM->DontTouch({ Shader::Vertex, Shader::Hull, Shader::Domain });
+        //shCSM->DontTouch({ Shader::Hull, Shader::Domain });
+        shCSM->LoadFile("shCSMVS.cso"s, Shader::Vertex);
         shCSM->LoadFile("shCSM"s + std::to_string(CascadeNum) + "GS.cso"s, Shader::Geometry);
         shCSM->SetNullShader(Shader::Pixel);
         shCSM->ReleaseBlobs();
 
         // Create constant buffer
         cbCSM = new ConstantBuffer();
+        cbCSM->CreateDefault(sizeof(CSM));
     }
 
     ~CascadeShadowMapping() {
@@ -185,8 +199,17 @@ public:
 
     }
 
+    ID3D11ShaderResourceView* getSRV() const {
+        return rtCSM->GetBufferSRV<0, true>();
+    }
+
     void Begin(const Camera* light, const CSMArgs& args) {
         using namespace DirectX;
+
+        // Total range for cascades
+        // sum of _CascadeRange[]
+        float _CascadeTotalRange = 0.f;
+        for( size_t i = 0; i < args._CascadeNum; i++ ) _CascadeTotalRange += args._CascadeRange[i];
 
         // Reload shader
         SetCascadeNum(args._CascadeNum);
@@ -201,36 +224,36 @@ public:
         CameraConfig ccfg = light->GetParams();
         float1 fFar       = ccfg.fFar;
         float1 fNear      = ccfg.fNear;
-        float3 Direction  = light->GetRotation();
+        float3 p          = light->GetPosition();
 
         mfloat4x4 mLightView  = light->GetViewMatrix();
         mfloat4x4 mLightProj  = light->GetProjMatrix();
-        mfloat4x4 mLightWorld = XMMatrixInverse(XMMatrixDeterminant(mLightView), mLightView);
+        mfloat4x4 mLightWorld = XMMatrixInverse(&XMMatrixDeterminant(mLightView), mLightView);
 
         XMStoreFloat4x4(&LightWorld, mLightWorld);
 
         // Calculate view matrix
         // Eye pos + Eye Direction * Total Cascade Range * .5f
-        float3 WorldCenter = reinterpret_cast<const float3*>(&LightWorld._41) + 
-                             reinterpret_cast<const float3*>(&LightWorld._31) * args._CascadeTotalRange * .5f;
-        float3 Pos         = WorldCenter;
-        float3 LookAt      = WorldCenter + Direction * fFar;
-        float3 Right       = { 1.f, 0.f, 0.f };
+        float q = _CascadeTotalRange * .5f;
+        mfloat3 ep = { p.x, p.y, p.z }; //{ LightWorld._41, LightWorld._42, LightWorld._43 }; //reinterpret_cast<const float3*>(&LightWorld._41);
+        mfloat3 ed = { LightWorld._31, LightWorld._32, LightWorld._33 }; //reinterpret_cast<const float3*>(&LightWorld._31);
+        mfloat3 WorldCenter = ep - 0*ed * mfloat3({ q, q, q }) + 0*ed * fFar;
+        mfloat3 Pos         = WorldCenter;
+        mfloat3 LookAt      = WorldCenter + ed * fFar;
+        mfloat3 Right       = { LightWorld._11, LightWorld._12, LightWorld._13 }; //{ 1.f, 0.f, 0.f };
+        
+        mfloat3 Up = { LightWorld._21, LightWorld._22, LightWorld._23 }; // 
+        Up = XMVector3Normalize(XMVector3Cross(ed, Right));
 
-        float3 Up = XMVector3Normalize(XMVector3Cross(Direction, Right));
-
-        mfloat4x4 mShadowView = XMMatrixLookAtLH(Pos, LookAt, Up);
+        mfloat4x4 mShadowView = XMMatrixLookAtRH(Pos, LookAt, Up);
 
         // Get shadow space bounds
-        float1 fRadius;
-        float3 vCenter;
-
         auto[vCenter, fRadius] = FrustrumBoundingSphere(args._CascadeRange[0], args._CascadeRange[mCascadeNum]);
         mShadowBoundRadius = std::max(mShadowBoundRadius, fRadius);
 
         // Calculate projection matrix
-        mfloat4x4 mShadowProj = XMMatrixOrthographicLH(mShadowBoundRadius, mShadowBoundRadius, 
-                                                      -mShadowBoundRadius, mShadowBoundRadius);
+        mfloat4x4 mShadowProj = XMMatrixOrthographicRH(mShadowBoundRadius,  mShadowBoundRadius, 
+                                                       mShadowBoundRadius, -mShadowBoundRadius);
 
         // From world to shadow space
         World2Shadow = mShadowView * mShadowProj;
@@ -247,33 +270,36 @@ public:
             if( args._Antiflicker ) {
                 // To avoid anti flickering we need to make the transformation invariant to camera rotation and translation
                 // By encapsulating the cascade frustum with a sphere we achive the rotation invariance
-                float3 NewCenter;
-                auto[NewCenter, fRadius] = 
+                auto[NewCenter, fRadius2] = 
                     FrustrumBoundingSphere(args._CascadeRange[CascadeIdx], args._CascadeRange[CascadeIdx + 1]);
-                mShadowBoundRadiusC[CascadeIdx] = std::max(mShadowBoundRadiusC[CascadeIdx], fRadius);
+                mShadowBoundRadiusC[CascadeIdx] = std::max(mShadowBoundRadiusC[CascadeIdx], fRadius2);
 
                 // Only update the cascade bounds if it moved at least a full pixel unit
                 // This makes the transformation invariant to translation
-                float3 Offset;
-                bool Res;
                 auto[Offset, Res] = CascadeNeedsUpdate(mShadowView, CascadeIdx, NewCenter);
                     
                 if( Res ) {
                     // To avoid flickering we need to move the bound center in full units
-                    float3 OffsetOut = XMVector3TransformNormal(Offset, mShadowInvView);
-                    mShadowBoundRadiusC[CascadeIdx] += OffsetOut;
+                    mfloat3 OffsetOut = XMVector3TransformNormal(Offset, mShadowInvView);
+                    mShadowBoundCenterC[CascadeIdx] += OffsetOut;
                 }
 
                 // Get the cascade center in shadow space
-                float3 CenterShadowSpace = XMVector3TransformCoord(mShadowBoundCenterC[CascadeIdx], World2Shadow);
+                mfloat3 CenterShadowSpace = XMVector3TransformCoord(mShadowBoundCenterC[CascadeIdx], World2Shadow);
 
                 // Update the translation from shadow to cascade space
-                mCascadeOffset[CascadeIdx] = -CenterShadowSpace;
-                mCascadeTrans = XMMatrixTranslation(mCascadeOffset[CascadeIdx].x, mCascadeOffset[CascadeIdx].y, 0.f);
+                mCascadeOffset[CascadeIdx] = { -CenterShadowSpace.m128_f32[0], 
+                                               -CenterShadowSpace.m128_f32[1] };
+
+                // 
+                mfloat3 forw = { 0.f, 0.f, args._CascadeRange[CascadeIdx] };
+
+                mCascadeTrans = XMMatrixTranslation(forw.m128_f32[0], forw.m128_f32[1], forw.m128_f32[2]);
+                //mCascadeTrans = XMMatrixTranslation(mCascadeOffset[CascadeIdx].x, 0.f, mCascadeOffset[CascadeIdx].y);
 
                 // Update the scale from shadow to cascade space
-                mCascadeScale[CascadeIdx] = mShadowBoundRadius / mShadowBoundRadiusC[CascadeIdx];
-                XMMatrixScaling(mCascadeScale[CascadeIdx], mCascadeScale[CascadeIdx], 1.f);
+                mCascadeScaleV[CascadeIdx] = mShadowBoundRadius / mShadowBoundRadiusC[CascadeIdx];
+                mCascadeScale = XMMatrixScaling(1+0*mCascadeScaleV[CascadeIdx], 1+0*mCascadeScaleV[CascadeIdx], 1.f);
             } else {
                 // Since we don't care about flickering we can make the cascade fit tightly around the frustum
                 // Extract the bounding box
@@ -291,13 +317,13 @@ public:
             }
 
             // Combine the matrices to get the transformation from world to cascade space
-            inst->_ViewProj[CascadeIdx] = XMMatrixTranspose(World2Shadow * mCascadeTrans * mCascadeScale);
+            inst->_ViewProj[0*2 + CascadeIdx] = (World2Shadow * mCascadeTrans * mCascadeScale);
         }
 
         // Set the values for the unused slots to someplace outside the shadow space
         for( int i = mCascadeNum; i < 4; i++ ) {
-            mCascadeOffset[i] = 250.f;
-            mCascadeScale[i]  = .1f;
+            mCascadeOffset[i] = { 250.f, 250.f };
+            mCascadeScaleV[i] = .1f;
         }
 
         // Update constant buffer
@@ -305,6 +331,9 @@ public:
 
         // Bind resources
         cbCSM->Bind(Shader::Geometry, 0); // CB
+
+        // 
+        rtCSM->Bind();
     }
 
     // Bind your default rendering shader for used mesh

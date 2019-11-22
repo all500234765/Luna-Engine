@@ -43,6 +43,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Materials\TextureMaps.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Model.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\VertexSets.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Profiler\RangeProfiler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderTarget\RenderTarget.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RendererFlags.h" />

@@ -53,6 +53,7 @@ CascadeShadowMapping<3, false> *gCascadeShadowMapping;
 
 SSLRArgs *gSSLRArgs;
 SSAOArgs *gSSAOArgs;
+CSMArgs *gCSMArgs;
 
 // Text
 Text *tTest;
@@ -69,7 +70,8 @@ Shader *shSurface, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly,
        *shDeferredFinal, *shDeferredPointLight, *shScreenSpaceShadows, 
        *shUnitSphere, *shUnitSphereDepthOnly, *shUnitSphereFur, 
        *shUnitSphereFurDepthOnly, *shSurfaceFur, *shSurfaceFurDepthOnly, 
-       *shTextSimple, *shTextEffects, *shTextSimpleSDF, *shTextEffectsSDF;
+       *shTextSimple, *shTextEffects, *shTextSimpleSDF, *shTextEffectsSDF, 
+       *shDepthAlpha;
 
 // Models
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
@@ -188,7 +190,8 @@ bool _DirectX::FrameFunction() {
     
 #pragma region Scene rendering
     auto RenderScene = [&](Camera *cam, uint32_t flags=RendererFlags::None, Camera *light=nullptr, 
-                           void(*PreRender)(DirectX::XMMATRIX m)=[](DirectX::XMMATRIX m)->void{}) {
+                           void(*PreRender)(DirectX::XMMATRIX m)=[](DirectX::XMMATRIX m)->void{},
+                           void(*PostBind)(uint32_t flags)=[](uint32_t flags)->void{}) {
         ScopedRangeProfiler s0("RenderScene");
 
         // 
@@ -203,7 +206,7 @@ bool _DirectX::FrameFunction() {
         // Some data units being binded
         if( (flags & RendererFlags::DepthPass) == 0 ) {
             // Bind light buffer
-            light->BindBuffer(Shader::Vertex, 1);
+            if( light ) light->BindBuffer(Shader::Vertex, 1);
 
             // Bind default material
             mDefault->BindTextures(Shader::Pixel, 0);
@@ -250,8 +253,34 @@ bool _DirectX::FrameFunction() {
             shVertexOnly->Bind();
         }
 
+        // 
+        PostBind(flags);
+
         // Render scene
         miSpaceShip->Render(!(flags & RendererFlags::DontBindTextures));
+
+        // 
+        // Save shader state
+        /*if( flags & RendererFlags::DontBindShaders ) {
+            gDirectX->gContext->IASetPrimitiveTopology(mCornellBox->GetTopology());
+            PreRender(mCornellBox->GetWorldMatrix());
+        } else {
+            // Render Test scene
+            mCornellBox->Bind(cam);
+        }
+
+        // 
+        if( flags & RendererFlags::DontBindShaders ) {
+
+        } else if( flags & RendererFlags::DepthPass ) {
+            shDepthAlpha->Bind();
+        }
+
+        // 
+        PostBind(flags);
+
+        // Render grass
+        mCornellBox->Render();*/
 
         // Render physics engine test unit spheres
         /*if( flags & RendererFlags::DepthPass ) shUnitSphereDepthOnly->Bind();
@@ -315,6 +344,18 @@ bool _DirectX::FrameFunction() {
         RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
     }
 #pragma endregion
+
+    if( false )
+    {
+        ScopedRangeProfiler s1(L"Cascade Shadow Mapping");
+
+        gCascadeShadowMapping->Begin(cLight, *gCSMArgs);
+        
+        RenderScene(cLight, RendererFlags::OpaquePass | RendererFlags::DontBindTextures, 
+                    nullptr, [](mfloat4x4 mWorld) {}, [](uint32_t flags) {
+            gCascadeShadowMapping->Prepare();
+        });
+    }
 
     // Reset to defaults
     if( bIsWireframe ) {
@@ -670,7 +711,7 @@ bool _DirectX::FrameFunction() {
         // 3 is best number here
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
             //bZBuffer_Editor->GetDepth()->pSRV,
-            _SSLRBf->pSRV,
+            //gCascadeShadowMapping->getSRV(),
             _ColorD->pSRV, 
             rtGBuffer->GetBuffer<1>()->pSRV, 
             gSSAOPostProcess->GetSSAOSRV()
@@ -1002,15 +1043,32 @@ void _DirectX::ComposeUI() {
         }
     }
 
-    ImGui::Checkbox("Render Diffuse", &gRenderDiffuse);
-    ImGui::Checkbox("Render Light"  , &gRenderLight);
+    // CSM
+    gCSMArgs->_Antiflicker = true;
+    gCSMArgs->_CascadeNum  = 3;
+    gCSMArgs->_Resolution  = 2048;
+    gCSMArgs->_MSAA        = false;
+    gCSMArgs->_MSAALevel   = 8;
+
+    ImGui::Text("CSM Settings");
+    ImGui::DragFloat3("Range", gCSMArgs->_CascadeRange, 1.f, 0.f, 100.f);
+
+    ImGui::Text("Render Flags");
+    ImGui::Checkbox("Render Diffuse"       , &gRenderDiffuse);
+    ImGui::Checkbox("Render Light"         , &gRenderLight);
+    ImGui::Checkbox("Render Eye Adaptation", &gRenderEyeAdaptation);
+    ImGui::Checkbox("Render Bloom"         , &gRenderBloom);
+    ImGui::Checkbox("Render Depth Of Field", &gRenderDepthOfField);
+    ImGui::Checkbox("Render Bokeh"         , &gRenderBokeh);
+    ImGui::Checkbox("Render SSLR"          , &gRenderSSLR);
+    ImGui::Checkbox("Blur"                 , &gSSAOBlur);
+    ImGui::Checkbox("Render SSAO"          , &gRenderSSAO);
 
     ImGui::Text("SSLR Settings");
     ImGui::SliderFloat("View angle Threshold"   , &gViewAngleThreshold, -.25f, 1.f  );
     ImGui::SliderFloat("Edge distance Threshold", &gEdgeDistThreshold , 0.f  , .999f);
     ImGui::SliderFloat("Reflect scale"          , &gReflScale         , 0.f  , 1.f  );
     ImGui::SliderFloat("Depth bias"             , &gDepthBias         , 0.f  , 1.5f );
-    ImGui::Checkbox(   "Render SSLR"            , &gRenderSSLR);
 
     ImGui::Text("SSAO Settings");
     ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), (int)gSSAOPlot->mPlot.size());
@@ -1019,8 +1077,6 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Offset radius", &gSSAOOffsetRad , 0.f, 20.f);
     ImGui::SliderFloat("Radius"       , &gSSAORadius    , 0.f, 50.f);
     ImGui::SliderFloat("Power"        , &gSSAOPower     , .1f, 5.f);
-    ImGui::Checkbox(   "Blur"         , &gSSAOBlur);
-    ImGui::Checkbox(   "Render SSAO"  , &gRenderSSAO);
     
     ImGui::Text("HDR Settings");
     ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), (int)gHDRPlot->mPlot.size());
@@ -1035,10 +1091,6 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Bokeh Threshold"   , &gBokehThreshold  , 0.f,  25.f);
     ImGui::SliderFloat("Bokeh Color Scale" , &gBokehColorScale , 0.f,   1.f);
     ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f,   1.f);
-    ImGui::Checkbox("Render Eye Adaptation", &gRenderEyeAdaptation);
-    ImGui::Checkbox("Render Bloom"         , &gRenderBloom);
-    ImGui::Checkbox("Render Depth Of Field", &gRenderDepthOfField);
-    ImGui::Checkbox("Render Bokeh"         , &gRenderBokeh);
 
     // Update flags
     //                        0            1            2
@@ -1206,6 +1258,11 @@ void _DirectX::Load() {
 
     gSSLRArgs = new SSLRArgs;
     gSSAOArgs = new SSAOArgs;
+    gCSMArgs  = new CSMArgs;
+    gCSMArgs->_CascadeRange[0] = .1f;
+    gCSMArgs->_CascadeRange[1] = 10.f;
+    gCSMArgs->_CascadeRange[2] = 25.f;
+    gCSMArgs->_CascadeRange[3] = 100.f;
 
     // 
     gHDRPlot  = new PlotData<120>();
@@ -1279,11 +1336,11 @@ void _DirectX::Load() {
     shTextEffects            = new Shader();
     shTextSimpleSDF          = new Shader();
     shTextEffectsSDF         = new Shader();
-
-    cPlayer   = new Camera(float3(3.78576f, 9.56023f, 21.2106f), float3(9.66979f, 180.f + 208.657f, 0.f));
+    shDepthAlpha             = new Shader();
+    
+    cPlayer   = new Camera(float3(-24.6051f, 16.3883f, -17.3885f), float3(34.7667f, 64.2277f, 0.f));
     c2DScreen = new Camera();
-    cLight    = new Camera(float3(28.3829f, 44.3529f, -12.3071f), float3(48.2529f, 292.055f, 0.f));
-
+    cLight    = new Camera(float3(-11.2933f, 18.686f, 1.10003f), float3(58.7915f, 116.043f, 0.f));
     tDefault         = new Texture();
     tBlueNoiseRG     = new Texture();
     tClearPixel      = new Texture();
@@ -1560,6 +1617,10 @@ void _DirectX::Load() {
     shVertexOnly->LoadFile("shSimpleVS.cso", Shader::Vertex); // Change to shSurfaceVS
     shVertexOnly->SetNullShader(Shader::Pixel);
 
+    // Depth write with alpha test
+    shDepthAlpha->LoadFile("shDepthAlphaVS.cso", Shader::Vertex);
+    shDepthAlpha->LoadFile("shDepthAlphaPS.cso", Shader::Pixel);
+
     // Skybox
     shSkybox->LoadFile("shSkyboxVS.cso", Shader::Vertex);
     shSkybox->LoadFile("shSkyboxPS.cso", Shader::Pixel);
@@ -1677,6 +1738,7 @@ void _DirectX::Load() {
     shTextEffects->ReleaseBlobs();
     shTextSimpleSDF->ReleaseBlobs();
     shTextEffectsSDF->ReleaseBlobs();
+    shDepthAlpha->ReleaseBlobs();
 #pragma endregion 
 
 #pragma region Text
@@ -1730,8 +1792,8 @@ void _DirectX::Load() {
     mSpaceShip->LoadModel<Vertex_PNT_TgBn>("../Models/LevelModelOBJ.obj");
     mSpaceShip->EnableDefaultTexture();
 
-    mShadowTest1 = new Model("Shadow test model");
-    mShadowTest1->LoadModel<Vertex_PNT_TgBn>("../Models/TestLevel2.obj");
+    mShadowTest1 = new Model("Grass");
+    mShadowTest1->LoadModel<Vertex_PNT_TgBn>("../Models/GrassModels.obj");
     mShadowTest1->EnableDefaultTexture();
 
     // Create model instances
@@ -1751,9 +1813,9 @@ void _DirectX::Load() {
 
     // Cornell box
     mCornellBox = new ModelInstance();
-    /*mCornellBox->SetWorldMatrix(DirectX::XMMatrixScaling(1, 1, 1));
-    mCornellBox->SetShader(shTest);
-    mCornellBox->SetModel(mModel3);*/
+    mCornellBox->SetWorldMatrix(DirectX::XMMatrixScaling(.1f, .1f, .1f));
+    mCornellBox->SetShader(shSurface);
+    mCornellBox->SetModel(mShadowTest1);
 
     // Skybox
     mSkybox = new ModelInstance();
@@ -1881,6 +1943,7 @@ void _DirectX::Unload() {
     shTextEffects->DeleteShaders();
     shTextSimpleSDF->DeleteShaders();
     shTextEffectsSDF->DeleteShaders();
+    shDepthAlpha->DeleteShaders();
 
     // Release models
     mModel1->Release();

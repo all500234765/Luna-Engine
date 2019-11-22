@@ -80,14 +80,17 @@ public:
     void Render(UINT num=1, bool bBindTextures=true);
     //void Render(UINT num, bool bBindTextures=true);
 
-    template<typename VertexT=Vertex_PNT/*, TexturesT=DefaultTexturePreset*/> void  LoadModel(std::string fname);
-    template<typename VertexT=Vertex_PNT> void  ProcessNode(aiNode* node, const aiScene* scene);
-    template<typename VertexT=Vertex_PNT> Mesh* ProcessMesh(aiMesh* mesh, const aiScene* scene);
+    template<typename VertexT=Vertex_PNT/*, TexturesT=DefaultTexturePreset*/> void  LoadModel(std::string fname, bool SRV=false);
+    template<typename VertexT=Vertex_PNT> void  ProcessNode(aiNode* node, const aiScene* scene, bool SRV=false);
+    template<typename VertexT=Vertex_PNT> Mesh* ProcessMesh(aiMesh* mesh, const aiScene* scene, bool SRV=false);
 
     void Release();
 
     void DisableDefaultTexture() { bUseDefaultTexture = false; };
     void EnableDefaultTexture()  { bUseDefaultTexture = true; };
+
+    const IndexBuffer&  GetIB() const { return MeshBuffer[0]->GetIB(); }
+    const VertexBuffer& GetVB() const { return MeshBuffer[0]->GetVB(); }
 };
 
 /*template<typename VertexT>
@@ -96,7 +99,7 @@ void LoadModel(std::string fname) {
 }*/
 
 template<typename VertexT>
-void Model::LoadModel(std::string fname) {
+void Model::LoadModel(std::string fname, bool SRV) {
     if( mVertexSize == 0 ) mVertexSize = sizeof(VertexT);
 
     Assimp::Importer importer;
@@ -108,7 +111,7 @@ void Model::LoadModel(std::string fname) {
     }
 
     // Process scene
-    ProcessNode<VertexT>(scene->mRootNode, scene);
+    ProcessNode<VertexT>(scene->mRootNode, scene, SRV);
 
     // Load textures
     stbi_set_flip_vertically_on_load(1);
@@ -193,7 +196,7 @@ void Model::LoadModel(std::string fname) {
 }
 
 template<typename VertexT>
-void Model::ProcessNode(aiNode* node, const aiScene* scene) {
+void Model::ProcessNode(aiNode* node, const aiScene* scene, bool SRV) {
     // Process meshes
     for( size_t i = 0; i < node->mNumMeshes; i++ ) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
@@ -202,18 +205,22 @@ void Model::ProcessNode(aiNode* node, const aiScene* scene) {
 
     // Process children
     for( size_t i = 0; i < node->mNumChildren; i++ ) {
-        ProcessNode<VertexT>(node->mChildren[i], scene);
+        ProcessNode<VertexT>(node->mChildren[i], scene, SRV);
     }
 }
 
 template<typename VertexT>
-Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene) {
+Mesh* Model::ProcessMesh(aiMesh* inMesh, const aiScene* scene, bool SRV) {
     // Output
     Mesh* mesh = new Mesh;
 
     // Buffers
-    VertexBuffer *vb = new VertexBuffer;
-    IndexBuffer  *ib = new IndexBuffer;
+    VertexBuffer *vb = new VertexBuffer();
+    IndexBuffer  *ib = new IndexBuffer();
+
+    // 
+    vb->SetSRV(SRV);
+    ib->SetSRV(SRV);
 
     // Source data
     std::vector<int> indices;

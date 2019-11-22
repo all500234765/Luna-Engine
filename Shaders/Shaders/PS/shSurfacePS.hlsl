@@ -142,7 +142,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     const half3 _LightColor = half3(.7f, .9f, .8f);
 
     // Opacity check
-    [flatten] if( _OpacityTexture.Sample(_OpacitySampler, In.Texcoord).r < .1 ) { discard; }
+    [flatten] if( _OpacityTexture.Sample(_OpacitySampler, In.Texcoord).a < .1 ) { discard; }
 
     // Calculate normal
     half3 N;
