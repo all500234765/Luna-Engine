@@ -232,24 +232,24 @@ public:
 
         XMStoreFloat4x4(&LightWorld, mLightWorld);
 
+        // Get shadow space bounds
+        auto[vCenter, fRadius] = FrustrumBoundingSphere(args._CascadeRange[0], args._CascadeRange[mCascadeNum]);
+        mShadowBoundRadius = std::max(mShadowBoundRadius, fRadius);
+
         // Calculate view matrix
         // Eye pos + Eye Direction * Total Cascade Range * .5f
         float q = _CascadeTotalRange * .5f;
         mfloat3 ep = { p.x, p.y, p.z }; //{ LightWorld._41, LightWorld._42, LightWorld._43 }; //reinterpret_cast<const float3*>(&LightWorld._41);
         mfloat3 ed = { LightWorld._31, LightWorld._32, LightWorld._33 }; //reinterpret_cast<const float3*>(&LightWorld._31);
         mfloat3 WorldCenter = ep - 0*ed * mfloat3({ q, q, q }) + 0*ed * fFar;
-        mfloat3 Pos         = WorldCenter;
-        mfloat3 LookAt      = WorldCenter + ed * fFar;
-        mfloat3 Right       = { LightWorld._11, LightWorld._12, LightWorld._13 }; //{ 1.f, 0.f, 0.f };
+        mfloat3 Pos         = WorldCenter + ed * mShadowBoundRadius;
+        mfloat3 LookAt      = WorldCenter;
+        mfloat3 Right       = { -LightWorld._11, -LightWorld._12, -LightWorld._13 }; //{ 1.f, 0.f, 0.f };
         
         mfloat3 Up = { LightWorld._21, LightWorld._22, LightWorld._23 }; // 
-        Up = XMVector3Normalize(XMVector3Cross(ed, Right));
+        //Up = XMVector3Normalize(XMVector3Cross(ed, Right));
 
         mfloat4x4 mShadowView = XMMatrixLookAtRH(Pos, LookAt, Up);
-
-        // Get shadow space bounds
-        auto[vCenter, fRadius] = FrustrumBoundingSphere(args._CascadeRange[0], args._CascadeRange[mCascadeNum]);
-        mShadowBoundRadius = std::max(mShadowBoundRadius, fRadius);
 
         // Calculate projection matrix
         mfloat4x4 mShadowProj = XMMatrixOrthographicRH(mShadowBoundRadius,  mShadowBoundRadius, 
@@ -292,14 +292,15 @@ public:
                                                -CenterShadowSpace.m128_f32[1] };
 
                 // 
-                mfloat3 forw = { 0.f, 0.f, args._CascadeRange[CascadeIdx] };
+                mfloat3 forw = { mCascadeOffset[CascadeIdx].x, mCascadeOffset[CascadeIdx].y, 0.f };
+                // { 0.f, 0.f, args._CascadeRange[CascadeIdx] };
 
                 mCascadeTrans = XMMatrixTranslation(forw.m128_f32[0], forw.m128_f32[1], forw.m128_f32[2]);
                 //mCascadeTrans = XMMatrixTranslation(mCascadeOffset[CascadeIdx].x, 0.f, mCascadeOffset[CascadeIdx].y);
 
                 // Update the scale from shadow to cascade space
                 mCascadeScaleV[CascadeIdx] = mShadowBoundRadius / mShadowBoundRadiusC[CascadeIdx];
-                mCascadeScale = XMMatrixScaling(1+0*mCascadeScaleV[CascadeIdx], 1+0*mCascadeScaleV[CascadeIdx], 1.f);
+                mCascadeScale = XMMatrixScaling(0+1*mCascadeScaleV[CascadeIdx], 0+1*mCascadeScaleV[CascadeIdx], 1.f);
             } else {
                 // Since we don't care about flickering we can make the cascade fit tightly around the frustum
                 // Extract the bounding box
@@ -333,6 +334,7 @@ public:
         cbCSM->Bind(Shader::Geometry, 0); // CB
 
         // 
+        rtCSM->Clear(0.f, 0);
         rtCSM->Bind();
     }
 

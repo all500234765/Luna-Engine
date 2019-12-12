@@ -27,6 +27,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shBVHPrimitivesCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shDownScaleDepthCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shDownscaleDepthNormalCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
@@ -93,6 +96,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shRenderAVCCubePS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadNoFXPSMSAA.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shVoxelizePS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -102,7 +108,16 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDepthAlphaVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shRectangleOuterVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shRenderAVCCubeVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadPartVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadSimpliestVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shVoxelizeVS.hlsl">

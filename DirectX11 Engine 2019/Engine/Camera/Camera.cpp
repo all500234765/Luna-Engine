@@ -114,7 +114,7 @@ const ConstantBuffer& Camera::BuildConstantBuffer(float wparam) {
     ptr->mWorld = mWorld;
     ptr->mView  = mView;
     ptr->mProj  = mProj;
-    ptr->vPosition = {pPos.x, pPos.y, pPos.z, wparam};
+    ptr->vPosition = { pPos.x, pPos.y, pPos.z, wparam };
 
     // Unmap
     cb->Unmap();

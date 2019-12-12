@@ -8,14 +8,14 @@ AudioDeviceCreation AudioDevice::Create(const AudioDeviceConfig& config, XAUDIO2
     cfg = config; // Store config for further use
 
     // Create device
-    XAudio2Create(&gAudio, cfg.Flags, processor);
+    HRESULT hr = XAudio2Create(&gAudio, cfg.Flags, processor);
     if( !gAudio ) {
         std::cout << "XA2: Failed to inialize audio device." << std::endl;
         return DeviceCreationFailed;
     }
 
     // Create mastering voice
-    gAudio->CreateMasteringVoice(&gMasteringVoice);
+    hr = gAudio->CreateMasteringVoice(&gMasteringVoice);
     if( !gMasteringVoice ) {
         std::cout << "XA2: Failed to create mastering voice." << std::endl;
         return MasteringVoiceFailed;
@@ -37,6 +37,5 @@ void AudioDevice::SetMasterVolume(float value) {
 }
 
 float AudioDevice::GetMasterVolume() {
-    float f = 0.f; gMasteringVoice->GetVolume(&f);
-    return f;
+    float f = 0.f; gMasteringVoice->GetVolume(&f); return f;
 }

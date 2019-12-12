@@ -65,14 +65,6 @@ void Mouse::SetAt(int X, int Y) {
     SetCursorPos(pt.x, pt.y);
 }
 
-int Mouse::GetX() {
-    return this->x;
-}
-
-int Mouse::GetY() {
-    return this->y;
-}
-
 bool Mouse::IsPressed(MouseButton mkey) {
     return _mStates.KeyState(mkey) == ButtonState::PRESSED;
 }

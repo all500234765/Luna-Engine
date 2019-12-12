@@ -185,15 +185,15 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Defines.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Target_Windows\Target_Windows.vcxproj">
       <Project>{080a6368-0dbf-454e-8793-1b0261d0d227}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main2.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

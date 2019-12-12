@@ -12,6 +12,8 @@
 #include "Effects/SSLRPostProcess.h"
 #include "Effects/SSLFPostProcess.h"
 #include "Effects/CascadeShadowMapping.h"
+#include "Effects/CoverageBuffer.h"
+#include "Effects/OrderIndendentTransparency.h"
 
 // DEBUG
 // Not recommended to use
@@ -50,10 +52,12 @@ SSAOPostProcess *gSSAOPostProcess;
 SSLRPostProcess *gSSLRPostProcess;
 SSLFPostProcess *gSSLFPostProcess;
 CascadeShadowMapping<3, false> *gCascadeShadowMapping;
+CoverageBuffer *gCoverageBuffer;
 
 SSLRArgs *gSSLRArgs;
 SSAOArgs *gSSAOArgs;
 CSMArgs *gCSMArgs;
+CBuffArgs *gCBuffArgs;
 
 // Text
 Text *tTest;
@@ -183,8 +187,6 @@ float4 LightPos = { 0.f, 0.f, 0.f, 100.f };
 
 // Define Frame Function
 bool _DirectX::FrameFunction() {
-    ScopedRangeProfiler s0(__FUNCTION__);
-
     // Resize event
     Resize();
     
@@ -345,7 +347,7 @@ bool _DirectX::FrameFunction() {
     }
 #pragma endregion
 
-    if( false )
+    //if( false )
     {
         ScopedRangeProfiler s1(L"Cascade Shadow Mapping");
 
@@ -383,6 +385,10 @@ bool _DirectX::FrameFunction() {
         // Done rendering to GBuffer
         // Resolve MSAA
         rtGBuffer->MSAAResolve();
+    }
+
+    {
+        gCoverageBuffer->Prepare(rtGBuffer, *gCBuffArgs);
     }
 
 #pragma region Occlusion query
@@ -710,10 +716,15 @@ bool _DirectX::FrameFunction() {
 
         // 3 is best number here
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
-            //bZBuffer_Editor->GetDepth()->pSRV,
+            //rtZBuffer_Editor->GetDepth()->pSRV,
             //gCascadeShadowMapping->getSRV(),
-            _ColorD->pSRV, 
+            rtDepth->GetDepthBuffer()->pSRV,
+            rtGBuffer->GetBufferSRV<0>(),
+            rtGBuffer->GetBufferSRV<1>(),
+            rtGBuffer->GetBufferSRV<2>(),
+            _ColorD->pSRV,
             rtGBuffer->GetBuffer<1>()->pSRV, 
+            gSSAOPostProcess->GetSSAOSRV(),
             gSSAOPostProcess->GetSSAOSRV()
         };
         
@@ -734,15 +745,23 @@ bool _DirectX::FrameFunction() {
         float w2   = width * 2.f;
         float h    = height * .5f + height * (size - 1.f) - .1f;
 
+        float _sx  = width / cfg.Width;
+        float _sy  = height / cfg.Height;
+
         // 
         for( size_t i = 0; i < size; i++ ) {
             if( pDebugTextures[i] == nullptr ) { continue; }
 
+            // TODO: 
+            //uint32_t sw = ; // IRenderTarget::Current()->GetWidth();
+
             // 
-            //DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(.67f - width * i * 2.f, .67f, 0.f);
-            //DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(w2 * (i - w2) - left, h, 0.);
-            DirectX::XMMATRIX mOffset = DirectX::XMMatrixTranslation(w2 * i - width * size * .75f, h, 0.f);
-            c2DScreen->SetWorldMatrix(DirectX::XMMatrixScaling(width, height, 1.f) * mOffset);
+            mfloat4x4 mScale1  = DirectX::XMMatrixScaling(width, height, 1.f);
+            mfloat4x4 mOffset0 = DirectX::XMMatrixTranslation(size * w2 * (i - w2) - size * left, h * (1.1f + size), 0.);
+            mfloat4x4 mOffset1 = DirectX::XMMatrixTranslation(width, -height, 0.);
+            mfloat4x4 mOffset2 = DirectX::XMMatrixTranslation((float)i * 2.f - (float)size, (float)size + 1.f, 0.);
+
+            c2DScreen->SetWorldMatrix(mOffset2 * (mScale1 * mOffset1));
             c2DScreen->BuildConstantBuffer();
             c2DScreen->BindBuffer(Shader::Vertex, 0);
 
@@ -1043,6 +1062,12 @@ void _DirectX::ComposeUI() {
         }
     }
 
+    // C-Buffer
+    static int gCBuffScale = 2;
+
+    ImGui::Text("Coverage Buffer Settings");
+    ImGui::SliderInt("rcp Scaling", &gCBuffScale, 0, 3);
+
     // CSM
     gCSMArgs->_Antiflicker = true;
     gCSMArgs->_CascadeNum  = 3;
@@ -1051,7 +1076,7 @@ void _DirectX::ComposeUI() {
     gCSMArgs->_MSAALevel   = 8;
 
     ImGui::Text("CSM Settings");
-    ImGui::DragFloat3("Range", gCSMArgs->_CascadeRange, 1.f, 0.f, 100.f);
+    ImGui::SliderFloat3("Range", gCSMArgs->_CascadeRange, 0.f, 100.f);
 
     ImGui::Text("Render Flags");
     ImGui::Checkbox("Render Diffuse"       , &gRenderDiffuse);
@@ -1156,6 +1181,10 @@ void _DirectX::ComposeUI() {
     gSSLRArgs->_ReflScale          = gReflScale;
     gSSLRArgs->_DepthBias          = gDepthBias;
 
+    gCBuffArgs->Scaling = gCBuffScale;
+    gCBuffArgs->_CameraFar  = fFar;
+    gCBuffArgs->_CameraNear = fNear;
+
     // 
     ImGui::End();
     ImGui::Render();
@@ -1191,6 +1220,7 @@ void _DirectX::Resize() {
     gHDRPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
     gSSAOPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
     gSSLRPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
+    gCoverageBuffer->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
 
     // Resize text port
     gTextController->SetSize(static_cast<float>(cfg.CurrentWidth), static_cast<float>(cfg.CurrentHeight));
@@ -1232,7 +1262,9 @@ void _DirectX::Resize() {
     fAspect = cfg2.fAspect;
 
     cfg2 = c2DScreen->GetParams();
-    cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
+    cfg2.ViewW = cfg.CurrentWidth;
+    cfg2.ViewH = cfg.CurrentHeight;
+    //cfg2.fAspect = float(cfg.CurrentWidth) / float(cfg.CurrentHeight);
     c2DScreen->BuildProj();
 
     // Set up the viewport
@@ -1255,10 +1287,13 @@ void _DirectX::Load() {
     gSSAOPostProcess = new SSAOPostProcess;
     gSSLRPostProcess = new SSLRPostProcess;
     gCascadeShadowMapping = new CascadeShadowMapping;
+    gCoverageBuffer = new CoverageBuffer;
 
-    gSSLRArgs = new SSLRArgs;
-    gSSAOArgs = new SSAOArgs;
-    gCSMArgs  = new CSMArgs;
+    gSSLRArgs  = new SSLRArgs;
+    gSSAOArgs  = new SSAOArgs;
+    gCSMArgs   = new CSMArgs;
+    gCBuffArgs = new CBuffArgs;
+
     gCSMArgs->_CascadeRange[0] = .1f;
     gCSMArgs->_CascadeRange[1] = 10.f;
     gCSMArgs->_CascadeRange[2] = 25.f;
@@ -1560,7 +1595,7 @@ void _DirectX::Load() {
     DirectX::XMMATRIX mProjTmp = cPlayer->GetProjMatrix();
     float fHalfTanFov = tanf(DirectX::XMConvertToRadians(cfg2.FOV * .5f)); // dtan(fov * .5)
     dgData->_TanAspect  = { fHalfTanFov * fAspect, -fHalfTanFov };
-    dgData->_Texel      = { 1.f / cfg.CurrentWidth, 1.f / cfg.CurrentHeight};
+    dgData->_Texel      = { 1.f / cfg.CurrentWidth, 1.f / cfg.CurrentHeight };
     dgData->_Far        = cfg2.fFar;
     dgData->PADDING0    = 0.f;
     dgData->_ProjValues = { 1.f / mProjTmp.r[0].m128_f32[0], 1.f / mProjTmp.r[1].m128_f32[1], mProjTmp.r[3].m128_f32[2], -mProjTmp.r[2].m128_f32[2] };
@@ -1581,14 +1616,7 @@ void _DirectX::Load() {
     cbDeferredLightInst->Unmap();
 
     // 
-    cfg2.FOV = 90.f;
-    cfg2.fNear = .1f;
-    cfg2.fFar = 1.f;
-    c2DScreen->SetParams(cfg2);
-    c2DScreen->BuildProj();
-    c2DScreen->BuildView();
-
-    // 
+    cfg2.FOV     = 90.f;
     cfg2.fNear   = .1f;
     cfg2.fFar    = 40000.f;
     cfg2.FOV     = 90.f;
@@ -1596,6 +1624,16 @@ void _DirectX::Load() {
     cLight->SetParams(cfg2);
     cLight->BuildProj();
     cLight->BuildView();
+
+    // 
+    cfg2.fNear = .1f;
+    cfg2.fFar  = 1.f;
+    cfg2.Ortho = true;
+    cfg2.ViewW = cfg.CurrentWidth;
+    cfg2.ViewH = cfg.CurrentHeight;
+    c2DScreen->SetParams(cfg2);
+    c2DScreen->BuildProj();
+    c2DScreen->BuildView();
 #pragma endregion
 
 #pragma region Load Shaders
@@ -1793,7 +1831,7 @@ void _DirectX::Load() {
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Grass");
-    mShadowTest1->LoadModel<Vertex_PNT_TgBn>("../Models/GrassModels.obj");
+    mShadowTest1->LoadModel<Vertex_PNT_TgBn>("../Models/GrassModels0.obj");
     mShadowTest1->EnableDefaultTexture();
 
     // Create model instances
@@ -1838,7 +1876,7 @@ void _DirectX::Load() {
                                 //DirectX::XMMatrixScaling(400, 400, 400) * 
                                 //DirectX::XMMatrixScaling(50, 50, 50) * 
                                 //DirectX::XMMatrixScaling(8, 8, 8) *
-                                //DirectX::XMMatrixTranslation(-.5f, -.5f, 0.f) * 
+                                DirectX::XMMatrixTranslation(-.5f, -.5f, 0.f) * 
                                 DirectX::XMMatrixIdentity()
     );
     //miSpaceShip->SetWorldMatrix(DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(180.f)) *

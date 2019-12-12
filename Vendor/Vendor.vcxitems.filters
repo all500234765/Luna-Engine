@@ -118,6 +118,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshP.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\scoped.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\SIMD\avx_mathfun.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Vendor\Assimp\color4.inl" />

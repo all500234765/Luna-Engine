@@ -136,6 +136,13 @@ void Shader::Remove(ShaderType type) {
 void Shader::Reload(std::string fname, ShaderType type, D3D11_SO_DECLARATION_ENTRY* pSODecl, UINT SODeclNum, UINT* Strides, UINT NumStrides, UINT RStream) {
     Remove(type);
     LoadFile(fname, type, pSODecl, SODeclNum, Strides, NumStrides, RStream);
+
+    // Release blob
+    /*int index = (int)log2((int)type);
+    if( bShader[index] ) {
+        bShader[index]->Release();
+        bShader[index] = 0;
+    }*/
 }
 
 void Shader::ReleaseBlobs() {

@@ -15,7 +15,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\CascadeShadowMapping.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Effects\CoverageBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\HDRPostProcess.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Effects\OrderIndendentTransparency.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSAOPostProcess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSLFPostProcess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSLRPostProcess.h" />
@@ -48,10 +50,12 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Profiler\RangeProfiler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RenderTarget\RenderTarget.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\RendererFlags.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Singleton.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\BlendState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\DepthStencilState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\PipelineState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\RasterState.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\TopologyState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Atlas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CustomTexture.h" />
@@ -71,6 +75,10 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Enums.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\HighLevel.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utlities.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Other\Console.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Other\FileSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedSemaphore.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedThreadSync.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.cpp" />
@@ -113,6 +121,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Vertices.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Other\FileSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utilities.inl" />

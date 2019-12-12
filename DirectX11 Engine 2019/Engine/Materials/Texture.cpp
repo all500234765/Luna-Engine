@@ -3,9 +3,10 @@
 Texture::Texture() {
 }
 
-Texture::Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV, bool Depth): w(Width), h(Height) {
+Texture::Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV, bool Depth, bool CPURead): w(Width), h(Height) {
     channels    = Format2Ch(format);
     bDepth      = Depth;
+    bCPURead    = CPURead;
     UINT bpp    = Format2BPP(format);
     UINT mpitch = UINT((uint64_t(w) * bpp + 7) / 8);
     Create(nullptr, format, bpp, 0, mpitch, UAV);
@@ -399,10 +400,10 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch, 
     pDesc.Format             = bDepth ? formatTex : format;
     pDesc.SampleDesc.Count   = 1;
     pDesc.SampleDesc.Quality = 0;
-    pDesc.Usage              = D3D11_USAGE_DEFAULT;
-    pDesc.BindFlags          = (bGenMips ? D3D11_BIND_RENDER_TARGET : 0) | D3D11_BIND_SHADER_RESOURCE | (UAV ? D3D11_BIND_UNORDERED_ACCESS : 0);
-    pDesc.CPUAccessFlags     = 0;
-    pDesc.MiscFlags          = bGenMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
+    pDesc.Usage              = bCPURead ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
+    pDesc.BindFlags          = bCPURead ? 0 : ((bGenMips ? D3D11_BIND_RENDER_TARGET : 0) | D3D11_BIND_SHADER_RESOURCE | (UAV ? D3D11_BIND_UNORDERED_ACCESS : 0));
+    pDesc.CPUAccessFlags     = bCPURead ? D3D11_CPU_ACCESS_READ : 0;
+    pDesc.MiscFlags          = bCPURead ? 0 : (bGenMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0);
     
     // Allocate memory for empty texture
     if( !data ) {
@@ -422,7 +423,7 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch, 
     }
 
     // Create UAV
-    if( UAV ) {
+    if( UAV && !bCPURead ) {
         D3D11_UNORDERED_ACCESS_VIEW_DESC pUAVDesc = {};
         pUAVDesc.ViewDimension       = D3D11_UAV_DIMENSION_TEXTURE2D;
         pUAVDesc.Format              = pDesc.Format;
@@ -438,22 +439,24 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch, 
     }
 
     // Create SRV
-    D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
-    ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-    pSRVDesc.Format                    = bDepth ? formatSRV : format;
-    pSRVDesc.Texture2D.MipLevels       = -1;
-    pSRVDesc.Texture2D.MostDetailedMip = 0;
-    pSRVDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
-    
-    res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
-    if( FAILED(res) ) {
-        std::cout << "Failed to create shader resource view!" << std::endl;
-        return;
+    if( !bCPURead ) {
+        D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
+        ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+        pSRVDesc.Format                    = bDepth ? formatSRV : format;
+        pSRVDesc.Texture2D.MipLevels       = -1;
+        pSRVDesc.Texture2D.MostDetailedMip = 0;
+        pSRVDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        
+        res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
+        if( FAILED(res) ) {
+            std::cout << "Failed to create shader resource view!" << std::endl;
+            return;
+        }
     }
 
     // Put initial sub resource data to texture if we
     // Auto-Generating mip maps
-    if( bGenMips ) {
+    if( bGenMips && !bCPURead ) {
         ID3D11Texture2D *pStaging = 0;
         CD3D11_TEXTURE2D_DESC pStagingDesc(format, w, h, 1, 1, 0, D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ, 1, 0, 0);
 
@@ -540,51 +543,54 @@ void Texture::Resize(UINT Width, UINT Height, bool Save) {
         gDirectX->gDevice->CreateTexture2D(&pDesc, nullptr, &pTexture);
 
         // Re-create SRV
-        D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
-        ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-        pSRVDesc.Format                    = bDepth ? formatSRV : pDesc.Format;
-        pSRVDesc.Texture2D.MipLevels       = -1;
-        pSRVDesc.Texture2D.MostDetailedMip = 0;
-        pSRVDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        if( pSRV ) {
+            pSRV->Release();
 
-        HRESULT res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
-        if( FAILED(res) ) {
-            std::cout << "Failed to create shader resource view!" << std::endl;
-            return;
-        }
+            D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc;
+            ZeroMemory(&pSRVDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+            pSRVDesc.Format                    = bDepth ? formatSRV : pDesc.Format;
+            pSRVDesc.Texture2D.MipLevels       = -1;
+            pSRVDesc.Texture2D.MostDetailedMip = 0;
+            pSRVDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
 
-        // Restore old data
-        if( !bGenMips ) {
-            gDirectX->gContext->CopyResource(pTexture, pTextureTemp);
-        } else {
-            ID3D11Texture2D *pStaging = 0;
-            CD3D11_TEXTURE2D_DESC pStagingDesc(pDesc.Format, w, h, 1, 1, 0, D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ, 1, 0, 0);
-
-            res = gDirectX->gDevice->CreateTexture2D(&pStagingDesc, nullptr, &pStaging);
+            HRESULT res = gDirectX->gDevice->CreateShaderResourceView(pTexture, &pSRVDesc, &pSRV);
             if( FAILED(res) ) {
-                std::cout << "Failed to create staging texture!" << std::endl;
+                std::cout << "Failed to create shader resource view!" << std::endl;
                 return;
             }
 
-            // 
-            gDirectX->gContext->CopyResource(pStaging, pTextureTemp);
+            // Restore old data
+            if( !bGenMips ) {
+                gDirectX->gContext->CopyResource(pTexture, pTextureTemp);
+            } else {
+                ID3D11Texture2D *pStaging = 0;
+                CD3D11_TEXTURE2D_DESC pStagingDesc(pDesc.Format, w, h, 1, 1, 0, D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ, 1, 0, 0);
 
-            // 
-            gDirectX->gContext->CopyResource(pStaging, pTexture);
-            //gDirectX->gContext->CopySubresourceRegion(pTexture, 0, 0, 0, 0, pStaging, 0, nullptr);
-            pStaging->Release();
+                res = gDirectX->gDevice->CreateTexture2D(&pStagingDesc, nullptr, &pStaging);
+                if( FAILED(res) ) {
+                    std::cout << "Failed to create staging texture!" << std::endl;
+                    return;
+                }
 
-            // 
-            //gDirectX->gContext->UpdateSubresource(pTexture, 0, nullptr, data, pData.SysMemPitch, 0);
+                // 
+                gDirectX->gContext->CopyResource(pStaging, pTextureTemp);
 
-            // Generate mips for texture
-            gDirectX->gContext->GenerateMips(pSRV);
+                // 
+                gDirectX->gContext->CopyResource(pStaging, pTexture);
+                //gDirectX->gContext->CopySubresourceRegion(pTexture, 0, 0, 0, 0, pStaging, 0, nullptr);
+                pStaging->Release();
+
+                // 
+                //gDirectX->gContext->UpdateSubresource(pTexture, 0, nullptr, data, pData.SysMemPitch, 0);
+
+                // Generate mips for texture
+                gDirectX->gContext->GenerateMips(pSRV);
+            }
+
+            // Delete temp texture
+            pTextureTemp->Release();
         }
-
-        // Delete temp texture
-        pTextureTemp->Release();
     }
-
     if( pUAV ) {
         D3D11_UNORDERED_ACCESS_VIEW_DESC pUAVDesc = {};
         pUAVDesc.ViewDimension      = D3D11_UAV_DIMENSION_TEXTURE2D;

@@ -1,6 +1,14 @@
 #pragma once
 
-#include "Engine Includes/MainInclude.h"
+#include "Engine/RenderTarget/RenderTarget.h"
+#include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/DirectX/StructuredBuffer.h"
+#include "Engine/DirectX/Shader.h"
+#include "Engine/Materials/Texture.h"
+#include "Engine/Utility/Utils.h"
+#include "Engine/Profiler/ScopedRangeProfiler.h"
+#include "Engine Includes/Types.h"
+#include <iostream>
 
 struct SSAOArgs {
     mfloat4x4 _mView;   // View matrix

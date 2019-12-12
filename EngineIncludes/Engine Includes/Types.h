@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 
 typedef float               float1;
 typedef DirectX::XMFLOAT2   float2;

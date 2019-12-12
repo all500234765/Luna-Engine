@@ -2,7 +2,9 @@
 
 #include "Engine/Extensions/Safe.h"
 #include "Engine/Utility/Timer.h"
+#include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine Includes/Core.h"
+#include "Engine/Materials/Texture.h"
 
 //#include <random>
 
@@ -108,6 +110,103 @@ namespace LunaEngine {
         //float Gen11();
     }
 
+    namespace Math {
+#include "Engine Includes/Types.h"
+
+#ifndef PI
+        static const float PI = 3.14159f;
+#endif
+
+#ifndef TAU
+        static const float TAU = 2.f * PI;
+#endif
+
+
+
+        template<typename T>
+        T sqr(T a);
+
+        template<typename T>
+        T degtorad(T deg);
+
+        template<typename T>
+        T radtodeg(T rad);
+
+        float point_distance(float2 from, float2 to);
+        float point_distance(float3 from, float3 to);
+        float point_distance(float4 from, float4 to);
+        float point_distance(float2 to);
+        float point_distance(float3 to);
+        float point_distance(float4 to);
+
+        // In deg
+        float point_direction(float2 from, float2 to);
+        float point_direction(float2 to);
+
+        // In rad
+        float point_direction_r(float2 from, float2 to);
+        float point_direction_r(float2 to);
+
+        // In deg
+        //float2 point_direction(float3 from, float3 to);
+
+        float lenghtdir_x(float len, float ang);
+        float lenghtdir_y(float len, float ang);
+
+        float dot(float2 a);
+        float dot(float3 a);
+        float dot(float4 a);
+        float dot(float2 a, float2 b);
+        float dot(float3 a, float3 b);
+        float dot(float4 a, float4 b);
+
+        template<typename T>
+        T mad(T a, T b, T c);
+
+        template<typename T>
+        T lerp(T from, T to, float coef);
+
+        float3 cross(float3 a, float3 b);
+
+#ifndef min
+        template<typename T>
+        T min(T a, T b);
+#endif
+
+#ifndef max
+        template<typename T>
+        T max(T a, T b);
+#endif
+
+        template<typename T>
+        T clamp(T v, T left, T right);
+        float3 clamp(float3 v, float left, float right);
+        float4 clamp(float4 v, float left, float right);
+
+        // Colors
+        //float3 rgb2hsv(float3 rgb);
+        //float3 hsv2hsv(float3 hsv);
+        //float3 col_dim(float3 rgb, float value);
+        //float col2float(float3 rgb, float a=1.f);
+        //float col2float(float4 rgba);
+        float3 saturate(float3 rgb);
+        float4 saturate(float4 rgba);
+        float4 rgb2rgba(float3 rgb, float a=1.f);
+        float3 normrgb(float3 rgb);
+        float4 normrgba(float4 rgba);
+        //float3 srgb(float3 rgb);
+        //float4 srgba(float4 rgba);
+
+        // Quaternions
+
+
+        // Matricies
+
+
+        // 
+
+    }
+
 #pragma region Primitives
     namespace Draw {
         typedef float               float1;
@@ -118,7 +217,11 @@ namespace LunaEngine {
         typedef DirectX::XMFLOAT4X4 float4x4;
         typedef DirectX::XMMATRIX   mfloat4x4;
 
-        enum PrimitiveType;
+        enum PrimitiveType {
+            Noone, _Line, _Rectangle, _Circle, _Ellipse, _Triangle,
+            _CircleOuter, _TriangleOuter, _RectangleOuter
+        };
+
 
         struct PrimitiveColorBuffer;
 
@@ -128,11 +231,14 @@ namespace LunaEngine {
 
         struct Config;
 
-        static Shader               *shCircleOuter;
         static Shader               *shLine;
         static Shader               *shCircle;
         static Shader               *shTriangle;
         static Shader               *shRectangle;
+        static Shader               *shCircleOuter;
+        static Shader               *shRectangleOuter;
+        static Shader               *shTextureSimple;
+        static Shader               *shTextureSimplePart;
         static PrimitiveType         gLastPrimitive = (PrimitiveType)0;
         static PrimitiveColorBuffer *gPrimColorBuff;
         static ConstantBuffer       *gPrimitiveColorBuff;
@@ -145,7 +251,7 @@ namespace LunaEngine {
         void SetProj (mfloat4x4 mProj );
         void SetWorld(mfloat4x4 mWorld);
 
-        void UpdateMatrixBuffer();
+        void UpdateMatrixBuffer(mfloat4 vec={});
 
         void BindMatrixBuffer();
 
@@ -156,7 +262,7 @@ namespace LunaEngine {
         void Init(const Config& cfg);
 
         void Release();
-
+        
         inline float  GetAlpha();
         inline float4 GetColor();
 
@@ -171,6 +277,8 @@ namespace LunaEngine {
         void CircleOuter(float x, float y, float r, UINT precision=32);
 
 
+        void TextureRect(Texture* tex, float x, float y, float xscale=1.f, float yscale=1.f, float ang=0.f);
+        void TextureStreched(Texture* tex, float x, float y, float xscale=1.f, float yscale=1.f, float ang=0.f);
     }
 #pragma endregion
 

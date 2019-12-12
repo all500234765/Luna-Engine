@@ -50,6 +50,7 @@ class AudioDevice {
 private:
     bool bCreated = false;
     AudioDeviceConfig cfg;
+
 public:
     IXAudio2 *gAudio = 0;
     IXAudio2MasteringVoice *gMasteringVoice = 0;
