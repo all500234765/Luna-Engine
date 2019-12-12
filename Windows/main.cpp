@@ -53,6 +53,7 @@ SSLRPostProcess *gSSLRPostProcess;
 SSLFPostProcess *gSSLFPostProcess;
 CascadeShadowMapping<3, false> *gCascadeShadowMapping;
 CoverageBuffer *gCoverageBuffer;
+OrderIndendentTransparency *gOrderIndendentTransparency;
 
 SSLRArgs *gSSLRArgs;
 SSAOArgs *gSSAOArgs;
@@ -195,6 +196,8 @@ bool _DirectX::FrameFunction() {
                            void(*PreRender)(DirectX::XMMATRIX m)=[](DirectX::XMMATRIX m)->void{},
                            void(*PostBind)(uint32_t flags)=[](uint32_t flags)->void{}) {
         ScopedRangeProfiler s0("RenderScene");
+
+        cam->Bind();
 
         // 
         auto DrawBall = [&](Camera* camera, const pFloat3& pos, float radius) {
@@ -389,6 +392,18 @@ bool _DirectX::FrameFunction() {
 
     {
         gCoverageBuffer->Prepare(rtGBuffer, *gCBuffArgs);
+    }
+
+    {
+        gOrderIndendentTransparency->Begin(rtGBuffer);
+
+        RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::DontBindShaders, nullptr, [](mfloat4x4 world) {
+            Camera::Current()->SetWorldMatrix(world);
+            Camera::Current()->BuildConstantBuffer();
+            Camera::Current()->BindBuffer(Shader::Vertex, 0);
+        });
+
+        gOrderIndendentTransparency->End();
     }
 
 #pragma region Occlusion query
@@ -723,9 +738,9 @@ bool _DirectX::FrameFunction() {
             rtGBuffer->GetBufferSRV<1>(),
             rtGBuffer->GetBufferSRV<2>(),
             _ColorD->pSRV,
-            rtGBuffer->GetBuffer<1>()->pSRV, 
             gSSAOPostProcess->GetSSAOSRV(),
-            gSSAOPostProcess->GetSSAOSRV()
+            gOrderIndendentTransparency->GetSRV()
+
         };
         
         shGUI->Bind();
@@ -1221,6 +1236,7 @@ void _DirectX::Resize() {
     gSSAOPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
     gSSLRPostProcess->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
     gCoverageBuffer->Resize((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
+    EffectBase::ResizeGlobal((UINT)cfg.CurrentWidth, (UINT)cfg.CurrentHeight);
 
     // Resize text port
     gTextController->SetSize(static_cast<float>(cfg.CurrentWidth), static_cast<float>(cfg.CurrentHeight));
@@ -1288,6 +1304,7 @@ void _DirectX::Load() {
     gSSLRPostProcess = new SSLRPostProcess;
     gCascadeShadowMapping = new CascadeShadowMapping;
     gCoverageBuffer = new CoverageBuffer;
+    gOrderIndendentTransparency = new OrderIndendentTransparency;
 
     gSSLRArgs  = new SSLRArgs;
     gSSAOArgs  = new SSAOArgs;

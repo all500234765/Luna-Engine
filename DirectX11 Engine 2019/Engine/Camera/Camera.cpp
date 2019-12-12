@@ -13,9 +13,18 @@ Camera::Camera(DirectX::XMFLOAT3 p, DirectX::XMFLOAT3 r) : pPos(p), pRot(r) {
 }
 
 void Camera::Init() {
-    cb = new ConstantBuffer();
-    cb->CreateDefault(sizeof(BufferMatrix));
-    cb->SetName("Matrix Constant Buffer");
+    if( !cb || 
+#ifdef _WIN64
+        (uint64_t)cb == 0xCCCCCCCCCCCCCCCC 
+#else
+       // TODO: Check
+        (uint64_t)cb == 0xCCCCCCCC
+#endif
+       ) {
+        cb = new ConstantBuffer();
+        cb->CreateDefault(sizeof(BufferMatrix));
+        cb->SetName("[CB]: Camera Matrix");
+    }
 }
 
 void Camera::BuildView() {

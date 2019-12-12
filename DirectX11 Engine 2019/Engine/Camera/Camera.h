@@ -2,6 +2,7 @@
 
 #include <DirectXMath.h>
 #include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/States/PipelineState.h"
 
 struct CameraConfig {
     float FOV /* X */, fAspect, fNear, fFar;
@@ -9,7 +10,7 @@ struct CameraConfig {
     float ViewW, ViewH;
 };
 
-class Camera: public DirectXChild {
+class Camera: public PipelineState<Camera> {
 private:
     DirectX::XMFLOAT3 pPos, pRot;
     DirectX::XMMATRIX mProj, mView, mWorld;
@@ -30,7 +31,10 @@ public:
     Camera(DirectX::XMFLOAT3 p);
     Camera(DirectX::XMFLOAT3 p, DirectX::XMFLOAT3 r);
 
-    void Init();
+    void Init(); // Internal
+
+    // 
+    inline void Bind() { gState = this; };
 
     inline void SetParams(CameraConfig config) { cfg = config; };
     inline CameraConfig GetParams() const { return cfg; };

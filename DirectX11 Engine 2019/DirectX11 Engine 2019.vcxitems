@@ -82,6 +82,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedThreadSync.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Effects\EffectBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\ConstantBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\DirectX.cpp" />

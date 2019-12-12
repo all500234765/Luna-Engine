@@ -2,20 +2,7 @@
 
 struct PS {
     float4 Position : SV_Position;
-};
-
-float4 UnpackColor(uint color) {
-    return float4(
-        (color >> 24) & 0xFF, 
-        (color >> 16) & 0xFF, 
-        (color >>  8) & 0xFF, 
-         color        & 0xFF
-    );
-}
-
-struct NodeItem {
-    uint uColor;
-    float fDepth;
+    float2 Texcoord : TEXCOORD0;
 };
 
 void InsertionSortMSAA(uint startIndex, uint sample, inout NodeItem sorted[MAX_FRAGMENTS], out int counter) {

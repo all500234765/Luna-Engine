@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Engine Includes/Types.h"
-
 #include "Engine/Utility/Utils.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/Extensions/Safe.h"
+
+#include "Engine Includes/Types.h"
 
 class CallbackResize {
 public:
