@@ -201,7 +201,8 @@ public:
         // Reset counter and bind render target with depth buffer
         ID3D11UnorderedAccessView *UAVs[2] = { sbLinkedLists.GetUAV(), rwListHead.GetUAV() };
         ID3D11RenderTargetView *rtv = RB->GetBufferRTV<0>();
-        gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtv, RB->GetDSV(), 1, 2, UAVs, 0);
+        //std::cout << RB->GetDSV<0, false>() << "\n";
+        gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtv, RB->GetDSV<0, true>(), 1, 2, UAVs, 0);
 
         // Bind shader
         shOITCreateLinkedLists->Bind();

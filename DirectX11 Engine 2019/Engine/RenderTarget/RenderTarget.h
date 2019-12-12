@@ -864,7 +864,7 @@ public:
     template<UINT index=0, bool noMSAA=true>
     inline ID3D11Resource* GetDepthBufferTexture() const {
         if constexpr( !DepthBuffer ) return nullptr;
-        return Choose(mRenderTargets[index + 2 * noMSAA * mMSAA]->pTexture);
+        return Choose(mRenderTargets[index + 1 * noMSAA * mMSAA]->pTexture);
     }
     
     template<UINT index=0, bool noMSAA=true>
@@ -876,7 +876,7 @@ public:
     template<UINT index=0, bool noMSAA=true>
     inline ID3D11DepthStencilView* GetDSV() const {
         if constexpr( !DepthBuffer ) return nullptr;
-        return std::get<ID3D11DepthStencilView*>(mRenderTargets[index + 2 * noMSAA * mMSAA]->pView);
+        return std::get<ID3D11DepthStencilView*>(mRenderTargets[index + 1 * noMSAA * mMSAA]->pView);
     };
     
     // Bind resource
