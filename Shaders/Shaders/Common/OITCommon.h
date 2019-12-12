@@ -3,9 +3,9 @@
 
 
 #ifndef __cplusplus
-    #define CounterStructuredBuffer StructuredBuffer
+    #define CounterStructuredBuffer RWStructuredBuffer
     #define UAV(x) : register(u[x])
-    #define RWTexture_(x) RWTexture<x>
+    #define RWTexture_(x) RWTexture2D<x> 
 #else
     #define RWTexture_(x) Texture
     #define UAV(x)

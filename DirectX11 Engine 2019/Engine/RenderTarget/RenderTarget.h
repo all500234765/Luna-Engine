@@ -849,6 +849,12 @@ public:
         return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pSRV;
     }
 
+    template<UINT index, bool noMSAA = true>
+    inline ID3D11RenderTargetView* GetBufferRTV() const {
+        if constexpr( !BufferNum ) return nullptr;
+        return std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pView);
+    }
+
     template<UINT index=0, bool noMSAA=true>
     inline implRenderTarget* GetDepthBuffer() const {
         if constexpr( !DepthBuffer ) return nullptr;
@@ -867,6 +873,12 @@ public:
         return Choose(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pTexture);
     }
 
+    template<UINT index=0, bool noMSAA=true>
+    inline ID3D11DepthStencilView* GetDSV() const {
+        if constexpr( !DepthBuffer ) return nullptr;
+        return std::get<ID3D11DepthStencilView*>(mRenderTargets[index + 2 * noMSAA * mMSAA]->pView);
+    };
+    
     // Bind resource
     void Bind(implRenderTarget* rt, Shader::ShaderType type, UINT slot=0, bool UAV=false) const {
         switch( type ) {

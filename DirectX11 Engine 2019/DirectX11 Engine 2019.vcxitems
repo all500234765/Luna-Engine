@@ -16,6 +16,7 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\CascadeShadowMapping.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\CoverageBuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Effects\EffectBase.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\HDRPostProcess.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\OrderIndendentTransparency.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Effects\SSAOPostProcess.h" />

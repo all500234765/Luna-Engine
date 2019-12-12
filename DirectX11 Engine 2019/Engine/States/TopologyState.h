@@ -11,6 +11,8 @@ private:
     Topology mTopology;
 
 public:
+    void Create(Topology t) { mTopology = t; }
+
     void Bind() { gDirectX->gContext->IASetPrimitiveTopology(mTopology); }
     void Bind(Topology topology) { gDirectX->gContext->IASetPrimitiveTopology(topology); mTopology = topology; }
 
