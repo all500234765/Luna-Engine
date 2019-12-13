@@ -1,3 +1,4 @@
+#define NoRW
 #include "../Common/OITCommon.h"
 
 struct PS {
@@ -39,9 +40,7 @@ void InsertionSortMSAA(uint startIndex, uint sample, inout NodeItem sorted[MAX_F
 }
 
 float4 main(PS In, uint sample : SV_SAMPLEINDEX) : SV_TARGET0 {
-	uint2 upos = uint2(In.Position.xy);
-	uint index = rwListHead[upos];
-	clip(index == 0xFFFFFFFF ? -1.f : 1.f);
+	uint index = rwListHead.Load(uint3(In.Position.xy, 0));
 	
 	float3 color = 0.f;
 	float alpha = 1.f;

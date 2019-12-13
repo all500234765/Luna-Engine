@@ -69,8 +69,9 @@ public:
 
         cam2D.Init();
         cam2D.SetParams(cam_cfg);
-        cam2D.BuildProj();
+        //cam2D.BuildProj();
         //cam2D.BuildView();
+        cam2D.SetProjMatrix(DirectX::XMMatrixIdentity());
         cam2D.SetViewMatrix(DirectX::XMMatrixIdentity());
         cam2D.SetWorldMatrix(DirectX::XMMatrixIdentity());
         cam2D.BuildConstantBuffer();
@@ -84,13 +85,13 @@ public:
         D3D11_RASTERIZER_DESC rsDesc{};
         rsDesc.CullMode = D3D11_CULL_NONE;
         rsDesc.FillMode = D3D11_FILL_SOLID;
-        rsDesc.DepthBias = -0;
+        rsDesc.DepthBias = 0;
         rsDesc.DepthBiasClamp = 0.f;
         rsDesc.SlopeScaledDepthBias = 0.f;
         rsDesc.DepthClipEnable = true;
-        rsDesc.ScissorEnable = true;
+        rsDesc.ScissorEnable = false;
         rsDesc.MultisampleEnable = true;
-        rsDesc.AntialiasedLineEnable = true;
+        rsDesc.AntialiasedLineEnable = false;
         rsDesc.FrontCounterClockwise = false;
         
         rsNoCulling->Create(rsDesc);
@@ -99,7 +100,7 @@ public:
         dssNoWrite = new DepthStencilState();
         D3D11_DEPTH_STENCIL_DESC dssDesc {};
         dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-        dssDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+        dssDesc.DepthFunc = D3D11_COMPARISON_GREATER;
         dssDesc.StencilEnable = false;
         dssDesc.DepthEnable = true;
 
@@ -110,10 +111,16 @@ public:
         D3D11_BLEND_DESC bsDesc;
         bsDesc.IndependentBlendEnable = false;
         bsDesc.AlphaToCoverageEnable  = false;
-        bsDesc.RenderTarget[0].BlendEnable = false;
+        bsDesc.RenderTarget[0].BlendEnable = true;
+        bsDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+        bsDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        bsDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        bsDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        bsDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+        bsDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
         bsDesc.RenderTarget[0].RenderTargetWriteMask = 0;
 
-        bsMaskZero->Create(bsDesc, { 0.f, 0.f, 0.f, 0.f });
+        bsMaskZero->Create(bsDesc, { 1.f, 1.f, 1.f, 1.f });
     }
 
     ~OrderIndendentTransparency() {
@@ -140,15 +147,16 @@ public:
         rtTransparency->Resize(Width, Height);
 
         // Update camera
-        CameraConfig cam_cfg;
+        /*CameraConfig cam_cfg;
         cam_cfg.Ortho = true;
         cam_cfg.ViewW = Width;
         cam_cfg.ViewH = Height;
 
-        cam2D.SetParams(cam_cfg);
-        cam2D.BuildProj();
+        cam2D.SetParams(cam_cfg);*/
+        //cam2D.BuildProj();
         //cam2D.BuildView();
         cam2D.SetViewMatrix(DirectX::XMMatrixIdentity());
+        cam2D.SetProjMatrix(DirectX::XMMatrixIdentity());
         cam2D.BuildConstantBuffer();
     }
     
@@ -194,15 +202,17 @@ public:
 
         // Clear head list to -1
         const UINT ValFF[4] = { 0xFFFFFFFF, 0, 0, 0 };
-        const UINT Val00[4] = { 0x00, 0x00, 0x00, 0x00 };
+        const UINT Val00[4] = { 0, 0, 0, 0 };
         gDirectX->gContext->ClearUnorderedAccessViewUint(rwListHead.GetUAV(), ValFF);
-        //gDirectX->gContext->ClearUnorderedAccessViewUint(sbLinkedLists.GetUAV(), Val00);
+        gDirectX->gContext->ClearUnorderedAccessViewUint(sbLinkedLists.GetUAV(), Val00);
 
         // Reset counter and bind render target with depth buffer
         ID3D11UnorderedAccessView *UAVs[2] = { sbLinkedLists.GetUAV(), rwListHead.GetUAV() };
         ID3D11RenderTargetView *rtv = RB->GetBufferRTV<0>();
+        const UINT InitCounts[2] = { 0, 0 };
+
         //std::cout << RB->GetDSV<0, false>() << "\n";
-        gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtv, RB->GetDSV<0, true>(), 1, 2, UAVs, 0);
+        gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtv, RB->GetDSV<0, true>(), 1, 2, UAVs, InitCounts);
 
         // Bind shader
         shOITCreateLinkedLists->Bind();
@@ -219,21 +229,30 @@ public:
         ScopedRangeProfiler s0(L"End");
 
         // Re-bind RTV and UAV slots
-        ID3D11UnorderedAccessView *uav[2] = { nullptr, rwListHead.GetUAV() };
-        ID3D11RenderTargetView *rtv = rtTransparency->GetBufferRTV<0>();
+        ID3D11UnorderedAccessView *uav[2] = { nullptr, nullptr };
+        ID3D11RenderTargetView *rtv = rtTransparency->GetBufferRTV<0, false>();
+
+        const float Clear0[4] = { 1.f, 1.f, 1.f, 1.f };
 
         gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtv, nullptr, 1, 2, uav, 0);
+        gDirectX->gContext->ClearRenderTargetView(rtv, Clear0);
 
         // Begin final render pass
         shOITFinal->Bind();
 
         // 
         Camera::Push();
+        BlendState::Pop();
+        RasterState::Pop();
+        DepthStencilState::Pop();
 
         // Bind camera
         cam2D.Bind();
         cam2D.BindBuffer(Shader::Vertex, 0);
         
+        sbLinkedLists.Bind(Shader::Pixel, 1);
+        rwListHead.Bind(Shader::Pixel, 2);
+
         gDirectX->gContext->Draw(6, 0);
 
         // Unbind
@@ -245,10 +264,7 @@ public:
         rtTransparency->MSAAResolve();
         
         // Restore old states
-        DepthStencilState::Pop();
         //TopologyState::Pop();
-        RasterState::Pop();
-        BlendState::Pop();
         Camera::Pop();
 
         // L"Order Independent Transparency"
@@ -261,6 +277,10 @@ public:
 
     inline ID3D11ShaderResourceView *GetSRV() const {
         return rtTransparency->GetBufferSRV<0>();
+    }
+
+    inline ID3D11ShaderResourceView *GetHeadSRV() const {
+        return rwListHead.GetSRV();
     }
 
 };

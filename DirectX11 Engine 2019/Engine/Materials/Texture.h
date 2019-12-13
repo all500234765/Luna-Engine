@@ -46,7 +46,7 @@ public:
 
     // 
     void Bind(Shader::ShaderType type, UINT slot=0, bool UAV=false);
-    bool IsCreated();
+    bool IsCreated() const { return (pSRV != 0) && (pTexture != 0); };
     void Release();
 
     void SetName(const char* name) { _SetName(pTexture, name); }
@@ -57,10 +57,10 @@ public:
     inline void Copy(Texture *src) { gDirectX->gContext->CopyResource(GetTexture(), src->GetTexture()); }
     inline void Copy(ID3D11Texture2D *src) { gDirectX->gContext->CopyResource(GetTexture(), src); }
 
-    int GetWidth();
-    int GetHeight();
-    ID3D11ShaderResourceView* GetSRV();
-    ID3D11Texture2D* GetTexture();
+    int GetWidth() const { return w; };
+    int GetHeight() const { return h; };
+    ID3D11ShaderResourceView* GetSRV() const { return pSRV; };
+    ID3D11Texture2D* GetTexture() const { return pTexture; };
     inline ID3D11UnorderedAccessView* GetUAV() const { return pUAV; };
 };
 

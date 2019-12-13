@@ -498,10 +498,6 @@ void Texture::Bind(Shader::ShaderType type, UINT slot, bool UAV) {
     }
 }
 
-bool Texture::IsCreated() {
-    return (pSRV != 0) && (pTexture != 0);
-}
-
 void Texture::Release() {
     if( pTexture ) pTexture->Release();
     if( pSRV ) pSRV->Release();
@@ -607,20 +603,4 @@ void Texture::Resize(UINT Width, UINT Height, bool Save) {
 
         std::cout << "Successfully re-created UAV for Texture2D" << std::endl;
     }
-}
-
-int Texture::GetWidth() {
-    return w;
-}
-
-int Texture::GetHeight() {
-    return h;
-}
-
-ID3D11ShaderResourceView* Texture::GetSRV() {
-    return pSRV;
-}
-
-ID3D11Texture2D* Texture::GetTexture() {
-    return pTexture;
 }

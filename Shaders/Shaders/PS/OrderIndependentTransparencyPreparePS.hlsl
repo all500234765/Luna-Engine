@@ -9,7 +9,7 @@ struct PS {
 
 float4 ComputeTransparentColor(PS In, bool front) {
     //abs(In.Position.x - In.Position.y - front * 2.f).xxx * 10.f
-    return float4(.7f, .9f, 0.f, .5f);
+    return front ? float4(.7f, .9f, 0.f, .5f) : float4(0.f, 0.f, 1.f, 1.f);
 }
 
 [earlydepthstencil]

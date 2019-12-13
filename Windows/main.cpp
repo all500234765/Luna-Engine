@@ -180,7 +180,7 @@ void PlotUpdate(PlotData<_Size> *plot, float ms) {
 }
 
 float fAspect = 1024.f / 540.f;
-bool bIsWireframe = false, bDebugGUI = false, bLookMouse = true, bPause = false;
+bool bIsWireframe = false, bDebugGUI = !false, bLookMouse = true, bPause = false;
 int SceneID = 0;
 int sfxWalkIndex;
 
@@ -242,27 +242,60 @@ bool _DirectX::FrameFunction() {
             sMipLinearRougness->Bind(Shader::Pixel, 7);
         }
 
-        // Save shader state
-        if( flags & RendererFlags::DontBindShaders ) {
-            gDirectX->gContext->IASetPrimitiveTopology(miSpaceShip->GetTopology());
-            PreRender(miSpaceShip->GetWorldMatrix());
-        } else {
-            // Render Test scene
-            miSpaceShip->Bind(cam);
+        if( flags & RendererFlags::OpaquePass ) {
+            // Save shader state
+            if( flags & RendererFlags::DontBindShaders ) {
+                gDirectX->gContext->IASetPrimitiveTopology(miSpaceShip->GetTopology());
+                PreRender(miSpaceShip->GetWorldMatrix());
+            } else {
+                // Render Test scene
+                miSpaceShip->Bind(cam);
+            }
+
+            // 
+            if( flags & RendererFlags::DontBindShaders ) {
+                
+            } else if( flags & RendererFlags::DepthPass ) {
+                shVertexOnly->Bind();
+            }
+
+            // 
+            PostBind(flags);
+
+            // Render scene
+            miSpaceShip->Render(!(flags & RendererFlags::DontBindTextures));
         }
 
-        // 
-        if( flags & RendererFlags::DontBindShaders ) {
-            
-        } else if( flags & RendererFlags::DepthPass ) {
-            shVertexOnly->Bind();
+        if( flags & RendererFlags::OpacityPass ) {
+            mfloat4x4 mWorld = DirectX::XMMatrixIdentity();
+            mWorld *= DirectX::XMMatrixTranslation(0.f, -5.f, 0.f);
+            mWorld *= DirectX::XMMatrixScaling(2.f, 2.f, 2.f);
+
+            // Save shader state
+            if( flags & RendererFlags::DontBindShaders ) {
+                gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                PreRender(mWorld);
+            } else {
+                // Render Test scene
+                //mShadowTest1->Bind(cam);
+                cam->SetWorldMatrix(mWorld);
+                cam->BuildConstantBuffer();
+                cam->BindBuffer(Shader::Vertex, 0);
+            }
+
+            // 
+            if( flags & RendererFlags::DontBindShaders ) {
+
+            } else if( flags & RendererFlags::DepthPass ) {
+                shVertexOnly->Bind();
+            }
+
+            // 
+            PostBind(flags);
+
+            // Render scene
+            mShadowTest1->Render(!(flags & RendererFlags::DontBindTextures));
         }
-
-        // 
-        PostBind(flags);
-
-        // Render scene
-        miSpaceShip->Render(!(flags & RendererFlags::DontBindTextures));
 
         // 
         // Save shader state
@@ -397,7 +430,7 @@ bool _DirectX::FrameFunction() {
     {
         gOrderIndendentTransparency->Begin(rtGBuffer);
 
-        RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::DontBindShaders, nullptr, [](mfloat4x4 world) {
+        RenderScene(cPlayer, RendererFlags::OpacityPass | RendererFlags::DontBindShaders, nullptr, [](mfloat4x4 world) {
             Camera::Current()->SetWorldMatrix(world);
             Camera::Current()->BuildConstantBuffer();
             Camera::Current()->BindBuffer(Shader::Vertex, 0);
@@ -733,13 +766,13 @@ bool _DirectX::FrameFunction() {
         std::vector<ID3D11ShaderResourceView*> pDebugTextures = {
             //rtZBuffer_Editor->GetDepth()->pSRV,
             //gCascadeShadowMapping->getSRV(),
-            rtDepth->GetDepthBuffer()->pSRV,
+            //rtDepth->GetDepthBuffer()->pSRV,
+            gOrderIndendentTransparency->GetSRV(),
             rtGBuffer->GetBufferSRV<0>(),
             rtGBuffer->GetBufferSRV<1>(),
-            rtGBuffer->GetBufferSRV<2>(),
-            _ColorD->pSRV,
-            gSSAOPostProcess->GetSSAOSRV(),
-            gOrderIndendentTransparency->GetSRV()
+            rtGBuffer->GetBufferSRV<2>()
+            //_ColorD->pSRV,
+            //gSSAOPostProcess->GetSSAOSRV(),
 
         };
         
@@ -747,7 +780,7 @@ bool _DirectX::FrameFunction() {
         sPoint->Bind(Shader::Pixel);
 
         // 
-        size_t size   = pDebugTextures.size();
+        size_t size  = pDebugTextures.size();
         float width  = (cfg.Width / static_cast<float>(size));
         float height = width * .5f;
         
@@ -772,9 +805,9 @@ bool _DirectX::FrameFunction() {
 
             // 
             mfloat4x4 mScale1  = DirectX::XMMatrixScaling(width, height, 1.f);
-            mfloat4x4 mOffset0 = DirectX::XMMatrixTranslation(size * w2 * (i - w2) - size * left, h * (1.1f + size), 0.);
+            mfloat4x4 mOffset0 = DirectX::XMMatrixTranslation(size * w2 * (i - w2) - size * left, h * (1.0f + size), 0.);
             mfloat4x4 mOffset1 = DirectX::XMMatrixTranslation(width, -height, 0.);
-            mfloat4x4 mOffset2 = DirectX::XMMatrixTranslation((float)i * 2.f - (float)size, (float)size + 1.f, 0.);
+            mfloat4x4 mOffset2 = DirectX::XMMatrixTranslation((float)i * 2.f - (float)size, (float)size + .5f, 0.);
 
             c2DScreen->SetWorldMatrix(mOffset2 * (mScale1 * mOffset1));
             c2DScreen->BuildConstantBuffer();
@@ -1511,7 +1544,7 @@ void _DirectX::Load() {
     pDesc_.AlphaToCoverageEnable = false;
     pDesc_.IndependentBlendEnable = false;
 
-    pBlendState0->Create(pDesc_, {1.f, 1.f, 1.f, 1.f});
+    pBlendState0->Create(pDesc_, { 1.f, 1.f, 1.f, 1.f });
 
     // Create occlusion query
     pQuery->Create(D3D11_QUERY_OCCLUSION);
@@ -1848,7 +1881,7 @@ void _DirectX::Load() {
     mSpaceShip->EnableDefaultTexture();
 
     mShadowTest1 = new Model("Grass");
-    mShadowTest1->LoadModel<Vertex_PNT_TgBn>("../Models/GrassModels0.obj");
+    mShadowTest1->LoadModel<Vertex_PNT_TgBn>("../Models/teapot.obj");
     mShadowTest1->EnableDefaultTexture();
 
     // Create model instances

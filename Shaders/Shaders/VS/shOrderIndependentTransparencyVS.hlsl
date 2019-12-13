@@ -23,11 +23,12 @@ struct PS {
 PS main(VS In) {
     float4 WorldPos = mul(mWorld, float4(In.Position , 1.f));
     float3 WorldNor = mul(mWorld, float4(In.Normal   , 0.f)).xyz;
+    float4 ViewPos  = mul(mView, WorldPos);
     
     PS Out;
-        Out.Position = mul(mProj, mul(mView, WorldPos));
+        Out.Position = mul(mProj, ViewPos);
         Out.Texcoord = In.Texcoord;
         Out.Normal   = WorldNor;
-        Out.WorldPos = WorldPos;
+        Out.WorldPos = float4(WorldPos.xyz, ViewPos.z);
     return Out;
 }
