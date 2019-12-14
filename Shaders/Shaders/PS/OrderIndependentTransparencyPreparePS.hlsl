@@ -7,9 +7,17 @@ struct PS {
     float4 WorldPos : TEXCOORD1;
 };
 
+Texture2D _Texture    : register(t0);
+SamplerState _Sampler : register(s0);
+
 float4 ComputeTransparentColor(PS In, bool front) {
     //abs(In.Position.x - In.Position.y - front * 2.f).xxx * 10.f
-    return front ? float4(.7f, .9f, 0.f, .25f) : float4(0.f, 0.f, 1.f, .25f);
+    //return front ? float4(1.f, 0.f, 0.f, 1.f) : float4(0.f, 1.f, 0.f, 1.f);
+    
+    //return front ? float4(.9f, 0.f, 0.f, .5f) : float4(.9f, .9f, 0.f, .5f);
+    //return front ? float4(.7f, .9f, 0.f, 1.f) : float4(0.f, 0.f, 1.f, 1.f);
+    
+    return float4(1.f, 0.f, 0.f, 1.f);
 }
 
 [earlydepthstencil]
@@ -27,7 +35,7 @@ float4 main(PS In, uint coverage : SV_COVERAGE, bool front : SV_IsFrontFace) : S
     // Store
 	ListItem node;
 	    node.uColor    = PackColor(color.rgba);
-	    node.uDepth    = asuint(Depth);
+	    node.fDepth    = (Depth);
 	    node.uNext     = oldHeadBuffVal;
         node.uCoverage = coverage;
 	sbLinkedLists[head] = node;

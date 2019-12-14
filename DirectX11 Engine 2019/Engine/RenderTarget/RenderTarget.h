@@ -233,7 +233,7 @@ private:
         // Bind resourses
         implRenderTarget* SRVOrig  = RT->GetDepthBuffer<0, false>();
         implRenderTarget* SRVNoUAV = RT->GetDepthBuffer<1, false>();
-        implRenderTarget* UAV      = RT->GetDepthBuffer();
+        implRenderTarget* UAV      = RT->GetDepthBuffer<1>();
 
         RT->Bind(UAV, Shader::Compute, 0, true);         // UAV
         RT->Bind(SRVOrig, Shader::Compute, 0);           // SRV
@@ -858,7 +858,7 @@ public:
     template<UINT index=0, bool noMSAA=true>
     inline implRenderTarget* GetDepthBuffer() const {
         if constexpr( !DepthBuffer ) return nullptr;
-        return mRenderTargets[index + 2 * noMSAA * mMSAA];
+        return mRenderTargets[index + 1 * noMSAA * mMSAA];
     }
     
     template<UINT index=0, bool noMSAA=true>

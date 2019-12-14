@@ -29,6 +29,6 @@ PS main(VS In) {
         Out.Position = mul(mProj, ViewPos);
         Out.Texcoord = In.Texcoord;
         Out.Normal   = WorldNor;
-        Out.WorldPos = float4(WorldPos.xyz, ViewPos.z / ViewPos.w);
+        Out.WorldPos = float4(WorldPos.xyz, Out.Position.z / Out.Position.w);
     return Out;
 }

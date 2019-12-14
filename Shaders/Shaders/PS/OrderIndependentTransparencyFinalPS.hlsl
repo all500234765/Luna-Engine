@@ -1,6 +1,17 @@
 #define NoRW
 #include "../Common/OITCommon.h"
 
+cbuffer cbDataBuffer : register(b0) {
+    float4x4 _InvViewProj;
+}
+
+// https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
+// Spherical Coordinates
+#define kPI 3.1415926536f
+half2 EncodeNormal(half3 n) {
+    return half2(atan2(n.y, n.x) / kPI, n.z) * .5f + .5f;
+}
+
 struct PS {
     float4 Position : SV_Position;
     float2 Texcoord : TEXCOORD0;
@@ -8,8 +19,11 @@ struct PS {
 
 Texture2D _Background : register(t0);
 
-void InsertionSortMSAA(uint startIndex, uint sample, inout NodeItem sorted[MAX_FRAGMENTS], out int counter) {
+void InsertionSortMSAA(in uint startIndex, in uint sample, 
+                       inout NodeItem sorted[MAX_FRAGMENTS], 
+                       out int counter, out float depth) {
 	counter = 0;
+    depth = sbLinkedLists[startIndex].fDepth;
 	uint index = startIndex;
     
 	[unroll(MAX_FRAGMENTS)]
@@ -17,7 +31,9 @@ void InsertionSortMSAA(uint startIndex, uint sample, inout NodeItem sorted[MAX_F
 		[flatten] if( index != 0xFFFFFFFF ) {
 			[flatten] if( sbLinkedLists[index].uCoverage & (1 << sample) ) {
 				sorted[counter].uColor = sbLinkedLists[index].uColor;
-				sorted[counter].fDepth = asfloat(sbLinkedLists[index].uDepth);
+				sorted[counter].fDepth = sbLinkedLists[index].fDepth;
+                
+                depth = max(depth, sorted[counter].fDepth);
 				counter++;
 			}
             
@@ -41,24 +57,32 @@ void InsertionSortMSAA(uint startIndex, uint sample, inout NodeItem sorted[MAX_F
 	}
 }
 
-float4 main(PS In, uint sample : SV_SAMPLEINDEX) : SV_TARGET0 {
-	uint index = rwListHead[uint2(In.Position.xy)];
+struct OM {
+    float4 Color  : SV_Target0;
+    float4 Normal : SV_Target1;
+    float1 Depth  : SV_Depth;
+};
+
+OM main(PS In, uint sample : SV_SampleIndex) {
+    uint2 upos = uint2(In.Position.xy);
+	uint index = rwListHead[upos];
 	
-    float4 background = _Background[uint2(In.Position.xy)];
+    float4 background = _Background[upos];
 	float3 color = background.rgb;
 	float alpha = background.a;
 	
     // TODO: Move sorting to the Compute Shader
 	NodeItem sorted[MAX_FRAGMENTS];
     
-	[unroll(MAX_FRAGMENTS)]
+	/*[unroll(MAX_FRAGMENTS)]
     for( int j = 0; j < MAX_FRAGMENTS; j++ ) {
 		sorted[j] = (NodeItem)0;
-	}
+	}*/
     
     // Sort
 	int counter;
-	InsertionSortMSAA(index, sample, sorted, counter);
+    float depth;
+	InsertionSortMSAA(index, sample, sorted, counter, depth);
 
 	// Resolve MSAA
 	int resolveBuffer[MAX_FRAGMENTS];
@@ -93,6 +117,18 @@ float4 main(PS In, uint sample : SV_SAMPLEINDEX) : SV_TARGET0 {
 		alpha *= (1.f - c.a);
 		color = lerp(color, c.rgb, c.a);
 	}
+    
+    // Reconstruct position
+    float4 P = float4(mad(In.Position.xy / float2(1366.f, 768.f), 2.f, -1.f), depth, 1.f);
+    P = mul(_InvViewProj, P);
+    P.xyz /= P.w;
+    
+    // Reconstruct normal
+    float3 N = normalize(cross(ddx(P.xyz), ddy(P.xyz)));
 
-    return float4(color, alpha);
+    OM Out;
+        Out.Color  = float4(color, alpha);
+        Out.Depth  = max(depth, 0.f);
+        Out.Normal = float4(EncodeNormal(N.xzy), 0.f, 1.f);
+    return Out;
 }

@@ -2,15 +2,14 @@
 #include <iostream>
 
 void ConstantBuffer::CreateDefault(UINT size) {
-    D3D11_BUFFER_DESC desc;
-    desc.Usage = D3D11_USAGE_DYNAMIC;
-    desc.ByteWidth = size;
-    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    desc.MiscFlags = 0;
-    desc.StructureByteStride = 0;
+    pDesc.Usage = D3D11_USAGE_DYNAMIC;
+    pDesc.ByteWidth = size;
+    pDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    pDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    pDesc.MiscFlags = 0;
+    pDesc.StructureByteStride = 0;
 
-    HRESULT hr = gDirectX->gDevice->CreateBuffer(&desc, NULL, &pBuff);
+    HRESULT hr = gDirectX->gDevice->CreateBuffer(&pDesc, NULL, &pBuff);
     std::cout << "ConstantBuffer created (error=" << hr << ", size=" << size << ")" << std::endl;
 }
 

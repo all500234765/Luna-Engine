@@ -417,16 +417,7 @@ bool _DirectX::FrameFunction() {
 
         // Render scene
         RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
-
-        // Done rendering to GBuffer
-        // Resolve MSAA
-        rtGBuffer->MSAAResolve();
     }
-
-    {
-        gCoverageBuffer->Prepare(rtGBuffer, *gCBuffArgs);
-    }
-
     {
         gOrderIndendentTransparency->Begin(rtGBuffer);
 
@@ -436,8 +427,25 @@ bool _DirectX::FrameFunction() {
             Camera::Current()->BindBuffer(Shader::Vertex, 0);
         });
 
-        gOrderIndendentTransparency->End(rtGBuffer);
+        // Done rendering to GBuffer
+        // Resolve MSAA
+        rtGBuffer->MSAAResolve();
+
+        //     World View Proj
+        //           View Proj
+        // Inv       View Proj
+
+        mfloat4x4 mInvViewProj = Camera::Current()->GetViewMatrix() * Camera::Current()->GetProjMatrix();
+        mInvViewProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(mInvViewProj), mInvViewProj);
+
+        gOrderIndendentTransparency->End(rtGBuffer, mInvViewProj);
     }
+
+    if( false ) 
+    {
+        gCoverageBuffer->Prepare(rtGBuffer, *gCBuffArgs);
+    }
+
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -767,7 +775,7 @@ bool _DirectX::FrameFunction() {
             //rtZBuffer_Editor->GetDepth()->pSRV,
             //gCascadeShadowMapping->getSRV(),
             //rtDepth->GetDepthBuffer()->pSRV,
-            gOrderIndendentTransparency->GetSRV(),
+            rtGBuffer->GetDepthBuffer()->pSRV,
             rtGBuffer->GetBufferSRV<0>(),
             rtGBuffer->GetBufferSRV<1>(),
             rtGBuffer->GetBufferSRV<2>()
@@ -1495,7 +1503,7 @@ void _DirectX::Load() {
 
     // Geometry Buffer
     rtGBuffer = new RenderTarget2DColor3DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
-    if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
+    //if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
     rtGBuffer->SetMSAAMaxLevel(8);
     rtGBuffer->Create(32);
     rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,

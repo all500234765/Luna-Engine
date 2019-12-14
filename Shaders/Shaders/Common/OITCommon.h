@@ -20,10 +20,10 @@
 #endif
 
 struct ListItem {
-    uint uColor;
-    uint uDepth;
-    uint uNext;
-    uint uCoverage;
+    uint  uColor;
+    float fDepth;
+    uint  uNext;
+    uint  uCoverage;
 };
 
 _globallycoherent CounterStructuredBuffer<ListItem> sbLinkedLists UAV(1);
@@ -33,10 +33,10 @@ _globallycoherent RWTexture_(uint) rwListHead UAV(2);
 #ifndef __cplusplus
 float4 UnpackColor(uint color) {
     return float4(
-        float((color >> 24) & 0xFF) / 0xFF, 
-        float((color >> 16) & 0xFF) / 0xFF, 
-        float((color >>  8) & 0xFF) / 0xFF, 
-        float( color        & 0xFF) / 0xFF
+        saturate(float((color >> 24) & 0xFF) / 0xFF), 
+        saturate(float((color >> 16) & 0xFF) / 0xFF), 
+        saturate(float((color >>  8) & 0xFF) / 0xFF), 
+        saturate(float( color        & 0xFF) / 0xFF)
     );
 }
 
@@ -46,10 +46,10 @@ struct NodeItem {
 };
 
 uint PackColor(float4 color) {
-	return ((uint(color.r * 255.f) & 0xFF) << 24) | 
-           ((uint(color.g * 255.f) & 0xFF) << 16) | 
-           ((uint(color.b * 255.f) & 0xFF) <<  8) | 
-            (uint(color.a * 255.f) & 0xFF);
+	return ((uint(saturate(color.r) * 255.f)) << 24) | 
+           ((uint(saturate(color.g) * 255.f)) << 16) | 
+           ((uint(saturate(color.b) * 255.f)) <<  8) | 
+            (uint(saturate(color.a) * 255.f));
 }
     #undef CounterStructuredBuffer
 #else
