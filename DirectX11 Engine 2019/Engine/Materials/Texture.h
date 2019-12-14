@@ -57,8 +57,10 @@ public:
     inline void Copy(Texture *src) { gDirectX->gContext->CopyResource(GetTexture(), src->GetTexture()); }
     inline void Copy(ID3D11Texture2D *src) { gDirectX->gContext->CopyResource(GetTexture(), src); }
 
+    // Getters
     int GetWidth() const { return w; };
     int GetHeight() const { return h; };
+    DXGI_FORMAT GetFormat() const { return pDesc.Format; };
     ID3D11ShaderResourceView* GetSRV() const { return pSRV; };
     ID3D11Texture2D* GetTexture() const { return pTexture; };
     inline ID3D11UnorderedAccessView* GetUAV() const { return pUAV; };

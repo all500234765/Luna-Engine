@@ -436,7 +436,7 @@ bool _DirectX::FrameFunction() {
             Camera::Current()->BindBuffer(Shader::Vertex, 0);
         });
 
-        gOrderIndendentTransparency->End();
+        gOrderIndendentTransparency->End(rtGBuffer);
     }
 
 #pragma region Occlusion query

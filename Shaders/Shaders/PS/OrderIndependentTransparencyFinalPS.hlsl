@@ -6,6 +6,8 @@ struct PS {
     float2 Texcoord : TEXCOORD0;
 };
 
+Texture2D _Background : register(t0);
+
 void InsertionSortMSAA(uint startIndex, uint sample, inout NodeItem sorted[MAX_FRAGMENTS], out int counter) {
 	counter = 0;
 	uint index = startIndex;
@@ -40,10 +42,11 @@ void InsertionSortMSAA(uint startIndex, uint sample, inout NodeItem sorted[MAX_F
 }
 
 float4 main(PS In, uint sample : SV_SAMPLEINDEX) : SV_TARGET0 {
-	uint index = rwListHead.Load(uint3(In.Position.xy, 0));
+	uint index = rwListHead[uint2(In.Position.xy)];
 	
-	float3 color = 0.f;
-	float alpha = 1.f;
+    float4 background = _Background[uint2(In.Position.xy)];
+	float3 color = background.rgb;
+	float alpha = background.a;
 	
     // TODO: Move sorting to the Compute Shader
 	NodeItem sorted[MAX_FRAGMENTS];

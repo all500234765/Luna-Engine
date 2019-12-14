@@ -195,6 +195,16 @@ DXGI_FORMAT Channel2Format(size_t channels, UINT bpc) {
     return DXGI_FORMAT_UNKNOWN;
 }
 
+DXGI_FORMAT BPP2DepthFormat(UINT bpp) {
+    switch( bpp ) {
+        case 32: return DXGI_FORMAT_R32_TYPELESS;
+        case 24: return DXGI_FORMAT_R24G8_TYPELESS;
+        case 16: return DXGI_FORMAT_R16_TYPELESS;
+    }
+
+    return DXGI_FORMAT_UNKNOWN;
+}
+
 size_t Format2BPP(DXGI_FORMAT format) {
     switch( static_cast<int>(format) ) {
         case DXGI_FORMAT_R32G32B32A32_TYPELESS:

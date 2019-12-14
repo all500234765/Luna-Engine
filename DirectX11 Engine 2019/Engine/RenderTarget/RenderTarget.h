@@ -879,6 +879,18 @@ public:
         return std::get<ID3D11DepthStencilView*>(mRenderTargets[index + 1 * noMSAA * mMSAA]->pView);
     };
     
+    template<UINT index=0, bool noMSAA=true>
+    inline DXGI_FORMAT GetBufferFormat() const {
+        if constexpr( !BufferNum ) return DXGI_FORMAT_UNKNOWN;
+        return std::get<DXGI_FORMAT>(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->mFormat);
+    };
+    
+    template<UINT index=0, bool noMSAA=true>
+    inline DXGI_FORMAT GetDepthFormat() const {
+        if constexpr( !DepthBuffer ) return DXGI_FORMAT_UNKNOWN;
+        return BPP2DepthFormat(std::get<UINT>(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->mFormat));
+    };
+
     // Bind resource
     void Bind(implRenderTarget* rt, Shader::ShaderType type, UINT slot=0, bool UAV=false) const {
         switch( type ) {

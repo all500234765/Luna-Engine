@@ -1,5 +1,5 @@
-#define MAX_ELEMENTS 4
-#define MAX_FRAGMENTS 16
+#define MAX_ELEMENTS 8
+#define MAX_FRAGMENTS 32
 
 #ifndef __cplusplus
     #ifndef NoRW
@@ -33,10 +33,10 @@ _globallycoherent RWTexture_(uint) rwListHead UAV(2);
 #ifndef __cplusplus
 float4 UnpackColor(uint color) {
     return float4(
-        (color >> 24) & 0xFF, 
-        (color >> 16) & 0xFF, 
-        (color >>  8) & 0xFF, 
-         color        & 0xFF
+        float((color >> 24) & 0xFF) / 0xFF, 
+        float((color >> 16) & 0xFF) / 0xFF, 
+        float((color >>  8) & 0xFF) / 0xFF, 
+        float( color        & 0xFF) / 0xFF
     );
 }
 

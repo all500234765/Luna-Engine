@@ -26,6 +26,7 @@ private:
     RasterState *rsNoCulling;
     TopologyState *tState;
 
+    Texture texTemp;
     RenderTarget<2, 1, false, 1, true, false> *rtTransparency;
 
     Camera cam2D;
@@ -56,6 +57,8 @@ public:
 
         rwListHead = Texture(Width, Height, DXGI_FORMAT_R32_UINT, true);
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
+
+        texTemp = Texture(Width, Height, DXGI_FORMAT_R16G16B16A16_FLOAT, false);
 
         // Camera
         cam2D = Camera();
@@ -124,6 +127,7 @@ public:
     }
 
     ~OrderIndendentTransparency() {
+        texTemp.Release();
         rwListHead.Release();
         sbLinkedLists.Release();
 
@@ -143,6 +147,7 @@ public:
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
 
         rwListHead.Resize(Width, Height);
+        texTemp.Resize(Width, Height);
 
         rtTransparency->Resize(Width, Height);
 
@@ -163,6 +168,7 @@ public:
     // Must have:
     //  - Depth buffer w/ all opaque geometry
     //  - Albedo buffer w/ all opaque geometry
+    //  - Same size as rtTransparency
     template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
              size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps
                                                          to create per RT buffer   */
@@ -218,21 +224,29 @@ public:
         shOITCreateLinkedLists->Bind();
     }
 
-    void Bind() {
-        // Bind shader
-        shOITCreateLinkedLists->Bind();
-    }
-
     // Render transparency //w/ Bind callback after shaders
-
-    void End() {
+    
+    template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
+             size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps
+                                                         to create per RT buffer   */
+             bool WillHaveMSAA=false, bool Cube=false>
+    void End(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB) {
         ScopedRangeProfiler s0(L"End");
+
+        // Make sure they have similar formats
+        if( texTemp.GetFormat() != RB->GetBufferFormat() ) {
+            texTemp.Release();
+            texTemp = Texture(RB->GetWidth(), RB->GetHeight(), RB->GetBufferFormat(), false);
+        }
+
+        // Store 
+        texTemp.Copy((ID3D11Texture2D*)RB->GetBufferTexture<0>());
 
         // Re-bind RTV and UAV slots
         ID3D11UnorderedAccessView *uav[2] = { nullptr, nullptr };
-        ID3D11RenderTargetView *rtv = rtTransparency->GetBufferRTV<0, false>();
+        ID3D11RenderTargetView *rtv = RB->GetBufferRTV<0, false>();
 
-        const float Clear0[4] = { 1.f, 1.f, 1.f, 1.f };
+        const float Clear0[4] = { 0.f, 0.f, 0.f, 1.f };
 
         gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtv, nullptr, 1, 2, uav, 0);
         gDirectX->gContext->ClearRenderTargetView(rtv, Clear0);
@@ -249,7 +263,9 @@ public:
         // Bind camera
         cam2D.Bind();
         cam2D.BindBuffer(Shader::Vertex, 0);
-        
+
+        // Bind resources
+        texTemp.Bind(Shader::Pixel, 0);
         sbLinkedLists.Bind(Shader::Pixel, 1);
         rwListHead.Bind(Shader::Pixel, 2);
 
@@ -269,6 +285,38 @@ public:
 
         // L"Order Independent Transparency"
         RangeProfiler::End();
+    }
+    
+    template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
+             size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps
+                                                         to create per RT buffer   */
+             bool WillHaveMSAA=false, bool Cube=false>
+    void Combine(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB) {
+        // Make sure they have similar formats
+        /*if( texTemp.GetFormat() != RB->GetFormat() ) {
+            texTemp.Release();
+            texTemp = Texture(RB->GetWidth(), RB->GetHeight(), RB->GetFormat(), false);
+        }
+
+        // Store 
+        texTemp.Copy(RB->GetBuffer<0>());*/
+
+        // Store blend state
+        BlendState::Push();
+
+        // Bind states
+        //shCombine->Bind();
+        //bsCombine->Bind();
+
+        // 
+        texTemp.Bind(Shader::Pixel, 0);
+        RB->Bind(1, Shader::Pixel, 1);
+
+        // 
+        gDirectX->gContext->Draw(6, 0);
+
+        // Restore state
+        BlendState::Pop();
     }
 
     inline ID3D11Resource *GetTexture() const {
