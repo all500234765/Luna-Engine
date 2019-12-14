@@ -63,6 +63,12 @@ struct OM {
     float1 Depth  : SV_Depth;
 };
 
+float3 ReconstructWorldPos(float2 uv, float z) {
+    float4 p = float4(mad(float2(uv.x, 1.f - uv.y), 2.f, -1.f), z, 1.f);
+    float4 v = mul(_InvViewProj, p);
+    return v.xyz / v.w;
+}
+
 OM main(PS In, uint sample : SV_SampleIndex) {
     uint2 upos = uint2(In.Position.xy);
 	uint index = rwListHead[upos];
@@ -119,9 +125,10 @@ OM main(PS In, uint sample : SV_SampleIndex) {
 	}
     
     // Reconstruct position
-    float4 P = float4(mad(In.Position.xy / float2(1366.f, 768.f), 2.f, -1.f), depth, 1.f);
-    P = mul(_InvViewProj, P);
-    P.xyz /= P.w;
+    float3 P = ReconstructWorldPos(In.Position.xy / float2(1366.f, 768.f), depth);
+    //float4 P = float4(mad(In.Position.xy / float2(1366.f, 768.f), 2.f, -1.f), depth, 1.f);
+    //P = mul(_InvViewProj, P);
+    //P.xyz /= P.w;
     
     // Reconstruct normal
     float3 N = normalize(cross(ddx(P.xyz), ddy(P.xyz)));
@@ -129,6 +136,6 @@ OM main(PS In, uint sample : SV_SampleIndex) {
     OM Out;
         Out.Color  = float4(color, alpha);
         Out.Depth  = max(depth, 0.f);
-        Out.Normal = float4(EncodeNormal(N.xzy), 0.f, 1.f);
+        Out.Normal = float4(EncodeNormal(N.xyz), 0.f, 1.f);
     return Out;
 }
