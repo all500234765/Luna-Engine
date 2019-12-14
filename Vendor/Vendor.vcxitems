@@ -129,6 +129,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imstb_textedit.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imstb_truetype.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\misc\cpp\imgui_stdlib.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\SIMD\avx_mathfun.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Vendor\TinyDDSLoader\TinyDDSLoader.h" />
   </ItemGroup>

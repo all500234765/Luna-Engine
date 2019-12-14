@@ -4,6 +4,8 @@
 #include "Engine/Window/Window.h"
 #include "../Audio Engine/Audio/AudioDeviceChild.h"
 #include "Engine/Extensions/Safe.h"
+#include "Engine/Profiler/ScopedRangeProfiler.h"
+#include "Engine/RenderTarget/RenderTarget.h"
 
 //#include "Enums.h"
 #include "Defines.h"
@@ -63,6 +65,8 @@ public:
         ImGui::StyleColorsDark();
 #endif
 
+        RenderTarget2DColor1::GlobalInit();
+
         // Return DirectX object
         return gDirectX;
     }
@@ -96,9 +100,9 @@ public:
         ImGui_ImplWin32_Shutdown();
 #endif
 
-#if defined(_DEBUG_BUILD) || defined(_DEBUG)
         RangeProfiler::Release();
-#endif
+
+        RenderTarget2DColor1::GlobalRelease();
 
         gWindow->Destroy();
         gDirectX->Unload();

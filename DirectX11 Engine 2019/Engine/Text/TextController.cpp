@@ -5,6 +5,11 @@ Text* TextController::Build(const char* text, float maxWidth) {
 }
 
 Text* TextController::Build(Text* txt, const char* text, float maxWidth) {
+    if( txt ) {
+        txt->Release();
+        delete txt;
+    }
+
     return mFactory->Build(text, maxWidth);
 }
 

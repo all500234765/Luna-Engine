@@ -4,6 +4,7 @@
 
 #ifdef _LUNA_ENGINE_DX11_
 #include <DirectXMath.h>
+#include "Engine Includes/Types.h"
 #endif
 
 #ifndef _PhysicsShapeType_
@@ -19,12 +20,33 @@ typedef enum: char {
 } PhysicsShapeType;
 #endif
 
+
 typedef float pFloat;
 
 struct pFloat3 {
+#ifdef _LUNA_ENGINE_DX11_
+    union {
+        struct {
+            pFloat x;
+            pFloat y;
+            pFloat z;
+        };
+
+        struct {
+            float2 xy;
+            float1 _a;
+        };
+
+        struct {
+            float1 _b;
+            float2 yz;
+        };
+    };
+#else
     pFloat x;
     pFloat y;
     pFloat z;
+#endif
 
     pFloat3(): x(0), y(0), z(0) {};
     pFloat3(const pFloat X): x(X), y(X), z(X) {};

@@ -5,6 +5,9 @@
 
 #include <vector>
 
+#include <DirectXMath.h>
+#include "Engine Includes/Types.h"
+
 static const std::vector<int> MouseButtons = {
     1, 2, 10, 20, 40
 };
@@ -73,8 +76,9 @@ public:
     // Set mouse position in window
     void SetAt(int X, int Y);
 
-    int GetX();
-    int GetY();
+    int GetX() const { return x; }
+    int GetY() const { return y; }
+    float2 GetXY() const { return float2(x, y); }
 
     bool IsPressed(MouseButton mkey);
     bool IsDown(MouseButton mkey);

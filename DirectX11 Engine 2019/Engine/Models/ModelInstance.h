@@ -31,8 +31,8 @@ public:
         gDirectX->gContext->IASetPrimitiveTopology(Topology);
 
         cam->SetWorldMatrix(World);
-        cam->BindBuffer(BindBuffer, BindBufferSlot);
         cam->BuildConstantBuffer();
+        cam->BindBuffer(BindBuffer, BindBufferSlot);
     }
 
     inline void Render(bool bBindTextures=true) { mModel->Render(1, bBindTextures); }

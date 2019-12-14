@@ -21,6 +21,15 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shBloomRevealCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shBVHConstructionCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shBVHPrimitivesCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shDownScaleDepthCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shDownscaleDepthNormalCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
@@ -81,12 +90,51 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\GS\shRenderAVCCubeGS.hlsl">
       <ShaderType>Geometry</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\OrderIndependentTransparencyFinalPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\OrderIndependentTransparencyPreparePS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDepthAlphaPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shRenderAVCCubePS.hlsl">
       <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadNoFXPSMSAA.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shVoxelizePS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shCSMVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDepthAlphaVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shOrderIndependentTransparencyVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <FileType>Document</FileType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shRectangleOuterVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shRenderAVCCubeVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadPartVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadSimpliestVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shVoxelizeVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\Common\Utils.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\GS\shCSMGS.hlsli">
       <ShaderType>Geometry</ShaderType>
       <FileType>Document</FileType>
@@ -273,5 +321,8 @@
     </FxCompile>
     <None Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextInclude.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\VS\PrimitiveVS.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\Common\OITCommon.h" />
   </ItemGroup>
 </Project>

@@ -1,9 +1,14 @@
 #pragma once
 
 #include "Engine/DirectX/DirectXChild.h"
+#include "Engine/Profiler/ScopedRangeProfiler.h"
+#include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine Includes/Types.h"
+#include "Engine/DirectX/Shader.h"
+#include "Engine/States/PipelineState.h"
 #include <variant>
 #include <algorithm>
+#include <array>
 
 // TODO: 
 //   TextureCube
@@ -102,6 +107,52 @@ public:
 
 };
 
+/*class IRenderTarget: public PipelineState<void*> {
+private:
+    //     0-1  2-4
+    /*size_t dim, BufferNum;
+    //   5                    6                     7
+    bool DepthBuffer = false, WillHaveMSAA = false, Cube = false;
+    size_t ArraySize = 1; // 8-263*
+    /
+
+    static uint32_t gPacked;
+
+public:
+    static auto Current() {
+        uint8_t dim = (gPacked & 0x03);
+        uint8_t num = (gPacked & 0x1C) >> 2;
+        bool    dba = (gPacked & 0x20) >> 5;
+        bool    haa = (gPacked & 0x40) >> 6;
+        bool    cub = (gPacked & 0x80) >> 7;
+        uint8_t asz = (gPacked & 0xFF) >> 8;
+
+#define RENDER_TARGET(DIM, NUM, DBA, HAA, CUB, ASZ) return (RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>*)gState;
+
+        switch( dim ) {
+            case 1:
+                if( dba && haa && !cub ) {
+                    switch( num ) {
+                        case 1:
+                            switch( asz ) {
+                                case 1:
+                                    RENDER_TARGET(1, 1, 1, 1, 0, 1);
+                            }
+                            break;
+                    }
+                }
+                break;
+        }
+        
+#undef RENDER_TARGET
+        return nullptr;
+        //return (RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>*)gState;
+    }
+
+
+
+};*/
+
 template<size_t dim, size_t BufferNum, bool DepthBuffer=false, 
          size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps 
                                                      to create per RT buffer   */
@@ -162,6 +213,7 @@ private:
                                                          to create per RT buffer   */
              bool WillHaveMSAA=false, bool Cube=false>
     static void MSAAResolveDepth(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>* RT) {
+        if constexpr( !DepthBuffer ) return;
         ScopedRangeProfiler s1(L"MSAA Resolve depth buffer");
 
         float Width  = (float)RT->GetWidth();
@@ -611,6 +663,7 @@ public:
 
     // Main
     void Create(UINT bpp, bool rct=false) {
+        if constexpr( !DepthBuffer ) return;
         mRenderTargets[0] = CreateRenderTarget(true, bpp, false, 0, rct ? mRenderTargets[0] : nullptr);
         SetName(" D0", mRenderTargets[0]);
 
@@ -631,6 +684,7 @@ public:
     }
 
     void Create(DXGI_FORMAT format, UINT slot=0, bool UAV=false, bool rct=false) {
+        if constexpr( !BufferNum ) return;
         UINT index = UINT(slot + mOffset);
 
         mRenderTargets[index] = CreateRenderTarget(false, format, UAV, index, rct ? mRenderTargets[index] : nullptr);
@@ -652,8 +706,8 @@ public:
     // slot=0
     template<typename ...FORMAT>
     void CreateList(UINT slot=0, FORMAT... formats) {
-        if( typeid(DXGI_FORMAT) == typeid(FORMAT) ) 
-            static_assert("[RT::Create(UINT slot=0, FORMAT... formats)]: Arguments must be DXGI_FORMAT.");
+        //if( typeid(DXGI_FORMAT) == typeid(FORMAT) ) 
+        //    static_assert("[RT::Create(UINT slot=0, FORMAT... formats)]: Arguments must be DXGI_FORMAT.");
 
         std::array<DXGI_FORMAT, sizeof...(formats)> mFormats{ formats... };
 
@@ -678,7 +732,7 @@ public:
         bool oldMSAA = mMSAA;
         
         // Depth
-        if( DepthBuffer ) {
+        if constexpr( DepthBuffer ) {
             UINT bpp = std::get<UINT>(mRenderTargets[0]->mFormat);
 
             // Release resources
@@ -703,7 +757,7 @@ public:
             Create(bpp, true);
         }
 
-        if( BufferNum > 0 ) {
+        if constexpr( BufferNum > 0 ) {
             for( size_t i = mOffset; i < mOffset + BufferNum; i++ ) {
                 DXGI_FORMAT format = std::get<DXGI_FORMAT>(mRenderTargets[i]->mFormat);
                 bool UAV = (mRenderTargets[i]->pUAV != nullptr);
@@ -714,7 +768,7 @@ public:
                     ///delete mRenderTargets[i];
                 }
 
-                if( WillHaveMSAA ) {
+                if constexpr( WillHaveMSAA ) {
                     if( mRenderTargets[i + BufferNum] != nullptr ) {
                         mRenderTargets[i + BufferNum]->Release();
                         ///delete mRenderTargets[i + BufferNum];
@@ -732,6 +786,7 @@ public:
 
     // Clear RTV
     void Clear(const FLOAT Color0[4]) {
+        if constexpr( !BufferNum ) return;
         for( UINT i = 0; i < BufferNum * (mMSAA + 1); i++ ) {
             auto rt = std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + i]->pView);
             if( rt ) gDirectX->gContext->ClearRenderTargetView(rt, Color0);
@@ -740,10 +795,17 @@ public:
 
     // Clear DSV
     void Clear(FLOAT Depth, UINT8 Stencil, UINT flags=D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL) {
+        if constexpr( !DepthBuffer ) return;
         for( UINT i = 0; i < (mMSAA ? mOffset : 1); i++ ) {
             auto rt = std::get<ID3D11DepthStencilView*>(mRenderTargets[i]->pView);
             if( rt ) gDirectX->gContext->ClearDepthStencilView(rt, flags, Depth, Stencil);
         }
+    }
+
+    // 
+    void SetViewportSize(float w, float h) {
+        mViewPort.Width  = w;
+        mViewPort.Height = h;
     }
 
     // Bind RTVs and DSV
@@ -769,38 +831,65 @@ public:
         
         // Bind viewport
         gDirectX->gContext->RSSetViewports(1, &mViewPort);
+
+        // Bind as current
+        //gState = this;
     }
 
     // Getters
     template<UINT index, bool noMSAA=true>
     inline implRenderTarget* GetBuffer() const {
-        if( !BufferNum ) return nullptr;
+        if constexpr( !BufferNum ) return nullptr;
         return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum];
     }
 
     template<UINT index, bool noMSAA=true>
     inline ID3D11ShaderResourceView* GetBufferSRV() const {
-        if( !BufferNum ) return nullptr;
+        if constexpr( !BufferNum ) return nullptr;
         return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pSRV;
+    }
+
+    template<UINT index, bool noMSAA = true>
+    inline ID3D11RenderTargetView* GetBufferRTV() const {
+        if constexpr( !BufferNum ) return nullptr;
+        return std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pView);
     }
 
     template<UINT index=0, bool noMSAA=true>
     inline implRenderTarget* GetDepthBuffer() const {
-        if( !DepthBuffer ) return nullptr;
+        if constexpr( !DepthBuffer ) return nullptr;
         return mRenderTargets[index + 2 * noMSAA * mMSAA];
     }
     
     template<UINT index=0, bool noMSAA=true>
     inline ID3D11Resource* GetDepthBufferTexture() const {
-        if( !DepthBuffer ) return nullptr;
-        return Choose(mRenderTargets[index + 2 * noMSAA * mMSAA]->pTexture);
+        if constexpr( !DepthBuffer ) return nullptr;
+        return Choose(mRenderTargets[index + 1 * noMSAA * mMSAA]->pTexture);
     }
     
     template<UINT index=0, bool noMSAA=true>
     inline ID3D11Resource* GetBufferTexture() const {
-        if( !BufferNum ) return nullptr;
+        if constexpr( !BufferNum ) return nullptr;
         return Choose(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pTexture);
     }
+
+    template<UINT index=0, bool noMSAA=true>
+    inline ID3D11DepthStencilView* GetDSV() const {
+        if constexpr( !DepthBuffer ) return nullptr;
+        return std::get<ID3D11DepthStencilView*>(mRenderTargets[index + 1 * noMSAA * mMSAA]->pView);
+    };
+    
+    template<UINT index=0, bool noMSAA=true>
+    inline DXGI_FORMAT GetBufferFormat() const {
+        if constexpr( !BufferNum ) return DXGI_FORMAT_UNKNOWN;
+        return std::get<DXGI_FORMAT>(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->mFormat);
+    };
+    
+    template<UINT index=0, bool noMSAA=true>
+    inline DXGI_FORMAT GetDepthFormat() const {
+        if constexpr( !DepthBuffer ) return DXGI_FORMAT_UNKNOWN;
+        return BPP2DepthFormat(std::get<UINT>(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->mFormat));
+    };
 
     // Bind resource
     void Bind(implRenderTarget* rt, Shader::ShaderType type, UINT slot=0, bool UAV=false) const {
@@ -924,3 +1013,8 @@ using RenderTarget2DColor7DepthMSAA = RenderTarget<2, 7, true, 1, true>;
 using RenderTarget2DColor8DepthMSAA = RenderTarget<2, 8, true, 1, true>;
 
 using RenderTarget2DDepthMSAA = RenderTarget<2, 0, true, 1, true>;
+
+
+// Interface
+typedef RenderTarget<1, 0> IRenderTarget;
+

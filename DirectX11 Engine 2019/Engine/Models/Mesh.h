@@ -17,4 +17,7 @@ public:
     void Render(UINT num);
     void SetBuffer(VertexBuffer *inVB, IndexBuffer *inIB);
     void Release();
+
+    const VertexBuffer& GetVB() const { return *vb; }
+    const IndexBuffer&  GetIB() const { return *ib; }
 };

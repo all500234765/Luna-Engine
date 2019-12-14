@@ -109,6 +109,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(SolutionDir)DirectX11 Engine 2019\;$(SolutionDir)Audio Engine\;$(SolutionDir)Physics Engine\;$(SolutionDir)EngineIncludes\;$(SolutionDir)Vendor\</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,6 +132,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(SolutionDir)DirectX11 Engine 2019\;$(SolutionDir)Audio Engine\;$(SolutionDir)Physics Engine\;$(SolutionDir)EngineIncludes\;$(SolutionDir)Vendor\</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -155,6 +157,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(SolutionDir)DirectX11 Engine 2019\;$(SolutionDir)Audio Engine\;$(SolutionDir)Physics Engine\;$(SolutionDir)EngineIncludes\;$(SolutionDir)Vendor\</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -180,6 +183,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(SolutionDir)DirectX11 Engine 2019\;$(SolutionDir)Audio Engine\;$(SolutionDir)Physics Engine\;$(SolutionDir)EngineIncludes\;$(SolutionDir)Vendor\</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

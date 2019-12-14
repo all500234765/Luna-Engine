@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 
 typedef float               float1;
 typedef DirectX::XMFLOAT2   float2;
@@ -17,4 +17,7 @@ typedef DirectX::XMINT2      int2;
 typedef DirectX::XMINT3      int3;
 typedef DirectX::XMINT4      int4;
 typedef double               double1;
-
+typedef DirectX::XMVECTOR   mfloat1;
+typedef DirectX::XMVECTOR   mfloat2;
+typedef DirectX::XMVECTOR   mfloat3;
+typedef DirectX::XMVECTOR   mfloat4;

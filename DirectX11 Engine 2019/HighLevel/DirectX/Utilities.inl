@@ -184,23 +184,124 @@ namespace LunaEngine {
         }*/
     }
 
+    namespace Math {
+
+        template<typename T>
+        T sqr(T a) { return a * a; }
+
+        template<typename T>
+        T degtorad(T deg) { return deg * PI / 180.f; }
+
+        template<typename T>
+        T radtodeg(T rad) { return rad * 180.f / PI; }
+
+        float point_distance(float2 from, float2 to) { return sqrtf(sqr(to.x - from.x) + sqr(to.y - from.y)); }
+        float point_distance(float3 from, float3 to) { return sqrtf(sqr(to.x - from.x) + sqr(to.y - from.y) + sqr(to.z - from.z)); }
+        float point_distance(float4 from, float4 to) { return sqrtf(sqr(to.x - from.x) + sqr(to.y - from.y) + sqr(to.z - from.z) + sqr(to.w - from.w)); }
+        float point_distance(float2 to) { return sqrtf(sqr(to.x) + sqr(to.y)); }
+        float point_distance(float3 to) { return sqrtf(sqr(to.x) + sqr(to.y) + sqr(to.z)); }
+        float point_distance(float4 to) { return sqrtf(sqr(to.x) + sqr(to.y) + sqr(to.z) + sqr(to.w)); }
+
+        // In deg
+        float point_direction  (float2 from, float2 to) { return radtodeg(atan2f(from.y - to.y, to.x - from.x)); }
+        float point_direction  (float2 to             ) { return radtodeg(atan2f(       - to.y, to.x         )); }
+
+        // In rad
+        float point_direction_r(float2 from, float2 to) { return         (atan2f(from.y - to.y, to.x - from.x)); }
+        float point_direction_r(float2 to             ) { return         (atan2f(       - to.y, to.x         )); }
+
+        //float2 point_direction(float3 from, float3 to);
+
+        float lenghtdir_x(float len, float deg) { return len * radtodeg(cosf(deg)); }
+        float lenghtdir_y(float len, float deg) { return len * radtodeg(sinf(deg)); }
+
+        float dot(float2 a) { return sqr(a.x) + sqr(a.y); }
+        float dot(float3 a) { return sqr(a.x) + sqr(a.y) + sqr(a.z); }
+        float dot(float4 a) { return sqr(a.x) + sqr(a.y) + sqr(a.z) + sqr(a.w); }
+        float dot(float2 a, float2 b) { return a.x * b.x + a.y * b.y; }
+        float dot(float3 a, float3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+        float dot(float4 a, float4 b) { return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w; }
+
+        template<typename T>
+        T mad(T a, T b, T c) { return a * b + c; }
+
+        template<typename T>
+        T lerp(T from, T to, float coef) { return from + (to - from) * coef; }
+
+        float3 cross(float3 a, float3 b) {
+            return {
+                a.y * b.z - a.z * b.y, 
+                a.z * b.x - a.x * b.z,
+                a.x * b.y - a.y * b.x
+            };
+        }
+
+        template<typename T>
+        float length(T v) { return point_distance(v); }
+
+        float4 normalize(float4 v) {
+            if( v.x == 0.f && v.y == 0.f && v.z == 0.f && v.w == 0.f ) return { 0.f, 0.f, 1.f, 0.f };
+
+            float l = length(v);
+            return { v.x / l, v.y / l, v.z / l, v.w / l };
+        }
+
+        float3 normalize(float3 v) {
+            if( v.x == 0.f && v.y == 0.f && v.z == 0.f ) return { 0.f, 0.f, 1.f };
+
+            float l = length(v);
+            return { v.x / l, v.y / l, v.z / l };
+        }
+
+#ifndef min
+        template<typename T>
+        T min(T a, T b) { return (a < b) ? a : b; };
+#endif
+
+#ifndef max
+        template<typename T>
+        T max(T a, T b) { return (a > b) ? a : b; };
+#endif
+
+        template<typename T>
+        T clamp(T v, T left, T right) { return max(min(v, right), left); }
+        float3 clamp(float3 v, float left, float right) { return { clamp(v.x, left, right), clamp(v.y, left, right), clamp(v.z, left, right) }; }
+        float4 clamp(float4 v, float left, float right) { return { clamp(v.x, left, right), clamp(v.y, left, right), clamp(v.z, left, right), clamp(v.w, left, right) }; }
+
+        // Colors
+        //float3 rgb2hsv(float3 rgb);
+        //float3 hsv2hsv(float3 hsv);
+        //float3 col_dim(float3 rgb, float value) {
+        //    float3 hsv = rgb2hsv(rgb);
+        //    hsv.b = value;
+        //    return hsv2rgb(hsv);
+        //}
+        //float col2float(float3 rgb, float a);
+        //float col2float(float4 rgba);
+        float3 saturate(float3 rgb)  { return clamp(rgb, 0.f, 1.f); }
+        float4 saturate(float4 rgba) { return clamp(rgba, 0.f, 1.f); }
+        float4 rgb2rgba(float3 rgb, float a) { return { rgb.x, rgb.y, rgb.z, a }; }
+        float3 normrgb( float3 rgb ) { return { rgb.x / 255.f, rgb.y / 255.f, rgb.z / 255.f }; }
+        float4 normrgba(float4 rgba) { return { rgba.x / 255.f, rgba.y / 255.f, rgba.z / 255.f, rgba.w / 255.f }; }
+
+        // Quaternions
+
+
+        // Matricies
+
+
+        // 
+
+    }
+
+
+
 #pragma region Primitives
     namespace Draw {
-        typedef float               float1;
-        typedef DirectX::XMFLOAT2   float2;
-        typedef DirectX::XMFLOAT3   float3;
-        typedef DirectX::XMFLOAT4   float4;
-        typedef DirectX::XMVECTOR   vfloat;
-        typedef DirectX::XMFLOAT4X4 float4x4;
-        typedef DirectX::XMMATRIX   mfloat4x4;
-
-        enum PrimitiveType {
-            Noone, _Line, _Rectangle, _Circle, _Ellipse, _Triangle,
-            _CircleOuter,
-        };
+#include "Engine Includes/Types.h"
 
         struct PrimitiveColorBuffer {
-            DirectX::XMFLOAT4 _Color;
+            float4 _Color;
         };
 
         struct PrimitiveBuffer {
@@ -236,23 +337,25 @@ namespace LunaEngine {
             mfloat4x4 mWorld;
             mfloat4x4 mView;
             mfloat4x4 mProj;
+            mfloat4 Params;
         };
 
         struct Config {
             float fNear = .2f, fFar = 2.f;
             float ViewW, ViewH;
+            bool MSAA = false;
         };
-        
-        void SetView (mfloat4x4 mView ) { gMatrixBufferInst->mView  = mView;  }
-        void SetProj (mfloat4x4 mProj ) { gMatrixBufferInst->mProj  = mProj;  }
+
+        void SetView(mfloat4x4 mView) { gMatrixBufferInst->mView = mView; }
+        void SetProj(mfloat4x4 mProj) { gMatrixBufferInst->mProj = mProj; }
         void SetWorld(mfloat4x4 mWorld) { gMatrixBufferInst->mWorld = mWorld; }
 
-
-        void UpdateMatrixBuffer() {
+        void UpdateMatrixBuffer(mfloat4 vec) {
             MatrixBuffer *tmp = (MatrixBuffer*)gMatrixBuffer->Map();
-            tmp->mView = gMatrixBufferInst->mView;
-            tmp->mProj = gMatrixBufferInst->mProj;
-            tmp->mWorld = gMatrixBufferInst->mWorld;
+                tmp->mView = gMatrixBufferInst->mView;
+                tmp->mProj = gMatrixBufferInst->mProj;
+                tmp->mWorld = gMatrixBufferInst->mWorld;
+                tmp->Params = vec;
             gMatrixBuffer->Unmap();
         }
 
@@ -276,7 +379,6 @@ namespace LunaEngine {
                                                          0.f, gConfig->fNear, gConfig->fFar);
         }
 
-        
         void Init(const Config& cfg) {
             // 
             gConfig = new Config();
@@ -304,11 +406,33 @@ namespace LunaEngine {
             shCircleOuter->LoadFile("shCircleOuterVS.cso", Shader::Vertex);
             shCircleOuter->AttachShader(shLine, Shader::Pixel);
 
+            shRectangleOuter = new Shader();
+            shRectangleOuter->LoadFile("shRectangleOuterVS.cso", Shader::Vertex);
+            shRectangleOuter->AttachShader(shLine, Shader::Pixel);
+
+            shTextureSimple = new Shader();
+            shTextureSimple->LoadFile("shTexturedQuadAutoVS.cso", Shader::Vertex);
+            shTextureSimple->LoadFile("shTexturedQuadNoFXPS.cso", Shader::Pixel );
+
+            shTextureSimplePart = new Shader();
+            shTextureSimplePart->LoadFile("shTexturedQuadPartVS.cso", Shader::Vertex);
+            shTextureSimplePart->AttachShader(shTextureSimple, Shader::Pixel);
+
+            shTextureSimplePart->ReleaseBlobs();
+            shTextureSimple->ReleaseBlobs();
+            shRectangleOuter->ReleaseBlobs();
             shCircleOuter->ReleaseBlobs();
             shRectangle->ReleaseBlobs();
             shTriangle->ReleaseBlobs();
             shCircle->ReleaseBlobs();
             shLine->ReleaseBlobs();
+
+            // Reload shader
+            // TODO: Add function to update Config and reload shaders if needed
+            /*if( cfg.MSAA ) {
+                shTextureSimple->Reload("shTexturedQuadNoFXPSMSAA.cso", Shader::Pixel);
+                shTextureSimple->ReleaseBlobs();
+            }*/
 
             // Create constant buffers
             gPrimitiveColorBuff = new ConstantBuffer(sizeof(PrimitiveColorBuffer));
@@ -336,11 +460,14 @@ namespace LunaEngine {
         }
 
         void Release() {
-            SAFE_RELEASE(shCircleOuter);
-            SAFE_RELEASE(shRectangle  );
-            SAFE_RELEASE(shTriangle   );
-            SAFE_RELEASE(shCircle     );
-            SAFE_RELEASE(shLine       );
+            SAFE_RELEASE(shTextureSimplePart);
+            SAFE_RELEASE(shTextureSimple    );
+            SAFE_RELEASE(shRectangleOuter   );
+            SAFE_RELEASE(shCircleOuter      );
+            SAFE_RELEASE(shRectangle        );
+            SAFE_RELEASE(shTriangle         );
+            SAFE_RELEASE(shCircle           );
+            SAFE_RELEASE(shLine             );
 
             SAFE_RELEASE(gPrimitiveColorBuff);
             SAFE_RELEASE(gPrimitiveBuffer   );
@@ -355,6 +482,7 @@ namespace LunaEngine {
         inline float4 GetColor() { return gPrimColorBuff->_Color; }
 
         void Line(float x1, float y1, float x2, float y2) {
+            ScopedRangeProfiler e0(__FUNCTIONW__);
             if( Shader::Current() != shLine || gLastPrimitive != PrimitiveType::_Line ) {
                 gLastPrimitive = PrimitiveType::_Line;                                         // Update state
                 shLine->Bind();                                                                // Set shader
@@ -377,6 +505,7 @@ namespace LunaEngine {
         }
 
         void Rectangle(float x1, float y1, float x2, float y2) {
+            ScopedRangeProfiler e0(__FUNCTIONW__);
             if( Shader::Current() != shRectangle || gLastPrimitive != PrimitiveType::_Rectangle ) {
                 gLastPrimitive = PrimitiveType::_Rectangle;                                        // Update state
                 shRectangle->Bind();                                                               // Set shader
@@ -385,8 +514,8 @@ namespace LunaEngine {
 
             // Update primitive buffer
             PrimitiveBuffer *pBuff = (PrimitiveBuffer*)gPrimitiveBuffer->Map();
-            pBuff->_PositionStart = { x1, y1 };
-            pBuff->_PositionEnd = { x2, y2 };
+                pBuff->_PositionStart = { x1, y1 };
+                pBuff->_PositionEnd   = { x2, y2 };
             gPrimitiveBuffer->Unmap();
 
             // Bind Buffers
@@ -399,6 +528,7 @@ namespace LunaEngine {
         }
 
         void Circle(float x, float y, float r, UINT precision) {
+            ScopedRangeProfiler e0(__FUNCTIONW__);
             if( Shader::Current() != shCircle || gLastPrimitive != PrimitiveType::_Circle ) {
                 gLastPrimitive = PrimitiveType::_Circle;                                           // Update state
                 shCircle->Bind();                                                                  // Set shader
@@ -422,6 +552,7 @@ namespace LunaEngine {
         }
         
         void Triangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+            ScopedRangeProfiler e0(__FUNCTIONW__);
             if( Shader::Current() != shTriangle || gLastPrimitive != PrimitiveType::_Triangle ) {
                 gLastPrimitive = PrimitiveType::_Triangle;                                         // Update state
                 shTriangle->Bind();                                                                // Set shader
@@ -443,8 +574,57 @@ namespace LunaEngine {
             // Draw call
             gDirectX->gContext->Draw(3, 0);
         }
+        
+        
+        void RectangleOuter(float x1, float y1, float x2, float y2) {
+            ScopedRangeProfiler e0(__FUNCTIONW__);
+            if( Shader::Current() != shRectangleOuter || gLastPrimitive != PrimitiveType::_RectangleOuter ) {
+                gLastPrimitive = PrimitiveType::_RectangleOuter;                                   // Update state
+                shRectangleOuter->Bind();                                                          // Set shader
+                gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);    // Set topology
+            }
+
+            // Update primitive buffer
+            PrimitiveBuffer *pBuff = (PrimitiveBuffer*)gPrimitiveBuffer->Map();
+                pBuff->_PositionStart = { x1, y1 };
+                pBuff->_PositionEnd   = { x2, y2 };
+            gPrimitiveBuffer->Unmap();
+
+            // Bind Buffers
+            BindMatrixBuffer();
+            gPrimitiveBuffer->Bind(Shader::Vertex, 1);
+            gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
+
+            // Draw call
+            gDirectX->gContext->Draw(5, 0);
+        }
+
+        void TriangleOuter(float x1, float y1, float x2, float y2, float x3, float y3) {
+            ScopedRangeProfiler e0(__FUNCTIONW__);
+            if( Shader::Current() != shTriangle || gLastPrimitive != PrimitiveType::_TriangleOuter ) {
+                gLastPrimitive = PrimitiveType::_TriangleOuter;                                 // Update state
+                shTriangle->Bind();                                                             // Set shader
+                gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP); // Set topology
+            }
+
+            // Update primitive buffer
+            PrimitiveBuffer *pBuff = (PrimitiveBuffer*)gPrimitiveBuffer->Map();
+                pBuff->_PositionStart = { x1, y1 };
+                pBuff->_PositionEnd   = { x2, y2 };
+                pBuff->_Position3     = { x3, y3 };
+            gPrimitiveBuffer->Unmap();
+
+            // Bind Buffers
+            BindMatrixBuffer();
+            gPrimitiveBuffer->Bind(Shader::Vertex, 1);
+            gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
+
+            // Draw call
+            gDirectX->gContext->Draw(4, 0);
+        }
 
         void CircleOuter(float x, float y, float r, UINT precision) {
+            ScopedRangeProfiler e0(__FUNCTIONW__);
             if( Shader::Current() != shCircleOuter || gLastPrimitive != PrimitiveType::_CircleOuter ) {
                 gLastPrimitive = PrimitiveType::_CircleOuter;                                   // Update state
                 shCircleOuter->Bind();                                                          // Set shader
@@ -467,6 +647,72 @@ namespace LunaEngine {
             gDirectX->gContext->Draw(precision + 1, 0);
         }
 
+
+        void TextureRect(Texture* tex, float x, float y, float xscale, float yscale, float ang) {
+            ScopedRangeProfiler s0(__FUNCTIONW__);
+            if( Shader::Current() != shTextureSimple ) {
+                shTextureSimple->Bind();                                                           // Set shader
+                gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set topology
+            }
+
+            float w = tex->GetWidth();
+            float h = tex->GetHeight();
+
+            // Build world matrix & Update cbuffer
+            mfloat4x4 mWorld = DirectX::XMMatrixIdentity();
+            mWorld *= DirectX::XMMatrixScaling(w * xscale, -h * yscale, 1.f);
+            //mWorld *= DirectX::XMMatrixTranslation(-.5f, .5f, 0.f);
+            mWorld *= DirectX::XMMatrixRotationZ(Math::degtorad(ang));
+            //mWorld *= DirectX::XMMatrixTranslation(.5f, -.5f, 0.f);
+            mWorld *= DirectX::XMMatrixTranslation(x + w * xscale, y + h * yscale, 0.f);
+
+            SetWorld(mWorld);
+            UpdateMatrixBuffer();
+
+            // Bind resources
+            BindMatrixBuffer();
+
+            tex->Bind(Shader::Pixel, 0);
+
+            // Draw call
+            gDirectX->gContext->Draw(6, 0);
+        }
+
+        void TextureStreched(Texture* tex, float x, float y, float xscale, float yscale, float ang) {
+            Draw::TextureRect(tex, 0.f, 0.f, xscale / (2.f * tex->GetWidth()), yscale / (2.f * tex->GetHeight()), ang);
+        }
+
+        void TexturePartScaled(Texture* tex, float x, float y, float left, float top, 
+                                 float width, float height, float xscale, float yscale) {
+            ScopedRangeProfiler s0(__FUNCTIONW__);
+            if( Shader::Current() != shTextureSimplePart ) {
+                shTextureSimplePart->Bind();                                                       // Set shader
+                gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set topology
+            }
+
+            float w = tex->GetWidth();
+            float h = tex->GetHeight();
+
+            // Scale down
+            xscale /= w * 2.f;
+            yscale /= h * 2.f;
+
+            // Build world matrix & Update cbuffer
+            mfloat4x4 mWorld = DirectX::XMMatrixIdentity();
+            mWorld *= DirectX::XMMatrixScaling(w * xscale, -h * yscale, 1.f);
+            mWorld *= DirectX::XMMatrixTranslation(x + w * xscale, y + h * yscale, 0.f);
+
+            SetWorld(mWorld);
+            UpdateMatrixBuffer({ left / w, top / h, width / w, height / h });
+
+            // Bind resources
+            BindMatrixBuffer();
+
+            tex->Bind(Shader::Pixel, 0);
+
+            // Draw call
+            gDirectX->gContext->Draw(6, 0);
+        }
     }
 
 }
