@@ -78,7 +78,7 @@ public:
 
     int GetX() const { return x; }
     int GetY() const { return y; }
-    float2 GetXY() const { return float2(x, y); }
+    float2 GetXY() const { return float2((float)x, (float)y); }
 
     bool IsPressed(MouseButton mkey);
     bool IsDown(MouseButton mkey);

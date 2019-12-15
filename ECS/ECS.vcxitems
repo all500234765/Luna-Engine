@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{a01ed0a1-f1ed-4d67-9d9b-e40edce77fa5}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ECS\ECS.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ECS\ECSComponent.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ECS\ECSSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ECS\ECS.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ECS\ECSComponent.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ECS\ECSSystem.hpp" />
+  </ItemGroup>
+</Project>

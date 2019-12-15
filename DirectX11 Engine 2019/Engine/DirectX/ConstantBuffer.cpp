@@ -37,10 +37,11 @@ void ConstantBuffer::Unmap() {
 void ConstantBuffer::Bind(UINT type, UINT slot) {
     if( !pBuff ) { return; }
 
-    if( type & Shader::Vertex   ) gDirectX->gContext->VSSetConstantBuffers(slot, 1, &pBuff);
-    if( type & Shader::Pixel    ) gDirectX->gContext->PSSetConstantBuffers(slot, 1, &pBuff);
-    if( type & Shader::Geometry ) gDirectX->gContext->GSSetConstantBuffers(slot, 1, &pBuff);
-    if( type & Shader::Hull     ) gDirectX->gContext->HSSetConstantBuffers(slot, 1, &pBuff);
-    if( type & Shader::Domain   ) gDirectX->gContext->DSSetConstantBuffers(slot, 1, &pBuff);
-    if( type & Shader::Compute  ) gDirectX->gContext->CSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Vertex     ) gDirectX->gContext->VSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Pixel      ) gDirectX->gContext->PSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Geometry   ) gDirectX->gContext->GSSetConstantBuffers(slot, 1, &pBuff); // Same
+    if( type & Shader::GeometrySO ) gDirectX->gContext->GSSetConstantBuffers(slot, 1, &pBuff); // Same
+    if( type & Shader::Hull       ) gDirectX->gContext->HSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Domain     ) gDirectX->gContext->DSSetConstantBuffers(slot, 1, &pBuff);
+    if( type & Shader::Compute    ) gDirectX->gContext->CSSetConstantBuffers(slot, 1, &pBuff);
 }

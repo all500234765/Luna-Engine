@@ -46,6 +46,11 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Materials\TextureMaps.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Model.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Camera.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Components.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Transform.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Velocity.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Scene.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\VertexSets.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Profiler\RangeProfiler.h" />
@@ -78,6 +83,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utlities.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\Console.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\FileSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Other\FloatTypeMath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedSemaphore.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedThreadSync.h" />
   </ItemGroup>

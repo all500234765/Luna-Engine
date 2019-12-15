@@ -4,6 +4,8 @@
 
 extern _DirectX* gDirectX;
 
+#include "Engine/DirectX/ConstantBuffer.h"
+
 template<typename T, class S>
 class ScopedMap {
 private:
@@ -34,10 +36,29 @@ public:
     ~ScopedMapResource() { gDirectX->gContext->Unmap(obj, 0); };
 };
 
-class ConstantBuffer;
+template<typename T, class S>
+class ScopedMapCopy {
+private:
+    S* obj;
 
+public:
+    T* data;
+
+    template<typename T2>
+    ScopedMapCopy(S* o, T2  * src): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], (void*)&src [0], sizeof(T)); }
+    ScopedMapCopy(S* o, void* src): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], &((T*)  src)[0], sizeof(T)); }
+    ScopedMapCopy(S* o, T   * src): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], &       src [0], sizeof(T)); }
+
+    ~ScopedMapCopy() { obj->Unmap(); };
+};
+
+// Map CB & Unmap at the end of scope
 template<typename T>
-using ScopeMapConstantBuffer   = ScopedMap<T, ConstantBuffer>;
+using ScopeMapConstantBuffer     = ScopedMap<T, ConstantBuffer>;
+
+// Copy data to CB & unmap at the end of scope
+template<typename T>
+using ScopeMapConstantBufferCopy = ScopedMapCopy<T, ConstantBuffer>;
 
 //template<typename T, typename Type>
 //using ScopeMapStructuredBuffer = ScopedMap<T, class StructuredBuffer<Type>>;

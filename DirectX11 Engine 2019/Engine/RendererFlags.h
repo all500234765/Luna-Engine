@@ -3,9 +3,9 @@
 enum RendererFlags {
     None             = 0, 
     DepthPass        = 1, 
-    OpacityPass      = 2, 
-    OpaquePass       = 4, 
-    RenderSkybox     = 8, 
+    OpacityPass      = 2,  // Deprecated!
+    OpaquePass       = 4,  // Deprecated!
+    RenderSkybox     = 8,  // Deprecated!
     DontBindShaders  = 16, 
     DontBindTextures = 32
 

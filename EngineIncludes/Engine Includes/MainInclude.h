@@ -9,6 +9,7 @@
 #include "Models.h"
 #include "RenderBuffers.h"
 #include "Textures.h"
+#include "Engine/Model/Scene.h"
 
 // Audio engine using XAudio2
 #include "Audio.h"

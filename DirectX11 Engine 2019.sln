@@ -33,10 +33,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AVC Example", "AVC Example\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BVH Builder", "BVH Builder\BVH Builder.vcxproj", "{64784B2A-CCD7-4D9C-B143-4C82FF17167E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ECS", "ECS\ECS.vcxitems", "{A01ED0A1-F1ED-4D67-9D9B-E40EDCE77FA5}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Audio Engine\Audio Engine.vcxitems*{080a6368-0dbf-454e-8793-1b0261d0d227}*SharedItemsImports = 4
 		DirectX11 Engine 2019\DirectX11 Engine 2019.vcxitems*{080a6368-0dbf-454e-8793-1b0261d0d227}*SharedItemsImports = 4
+		ECS\ECS.vcxitems*{080a6368-0dbf-454e-8793-1b0261d0d227}*SharedItemsImports = 4
 		EngineIncludes\EngineIncludes.vcxitems*{080a6368-0dbf-454e-8793-1b0261d0d227}*SharedItemsImports = 4
 		Physics Engine\Physics Engine.vcxitems*{080a6368-0dbf-454e-8793-1b0261d0d227}*SharedItemsImports = 4
 		Renderers\Renderers.vcxitems*{080a6368-0dbf-454e-8793-1b0261d0d227}*SharedItemsImports = 4
@@ -68,8 +71,10 @@ Global
 		Shaders\Shaders.vcxitems*{6f738453-54e0-483d-ba69-e2ae8d9df442}*SharedItemsImports = 4
 		Shaders\Shaders.vcxitems*{74b1d08a-e23a-4d44-a5f5-d59a379373b6}*SharedItemsImports = 4
 		DirectX11 Engine 2019\DirectX11 Engine 2019.vcxitems*{79d4268e-1245-4885-8313-6550d975a81d}*SharedItemsImports = 9
+		ECS\ECS.vcxitems*{a01ed0a1-f1ed-4d67-9d9b-e40edce77fa5}*SharedItemsImports = 9
 		Audio Engine\Audio Engine.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
 		DirectX11 Engine 2019\DirectX11 Engine 2019.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
+		ECS\ECS.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
 		EngineIncludes\EngineIncludes.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
 		Physics Engine\Physics Engine.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
 		Renderers\Renderers.vcxitems*{abed622b-2a33-4fd2-bfbf-89210c7d407f}*SharedItemsImports = 4
