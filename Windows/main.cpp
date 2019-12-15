@@ -59,6 +59,7 @@ SSLRArgs *gSSLRArgs;
 SSAOArgs *gSSAOArgs;
 CSMArgs *gCSMArgs;
 CBuffArgs *gCBuffArgs;
+OITSettings *gOITSettings;
 
 // Text
 Text *tTest;
@@ -421,24 +422,18 @@ bool _DirectX::FrameFunction() {
     {
         gOrderIndendentTransparency->Begin(rtGBuffer);
 
+        // Done rendering to GBuffer
+        // Resolve MSAA
+        rtGBuffer->MSAAResolve();
+
+        // 
         RenderScene(cPlayer, RendererFlags::OpacityPass | RendererFlags::DontBindShaders, nullptr, [](mfloat4x4 world) {
             Camera::Current()->SetWorldMatrix(world);
             Camera::Current()->BuildConstantBuffer();
             Camera::Current()->BindBuffer(Shader::Vertex, 0);
         });
 
-        // Done rendering to GBuffer
-        // Resolve MSAA
-        rtGBuffer->MSAAResolve();
-
-        //     World View Proj
-        //           View Proj
-        // Inv       View Proj
-
-        mfloat4x4 mInvViewProj = Camera::Current()->GetViewMatrix() * Camera::Current()->GetProjMatrix();
-        mInvViewProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(mInvViewProj), mInvViewProj);
-
-        gOrderIndendentTransparency->End(rtGBuffer, mInvViewProj);
+        gOrderIndendentTransparency->End(*gOITSettings);
     }
 
     if( false ) 
@@ -775,10 +770,13 @@ bool _DirectX::FrameFunction() {
             //rtZBuffer_Editor->GetDepth()->pSRV,
             //gCascadeShadowMapping->getSRV(),
             //rtDepth->GetDepthBuffer()->pSRV,
-            rtGBuffer->GetDepthBuffer()->pSRV,
+            /*rtGBuffer->GetDepthBuffer()->pSRV,
             rtGBuffer->GetBufferSRV<0>(),
             rtGBuffer->GetBufferSRV<1>(),
-            rtGBuffer->GetBufferSRV<2>()
+            //rtGBuffer->GetBufferSRV<2>(),*/
+            gOrderIndendentTransparency->GetColorSRV(),
+            gOrderIndendentTransparency->GetNormalSRV(),
+            gOrderIndendentTransparency->GetDepthSRV()
             //_ColorD->pSRV,
             //gSSAOPostProcess->GetSSAOSRV(),
 
@@ -1118,6 +1116,13 @@ void _DirectX::ComposeUI() {
         }
     }
 
+    // OIT
+    static float gMinFadeDist = 30.f;
+    static float gMaxFadeDist = 30.f;
+
+    ImGui::SliderFloat("Min fade distance", &gMinFadeDist, 0.f, 50.f);
+    ImGui::SliderFloat("Max fade distance", &gMaxFadeDist, 0.f, 50.f);
+
     // C-Buffer
     static int gCBuffScale = 2;
 
@@ -1241,6 +1246,17 @@ void _DirectX::ComposeUI() {
     gCBuffArgs->_CameraFar  = fFar;
     gCBuffArgs->_CameraNear = fNear;
 
+    //     World View Proj
+    //           View Proj
+    // Inv       View Proj
+    
+    mfloat4x4 mInvViewProj = cPlayer->GetViewMatrix() * cPlayer->GetProjMatrix();
+    mInvViewProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(mInvViewProj), mInvViewProj);
+
+    gOITSettings->mInvViewProj = mInvViewProj;
+    gOITSettings->fMaxFadeDist = gMaxFadeDist;
+    gOITSettings->fMinFadeDist = gMinFadeDist;
+
     // 
     ImGui::End();
     ImGui::Render();
@@ -1340,17 +1356,18 @@ void _DirectX::Load() {
     RenderTargetMSAA::GlobalInit();
 
     // Post processing
-    gHDRPostProcess  = new HDRPostProcess;
-    gSSAOPostProcess = new SSAOPostProcess;
-    gSSLRPostProcess = new SSLRPostProcess;
-    gCascadeShadowMapping = new CascadeShadowMapping;
-    gCoverageBuffer = new CoverageBuffer;
+    gHDRPostProcess             = new HDRPostProcess;
+    gSSAOPostProcess            = new SSAOPostProcess;
+    gSSLRPostProcess            = new SSLRPostProcess;
+    gCascadeShadowMapping       = new CascadeShadowMapping;
+    gCoverageBuffer             = new CoverageBuffer;
     gOrderIndendentTransparency = new OrderIndendentTransparency;
 
-    gSSLRArgs  = new SSLRArgs;
-    gSSAOArgs  = new SSAOArgs;
-    gCSMArgs   = new CSMArgs;
-    gCBuffArgs = new CBuffArgs;
+    gSSLRArgs    = new SSLRArgs;
+    gSSAOArgs    = new SSAOArgs;
+    gCSMArgs     = new CSMArgs;
+    gCBuffArgs   = new CBuffArgs;
+    gOITSettings = new OITSettings;
 
     gCSMArgs->_CascadeRange[0] = .1f;
     gCSMArgs->_CascadeRange[1] = 10.f;

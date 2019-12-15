@@ -15,6 +15,12 @@
 #include <iostream>
 #include <vector>
 
+struct OITSettings {
+    mfloat4x4 mInvViewProj;
+    float fMinFadeDist;
+    float fMaxFadeDist;
+};
+
 class OrderIndendentTransparency: public CallbackResize, EffectBase {
 private:
     Shader *shOITCreateLinkedLists;
@@ -24,6 +30,10 @@ private:
 
     struct DataBuffer {
         mfloat4x4 _InvViewProj;
+        float3 _CameraPos;
+        float1 _MinFadeDist2;
+        float1 _MaxFadeDist2;
+        float3 _Padding0;
     };
 
     ConstantBuffer *cbDataBuffer;
@@ -33,6 +43,8 @@ private:
     RasterState *rsNoCulling;
     TopologyState *tState;
 
+    RenderTarget<2, 2, true, 1, true, false> *rtTransparent;
+
     Texture texTemp;
 
     Camera cam2D;
@@ -41,10 +53,11 @@ public:
     OrderIndendentTransparency() {
         EffectBase::AddRef(this);
 
+        // 
         cbDataBuffer = new ConstantBuffer();
         cbDataBuffer->CreateDefault(sizeof(DataBuffer));
         cbDataBuffer->SetName("[CB]: OIT Data Buffer 0");
-        
+
         // Load shaders
         shOITCreateLinkedLists = new Shader();
         //shOITCreateLinkedLists->DontTouch({ Shader::Vertex });
@@ -61,6 +74,11 @@ public:
         // Create resources with default size
         uint32_t Width = 1366;
         uint32_t Height = 768;
+
+        rtTransparent = new RenderTarget<2, 2, true, 1, true, false>(Width, Height, 1, "Transparency");
+        rtTransparent->Create(32);                                      // Depth
+        rtTransparent->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM,        // Color
+                                  DXGI_FORMAT_R16G16B16A16_FLOAT);   // Normals
 
         rwListHead = Texture(Width, Height, DXGI_FORMAT_R32_UINT, true);
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
@@ -153,6 +171,8 @@ public:
         SAFE_RELEASE(bsMaskZero);
         SAFE_RELEASE(bsNoBlend);
         SAFE_RELEASE(rsNoCulling);
+        SAFE_RELEASE(rtTransparent);
+
         SAFE_DELETE(tState);
 
         SAFE_RELEASE(shOITCreateLinkedLists);
@@ -163,6 +183,7 @@ public:
         sbLinkedLists.Release();
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
 
+        rtTransparent->Resize(Width, Height, 1);
         rwListHead.Resize(Width, Height);
         texTemp.Resize(Width, Height);
 
@@ -174,15 +195,13 @@ public:
     
     // Must have:
     //  - Depth buffer w/ all opaque geometry
-    //  - Albedo buffer w/ all opaque geometry
-    //  - Normal buffer w/ all opaque geometry
     template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
              size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps
                                                          to create per RT buffer   */
              bool WillHaveMSAA=false, bool Cube=false>
     void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB) {
         if constexpr( !DepthBuffer  ) return;
-        if constexpr( BufferNum < 2 ) return;
+        //if constexpr( BufferNum < 2 ) return;
 
         RangeProfiler::Begin(L"Order Independent Transparency");
         ScopedRangeProfiler s0(L"Begin");
@@ -210,44 +229,37 @@ public:
         ID3D11RenderTargetView *rtv = RB->GetBufferRTV<0, false>();
         const UINT InitCounts[2] = { 0, 0 };
 
-        //std::cout << RB->GetDSV<0, false>() << "\n";
         gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &rtv, RB->GetDSV<0, false>(), 1, 2, UAVs, InitCounts);
 
         // Bind shader
         shOITCreateLinkedLists->Bind();
     }
 
-    // Render transparency; Resolve MSAA
+    // Resolve MSAA; Render transparency
     
-    template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
-             size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps
-                                                         to create per RT buffer   */
-             bool WillHaveMSAA=false, bool Cube=false>
-    void End(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB, mfloat4x4 mInvViewProj) {
+    void End(const OITSettings& params) {
         ScopedRangeProfiler s0(L"End");
 
         {
             ScopeMapConstantBuffer<DataBuffer> q(cbDataBuffer);
 
-            q.data->_InvViewProj = mInvViewProj;
+            q.data->_InvViewProj  = params.mInvViewProj;
+            q.data->_CameraPos    = Camera::Current()->GetPosition();
+            q.data->_MinFadeDist2 = params.fMinFadeDist * params.fMinFadeDist;
+            q.data->_MaxFadeDist2 = params.fMaxFadeDist * params.fMaxFadeDist;
         }
-
-        // Make sure they have similar formats
-        if( texTemp.GetFormat() != RB->GetBufferFormat() ) {
-            texTemp.Release();
-            texTemp = Texture(RB->GetWidth(), RB->GetHeight(), RB->GetBufferFormat(), false);
-        }
-
-        // Store Opaque albedo
-        texTemp.Copy((ID3D11Texture2D*)RB->GetBufferTexture<0>());
 
         // Re-bind RTV and UAV slots
         ID3D11UnorderedAccessView *uav[2] = { nullptr, nullptr };
-        ID3D11RenderTargetView *rtv[2] = { RB->GetBufferRTV<0, true>(), RB->GetBufferRTV<1, true>() };
+        ID3D11RenderTargetView *rtv[2] = { rtTransparent->GetBufferRTV<0, false>(), rtTransparent->GetBufferRTV<1, false>() };
+        ID3D11DepthStencilView *dsv = rtTransparent->GetDSV<0, false>();
 
-        //const float Clear0[4] = { 0.f, 0.f, 0.f, 1.f };
-        gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(2, rtv, RB->GetDSV<0, true>(), 2, 2, uav, 0);
-        //gDirectX->gContext->ClearRenderTargetView(rtv, Clear0);
+        const float Clear0[4] = { 0.f, 0.f, 0.f, 1.f };
+
+        gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(2, rtv, dsv, 2, 2, uav, 0);
+        gDirectX->gContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 1);
+        gDirectX->gContext->ClearRenderTargetView(rtv[0], Clear0);
+        gDirectX->gContext->ClearRenderTargetView(rtv[1], Clear0);
 
         // Begin final render pass
         shOITFinal->Bind();
@@ -266,7 +278,6 @@ public:
 
         // Bind resources
         cbDataBuffer->Bind(Shader::Pixel, 0);
-        texTemp.Bind(Shader::Pixel, 0);
         sbLinkedLists.Bind(Shader::Pixel, 1);
         rwListHead.Bind(Shader::Pixel, 2);
 
@@ -277,11 +288,8 @@ public:
         ID3D11RenderTargetView *pEmptyRTV[2] = { nullptr, nullptr };
         gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(2, pEmptyRTV, nullptr, 2, 2, pEmptyUAV, 0);
 
-        // Copy from UAV to 
-        //RB->GetDepthBuffer<1, true>()
-
         // Resolve MSAA
-        //rtTransparency->MSAAResolve();
+        rtTransparent->MSAAResolve();
         
         // Restore old states
         //TopologyState::Pop();
@@ -294,6 +302,18 @@ public:
 
     inline ID3D11ShaderResourceView *GetHeadSRV() const {
         return rwListHead.GetSRV();
+    }
+
+    inline ID3D11ShaderResourceView *GetColorSRV() const {
+        return rtTransparent->GetBufferSRV<0>();
+    }
+
+    inline ID3D11ShaderResourceView *GetNormalSRV() const {
+        return rtTransparent->GetBufferSRV<1>();
+    }
+
+    inline ID3D11ShaderResourceView *GetDepthSRV() const {
+        return rtTransparent->GetDepthBuffer<0>()->pSRV;
     }
 
 };

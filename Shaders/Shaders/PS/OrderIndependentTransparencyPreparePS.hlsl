@@ -15,9 +15,10 @@ float4 ComputeTransparentColor(PS In, bool front) {
     //return front ? float4(1.f, 0.f, 0.f, 1.f) : float4(0.f, 1.f, 0.f, 1.f);
     
     //return front ? float4(.9f, 0.f, 0.f, .5f) : float4(.9f, .9f, 0.f, .5f);
-    //return front ? float4(.7f, .9f, 0.f, 1.f) : float4(0.f, 0.f, 1.f, 1.f);
+    return front ? float4(.7f, .9f, 0.f, .1f) : float4(0.f, 0.f, 1.f, 0.f);
     
-    return float4(1.f, 0.f, 0.f, 1.f);
+    return float4(_Texture.Sample(_Sampler, In.Texcoord).rgb, .1f);
+    //return float4(1.f, 0.f, 0.f, 1.f);
 }
 
 [earlydepthstencil]
