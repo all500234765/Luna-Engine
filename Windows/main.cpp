@@ -526,7 +526,7 @@ bool _DirectX::FrameFunction() {
         rtDeferred->Bind();             // Set Render Target
         rtDeferred->Clear(Clear0);      // Clear Render Target
         shDeferredPointLight->Bind();   // Set Shader
-
+        
         // 
         gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
 

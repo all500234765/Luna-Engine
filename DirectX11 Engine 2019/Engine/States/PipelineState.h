@@ -9,6 +9,8 @@ protected:
     static T *gStateOld;
 
 public:
+    bool IsBound() const { return (T*)this == gState; }
+
     static T* Current() { return gState;                     }
     static void Push()  { gStateOld = gState;                } // Store current state
     static void Pop()   { if( gStateOld ) gStateOld->Bind(); } // Re-Store old state

@@ -99,12 +99,13 @@ OM main(PS In, uint sample : SV_SampleIndex) {
     
 	[loop]
 	for( int i = 0; i < counter; i++ ) {
-		[branch] if( sorted[i].fDepth != prevDepth ) {
+		//[branch]
+        if( sorted[i].fDepth != prevDepth ) {
 			resolveIndex = -1;
 			resolveBuffer[i] = 1;
 			colors[i] = UnpackColor(sorted[i].uColor);
 		} else {
-			[flatten] if( resolveIndex < 0 ) resolveIndex = i - 1;
+			if( resolveIndex < 0 ) resolveIndex = i - 1;
 
 			colors[resolveIndex] += UnpackColor(sorted[i].uColor);
 			resolveBuffer[resolveIndex]++;
@@ -118,7 +119,7 @@ OM main(PS In, uint sample : SV_SampleIndex) {
 	// Gather
 	[loop]
 	for( int i = 0; i < counter; i++ ) {
-		[flatten] if( resolveBuffer[i] == 0 ) continue;
+		[branch] if( resolveBuffer[i] == 0 ) continue;
         
 		float4 c = colors[i] / float(resolveBuffer[i]);
 		alpha *= (1.f - c.a);
