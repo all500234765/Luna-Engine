@@ -158,22 +158,22 @@ size_t FileSystem::FileAccess::gets(char* dest) {
         while( i < mFileSize && mBuffer[i] != '\3' && mBuffer[i] != '\0' ) { i++; }
         i -= (mBuffer[i] != '\0'); // It might be eof
 
-        read(dest, i - beg);
+        read(dest, i - beg); // TODO: Check
         mCurrentPos += 2; // Skip \0 and \n
-        return i - beg;
+        return i - beg; // TODO: Check
     }
 
     size_t beg = mCurrentPos, i = beg;
     char ch; read(&ch, 1);
 
     while( ((i - beg) < 1024) && (i < mFileSize) && ch != '\3' && ch != '\0' ) {
-        dest[i++ - beg] = ch;
+        dest[i++ - beg] = ch; // TODO: Check
         read(&ch, 1);
     }
 
     advance((size_t)((ch == '\0') || (ch == '\r') || (ch == '\n')));
 
-    return i - beg;
+    return i - beg; // TODO: Check
 }
 
 char* FileSystem::FileAccess::getline(size_t& len) {
@@ -184,9 +184,9 @@ char* FileSystem::FileAccess::getline(size_t& len) {
         while( i < mFileSize && mBuffer[i] != '\3' && mBuffer[i] != '\n' ) { i++; }
         i -= (mBuffer[i] != '\0'); // It might be eof
 
-        read(dest, i - beg);
-        mCurrentPos += 2; // Skip \0 and \n
-        len = i - beg;
+        read(dest, i - beg + 1);
+        mCurrentPos += 1; // Skip \0 and \n
+        len = i - beg + 1;
         return dest;
     }
 
@@ -200,8 +200,8 @@ char* FileSystem::FileAccess::getline(size_t& len) {
 
     advance((size_t)((ch == '\0') || (ch == '\r') || (ch == '\n')));
 
-    len = i - beg;
-    return dest;
+    len = i - beg; // TODO: Check
+    return dest; // TODO: Check
 }
 
 size_t FileSystem::FileAccess::operator>>(char* dest) {
@@ -212,6 +212,10 @@ size_t FileSystem::FileAccess::operator>>(char* dest) {
 
 bool FileSystem::FileAccess::operator>>(char dest) {
     return read(&dest, 1);
+}
+
+bool FileSystem::FileAccess::berror() const {
+    return mILED != Success;
 }
 
 DWORD FileSystem::FileAccess::cerror() const {
@@ -325,6 +329,10 @@ bool FileSystem::FileAccess::operator<<(char* src) {
 
 bool FileSystem::FileAccess::operator<<(char src) {
     return write(&src, 1);
+}
+
+bool FileSystem::FileAccess::is_eof() const {
+    return mCurrentPos >= mFileSize - 1;
 }
 
 char FileSystem::FileAccess::operator[](size_t n) {

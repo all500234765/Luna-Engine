@@ -48,6 +48,7 @@ struct PlotData {
 
 PlotData<120> *gHDRPlot;
 PlotData<120> *gSSAOPlot;
+PlotData<120> *gOITPlot;
 
 HDRPostProcess *gHDRPostProcess;
 SSAOPostProcess *gSSAOPostProcess;
@@ -148,6 +149,8 @@ struct cbSSLRMatrix {
 };
 #pragma endregion
 
+Scene *gScene;
+
 // HBAO+
 #if USE_HBAO_PLUS
 GFSDK_SSAO_CustomHeap CustomHeap;
@@ -158,8 +161,12 @@ GFSDK_SSAO_Parameters Params;
 GFSDK_SSAO_Output_D3D11 Output;
 #endif
 
+size_t gRenderFrame = 0;
+
 template<size_t _Size>
 void PlotUpdate(PlotData<_Size> *plot, float ms) {
+    if( (gRenderFrame % 2) > 0 ) return;
+
     ms *= .001f;
 
     // MinMax
@@ -418,10 +425,21 @@ bool _DirectX::FrameFunction() {
         rtGBuffer->Clear(Clear0);
         //               ^                        Default is 1 ^^^
 
+        shSurface->Bind();
+
+        Scene::Current()->GetCamera(0)->SetView(cPlayer->GetViewMatrix());
+
+        Scene::Current()->RenderOpaque(0, Shader::Vertex);
+
         // Render scene
-        RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
+        //RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
     }
+
     {
+        Timer timer("OIT", false, [](float ms)->void {
+            PlotUpdate(gOITPlot, ms);
+        });
+
         gOrderIndendentTransparency->Begin(rtGBuffer);
 
         // Done rendering to GBuffer
@@ -841,6 +859,9 @@ bool _DirectX::FrameFunction() {
         gContext->ExecuteCommandList(pCommandList, true);
     }
 
+    // 
+    gRenderFrame++;
+
     // End of frame
     gSwapchain->Present(1, 0);
     return false;
@@ -1122,6 +1143,8 @@ void _DirectX::ComposeUI() {
     static float gMinFadeDist = 30.f;
     static float gMaxFadeDist = 30.f;
 
+    ImGui::Text("Order Independent Transparency Settings");
+    ImGui::PlotLines("ms", &PValGetter, gOITPlot->mPlot.data(), (int)gOITPlot->mPlot.size());
     ImGui::SliderFloat("Min fade distance", &gMinFadeDist, 0.f, 50.f);
     ImGui::SliderFloat("Max fade distance", &gMaxFadeDist, 0.f, 50.f);
 
@@ -1165,7 +1188,7 @@ void _DirectX::ComposeUI() {
     ImGui::SliderFloat("Offset radius", &gSSAOOffsetRad , 0.f, 20.f);
     ImGui::SliderFloat("Radius"       , &gSSAORadius    , 0.f, 50.f);
     ImGui::SliderFloat("Power"        , &gSSAOPower     , .1f, 5.f);
-    
+
     ImGui::Text("HDR Settings");
     ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), (int)gHDRPlot->mPlot.size());
     ImGui::Text("Min: %f\nMax: %f", gHDRPlot->mMinMax.x, gHDRPlot->mMinMax.y);
@@ -1357,6 +1380,13 @@ void _DirectX::Load() {
     // Enable MSAA
     RenderTargetMSAA::GlobalInit();
 
+    gScene = new Scene;
+    gScene->MakeCameraFOVH(0, .1f, 10000.f, 1366.f, 768.f, 70.f);
+    gScene->SetAsActive();
+
+    EntityHandle cube = gScene->LoadModelStaticOpaque("../Models/cube.obj")[0];
+    gScene->GetComponent<TransformComponent>(cube)->mWorld = DirectX::XMMatrixScaling(5.f, 10.f, 2.f);
+
     // Post processing
     gHDRPostProcess             = new HDRPostProcess;
     gSSAOPostProcess            = new SSAOPostProcess;
@@ -1379,6 +1409,7 @@ void _DirectX::Load() {
     // 
     gHDRPlot  = new PlotData<120>();
     gSSAOPlot = new PlotData<120>();
+    gOITPlot  = new PlotData<120>();
 
     gHDRPlot->mPlot.fill(0);
     gSSAOPlot->mPlot.fill(0);

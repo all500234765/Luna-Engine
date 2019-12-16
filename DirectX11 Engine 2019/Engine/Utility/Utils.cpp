@@ -1,5 +1,36 @@
 #include "Utils.h"
 
+std::wstring widen(const std::string& str) {
+    using namespace std;
+
+    wostringstream wstm;
+    const ctype<wchar_t>& ctfacet = use_facet< ctype<wchar_t> >(wstm.getloc());
+
+    for( size_t i = 0; i < str.size(); ++i ) wstm << ctfacet.widen(str[i]);
+    return wstm.str();
+}
+
+float ieee_float(uint32_t f) {
+    static_assert(sizeof(float) == sizeof(f), "`float` has a weird size.");
+    float ret;
+    memcpy(&ret, &f, sizeof(float));
+    return ret;
+}
+
+uint32_t ieee_uint32(float f) {
+    static_assert(sizeof(uint32_t) == sizeof(f), "`uint32_t` has a weird size.");
+    uint32_t ret;
+    memcpy(&ret, &f, sizeof(uint32_t));
+    return ret;
+}
+
+std::string_view path_ext(std::string_view fname) {
+    if( fname.find_last_of(".") != std::string::npos )
+        return fname.substr(fname.find_last_of(".") + 1);
+    
+    return "";
+}
+
 size_t Format2Ch(DXGI_FORMAT format) {
     switch( static_cast<int>(format) ) {
         case DXGI_FORMAT_R32G32B32A32_TYPELESS:

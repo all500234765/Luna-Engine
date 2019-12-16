@@ -2,22 +2,30 @@
 
 #include <vector>
 
-// ECS
-#include "ECS/ECSComponent.hpp"
-#include "ECS/ECSSystem.hpp"
-#include "ECS/ECS.hpp"
+// Assimp
+#include "Vendor/Assimp/Importer.hpp"
+#include "Vendor/Assimp/scene.h"
+#include "Vendor/Assimp/postprocess.h"
 
 // Types
 #include <DirectXMath.h>
 #include "Engine Includes/Types.h"
 #include "Other/FloatTypeMath.h"
 
-// Components
-#include "Components/Components.h"
+// ECS
+#include "ECS/ECSComponent.hpp"
+#include "ECS/ECSSystem.hpp"
+#include "ECS/ECS.hpp"
 
-// 
+// Other
+#include "Engine/Utility/Utils.h"
 #include "Engine/RendererFlags.h"
 #include "Engine/ScopedMapper.h"
+#include "Other/FileSystem.h"
+#include "Engine/States/PipelineState.h"
+
+// Components
+#include "Components/Components.h"
 
 struct CameraData {
     CameraComponent    *cCam;
@@ -33,7 +41,7 @@ struct CameraData {
 
     void UpdateCB(ConstantBuffer* cb) {
         // Copy data to CB
-        ScopeMapConstantBufferCopy<CameraBuff> map(cb, &cCam->mView);
+        ScopeMapConstantBufferCopy<CameraBuff> map(cb, (void*)&cCam->mView);
     }
 
     void BuildView() {
@@ -94,12 +102,29 @@ public:
         TransformComponent* transform = (TransformComponent*)comp[0];
         MeshAnimatedComponent* mesh   = (MeshAnimatedComponent*)comp[1];
 
+        uint32_t flags = ieee_uint32(dt);
+
 
     }
 
 } *gAnimatedMeshRenderSystem;
 
+class VelocityIntegrationSystem: public BaseECSSystem {
+public:
+    VelocityIntegrationSystem();
+
+    void UpdateComponents(float dt, BaseECSComponent** comp) override;
+
+} *gVelocityIntegrationSystem;
+
 class StaticMeshRenderSystem: public BaseECSSystem {
+public:
+    StaticMeshRenderSystem();
+
+    void UpdateComponents(float dt, BaseECSComponent** comp) override;
+} *gStaticMeshRenderSystem;
+
+/*class StaticMeshRenderSystem: public BaseECSSystem {
 public:
     StaticMeshRenderSystem(): BaseECSSystem() {
         AddComponentType(TransformComponent::_ID);  // 0
@@ -110,12 +135,23 @@ public:
         TransformComponent* transform = (TransformComponent*)comp[0];
         MeshStaticComponent* mesh     = (MeshStaticComponent*)comp[1];
 
+        uint32_t flags = ieee_uint32(dt);
+        uint32_t low = (flags >> 24);
 
+        uint32_t slot           = low >> Shader::Count;
+        Shader::ShaderType type = Shader::ShaderType(low & ((1 << Shader::Count) - 1));
+        //(type | (slot << Shader::Count));
+
+        mesh->Bind();
+        //transform->Build();
+        transform->Bind(Scene::Current()->cbTransform, Shader::Vertex, 0u);
+
+        gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer.GetNumber(), 0, 0);
     }
 
-} *gStaticMeshRenderSystem;
+} *gStaticMeshRenderSystem;*/
 
-class VelocityIntegrationSystem: public BaseECSSystem {
+/*class VelocityIntegrationSystem: public BaseECSSystem {
 public:
     VelocityIntegrationSystem() {
         AddComponentType(TransformComponent::_ID); // 0
@@ -134,53 +170,245 @@ public:
         velocity->fVelocity     *= .9f;
     }
 
-} *gVelocityIntegrationSystem;
+} *gVelocityIntegrationSystem;*/
 
-class Scene {
+#define SCENE_MAX_CAMERA_COUNT 32
+class Scene: public PipelineState<Scene> {
 private:
-    std::vector<EntityHandle> mOpaque;
-    std::vector<EntityHandle> mCubemaps;
-    std::vector<EntityHandle> mTransparent;
+    friend StaticMeshRenderSystem;
+
+    std::vector<EntityHandle> mOpaque{};
+    std::vector<EntityHandle> mCubemaps{};
+    std::vector<EntityHandle> mTransparent{};
 
     //std::vector<EntityHandle> mParticleEmitters;
     //std::vector<EntityHandle> mParticleSystems;
 
-    EntityHandle mCamera;
+    EntityHandle mCamera[SCENE_MAX_CAMERA_COUNT]{};
 
-    ECSSystemList mRenderOpaqueList, mRenderCubemapList, mRenderTransparentList;
-    ECSSystemList mUpdateList;
+    ECSSystemList mRenderOpaqueList{}, mRenderCubemapList{}, mRenderTransparentList{};
+    ECSSystemList mUpdateList{};
 
-    ECS mECS;
+    ECS mECS{};
 
-    // 
-    template<typename T>
-    T* GetComponent(EntityHandle handle) { return mECS.GetComponent<T>(handle); }
+    CameraData* mCameraData[SCENE_MAX_CAMERA_COUNT]{};
+    ConstantBuffer* cbCameraData[SCENE_MAX_CAMERA_COUNT]{};
+    ConstantBuffer* cbTransform = nullptr;
 
-    CameraData* mCameraData = nullptr;
-    ConstantBuffer* cbCameraData;
+    uint32_t mMainCamera;
+
+    std::vector<EntityHandle> LoadModelExternalStatic(const char* fname) {
+        //ScopedFileAccessRM file(widen(fname).c_str());
+
+        TransformComponent transform;
+        transform.mWorld = DirectX::XMMatrixIdentity();
+        transform.vPosition = {};
+        transform.vRotation = {};
+        transform.vScale = { 1.f, 1.f, 1.f };
+
+        // Load model
+        Assimp::Importer importer;
+        const aiScene *scene = importer.ReadFile(fname, aiProcess_Triangulate | aiProcess_CalcTangentSpace
+                                                      | aiProcess_GenSmoothNormals);
+
+        if( !scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode ) {
+            std::cout << "[Scene::LoadModelExternal]: Can't load model! (" << fname << ")" << std::endl;
+            return {  };
+        }
+
+        // Process scene
+        std::vector<MeshStaticComponent> mMeshList;
+        ProcessNodeStatic(scene->mRootNode, scene, &mMeshList);
+
+        // Some error occured
+        /*if( file.berror() ) return NULL_HANDLE;
+
+        size_t sz;
+        char *line = new char[1024];
+        float x, y, z;
+        uint32_t i0, i1, i2,  i3, i4, i5,  i6, i7, i8;
+
+        line = file.getline(sz);
+
+        enum NowReading {
+            rVertex, 
+            rUV, 
+            rNormal, 
+
+            rIndex
+        } rState;
+
+        while( sz && !file.is_eof() ) {
+            //printf_s("[OBJ]: %s\n", line);
+
+            // Remove comments
+            //uint32_t p = ; // 
+
+            // 
+            sscanf_s(line, "v %f %f %f", &x, &y, &z);
+            printf_s("v %f %f %f\n", x, y, z);
+
+            // Read next line
+            line = file.getline(sz);
+        }
+
+        // WIP
+        delete[] line;
+        return NULL_HANDLE;*/
+
+        // Done
+        if( mMeshList.size() == 1 ) {
+            return { mECS.MakeEntity(transform, mMeshList[0]) };
+        }
+
+        // Return list of entites
+        std::vector<EntityHandle> list;
+        list.reserve(mMeshList.size());
+        for( auto e : mMeshList ) {
+            list.push_back(mECS.MakeEntity(transform, e));
+        }
+
+        // Done
+        return list;
+    }
+
+    void ProcessNodeStatic(aiNode* node, const aiScene* scene, std::vector<MeshStaticComponent>* MeshList) {
+        // Process meshes
+        for( size_t i = 0; i < node->mNumMeshes; i++ ) {
+            aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+            MeshList->push_back(ProcessMeshStatic(mesh, scene));
+        }
+
+        // Process children
+        for( size_t i = 0; i < node->mNumChildren; i++ ) {
+            ProcessNodeStatic(node->mChildren[i], scene, MeshList);
+        }
+    }
+
+    MeshStaticComponent ProcessMeshStatic(aiMesh* inMesh, const aiScene* scene) {
+        MeshStaticComponent mesh;
+
+        // 
+        std::vector<float3> Position;
+        std::vector<float2> Texcoord;
+        std::vector<float3> Normal;
+
+        std::vector<uint32_t> Index;
+        
+        // Process vertices
+        Position.reserve(inMesh->mNumVertices);
+        Texcoord.reserve(inMesh->mNumVertices);
+        Normal.reserve(  inMesh->mNumVertices);
+
+        for( size_t i = 0; i < inMesh->mNumVertices; i++ ) {
+            Position.push_back({ inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z });
+            Normal  .push_back({ inMesh->mNormals [i].x, inMesh->mNormals [i].y, inMesh->mNormals [i].z });
+
+            if( inMesh->mTextureCoords[0] ) {
+                Texcoord.push_back({ inMesh->mTextureCoords[0][i].x, inMesh->mTextureCoords[0][i].y });
+            } else {
+                Texcoord.push_back({ 0, 0 });
+            }
+        }
+
+        // Process indices
+        uint32_t IndexNum = 0;
+        Index.reserve(inMesh->mNumFaces * 3); // Assume that each face has at least 3 indices
+        for( size_t i = 0; i < inMesh->mNumFaces; i++ ) {
+            aiFace face = inMesh->mFaces[i];
+            IndexNum += face.mNumIndices;
+
+            for( size_t j = 0; j < face.mNumIndices; j++ ) {
+                Index.push_back(face.mIndices[j]);
+            }
+        }
+
+        // Create buffers
+        mesh.mIndexBuffer = new IndexBuffer();
+        mesh.mVBPosition  = new VertexBuffer();
+        mesh.mVBTexcoord  = new VertexBuffer();
+        mesh.mVBNormal    = new VertexBuffer();
+
+        mesh.mVBPosition->CreateDefault(Position.size(), sizeof(float3), &Position[0]);
+        mesh.mVBTexcoord->CreateDefault(Texcoord.size(), sizeof(float2), &Texcoord[0]);
+        mesh.mVBNormal->CreateDefault(  Normal  .size(), sizeof(float3), &Normal  [0]);
+
+        mesh.mIndexBuffer->CreateDefault(IndexNum, &Index[0]);
+        
+        // Done
+        return mesh;
+    }
 
 public:
     Scene() {
-        cbCameraData = new ConstantBuffer();
-        cbCameraData->CreateDefault(sizeof(CameraData));
-        cbCameraData->SetName("[Scene::Camera]: Constant Buffer");
+        char buff[128]{};
 
-        mCameraData = new CameraData();
+        for( uint32_t i = 0; i < SCENE_MAX_CAMERA_COUNT; i++ ) {
+            //SecureZeroMemory(buff, 128);
+            sprintf_s(buff, 128, "[Scene::Camera]: Constant Buffer #%u", i);
+
+            cbCameraData[i] = new ConstantBuffer();
+            cbCameraData[i]->CreateDefault(sizeof(CameraBuff));
+            cbCameraData[i]->SetName(buff);
+
+            mCameraData[i] = new CameraData();
+        }
+
+        cbTransform = new ConstantBuffer();
+        cbTransform->CreateDefault(sizeof(TransformBuff));
+        cbTransform->SetName("[Scene::MeshTransform]: Constant Buffer");
 
         gVelocityIntegrationSystem = new VelocityIntegrationSystem;
         gAnimatedMeshRenderSystem  = new AnimatedMeshRenderSystem;
         gStaticMeshRenderSystem    = new StaticMeshRenderSystem;
+
+        // 
+        ResetLists();
     }
 
     ~Scene() {
-        SAFE_RELEASE(cbCameraData);
-        SAFE_DELETE(mCameraData);
+        SAFE_RELEASE_N(cbCameraData, SCENE_MAX_CAMERA_COUNT);
+        SAFE_RELEASE(cbTransform);
+
+        SAFE_DELETE_N(mCameraData, SCENE_MAX_CAMERA_COUNT);
+        SAFE_DELETE(gVelocityIntegrationSystem);
+        SAFE_DELETE(gAnimatedMeshRenderSystem );
+        SAFE_DELETE(gStaticMeshRenderSystem   );
 
         // ECS
-        mECS.RemoveEntity(mCamera);
-        for( auto e : mOpaque      ) mECS.RemoveEntity(e);
-        for( auto e : mCubemaps    ) mECS.RemoveEntity(e);
-        for( auto e : mTransparent ) mECS.RemoveEntity(e);
+        for( uint32_t i = 0; i < SCENE_MAX_CAMERA_COUNT; i++ ) 
+            mECS.RemoveEntity(mCamera[i]);
+
+        auto ReleaseMesh = [&](EntityHandle e, std::string_view name) {
+            auto static_mesh = GetComponent<MeshStaticComponent>(e);
+            auto anim_mesh   = GetComponent<MeshAnimatedComponent>(e);
+
+            // Unload mesh
+            if( static_mesh ) {
+                SAFE_RELEASE(static_mesh->mIndexBuffer);
+
+                SAFE_RELEASE(static_mesh->mVBPosition);
+                SAFE_RELEASE(static_mesh->mVBTexcoord);
+                SAFE_RELEASE(static_mesh->mVBNormal);
+            } else if( anim_mesh ) {
+                SAFE_RELEASE(anim_mesh->mIndexBuffer);
+
+                SAFE_RELEASE(anim_mesh->mVBPosition);
+                SAFE_RELEASE(anim_mesh->mVBTexcoord);
+                SAFE_RELEASE(anim_mesh->mVBNormal);
+
+                SAFE_RELEASE(anim_mesh->mVBWeights);
+                SAFE_RELEASE(anim_mesh->mVBJoints);
+            } else {
+                printf_s("[Scene::~Scene]: Error occured during unloading %s mesh %u\n", name, e);
+            }
+
+            mECS.RemoveEntity(e);
+        };
+
+        for( auto e : mOpaque ) ReleaseMesh(e, "opaque");
+        for( auto e : mCubemaps ) ReleaseMesh(e, "cubemap");
+        for( auto e : mTransparent ) ReleaseMesh(e, "transparent");
 
         mOpaque.clear();
         mCubemaps.clear();
@@ -193,26 +421,60 @@ public:
         mUpdateList.Clear();
     }
 
-    void AddOpaque(std::initializer_list<EntityHandle> list) {
+    // Set current scene as active
+    // Everything will refere to active scene
+    // Renderer, Update events, etc...
+    inline void SetAsActive() { gState = this; }
+
+    // Get component from local ECS
+    template<typename T>
+    T* GetComponent(EntityHandle handle) { return mECS.GetComponent<T>(handle); }
+
+    // TODO: 
+    void AddOpaqueStaticInstance(EntityHandle handle, mfloat4x4 mWorld) {
+
+    }
+
+    void AddOpaque(std::vector<EntityHandle> list) {
         mOpaque.resize(list.size() + list.size());
 
         for( auto e : list )
             mOpaque.push_back(e);
     }
     
-    void AddCubemaps(std::initializer_list<EntityHandle> list) {
+    void AddCubemaps(std::vector<EntityHandle> list) {
         mCubemaps.resize(mCubemaps.size() + list.size());
 
         for( auto e : list )
             mCubemaps.push_back(e);
     }
 
-    void AddTransparent(std::initializer_list<EntityHandle> list) {
+    void AddTransparent(std::vector<EntityHandle> list) {
         mTransparent.resize(mTransparent.size() + list.size());
 
         for( auto e : list )
             mTransparent.push_back(e);
     }
+
+    std::vector<EntityHandle> LoadModelStatic(const char* fname) {
+        std::string_view ext = path_ext(fname);
+
+        if( ext == "obj" || ext == "dae" || ext == "fbx" ) {
+            return LoadModelExternalStatic(fname);
+        }
+
+        // Other file types
+        printf_s("[Scene::LoadModel]: Unsupported model format %s", ext);
+        return {};
+    }
+
+    std::vector<EntityHandle> LoadModelStaticOpaque(const char* fname) {
+        std::vector<EntityHandle> list = LoadModelStatic(fname);
+        AddOpaque(list);
+        return list;
+    }
+
+    inline ECS* GetECS() { return &mECS; };
 
     void ClearRenderLists() {
         mRenderOpaqueList.Clear();
@@ -233,21 +495,26 @@ public:
 
         //mRenderCubemapList.;
         mRenderOpaqueList.AddSystem(*gAnimatedMeshRenderSystem);
-        mRenderTransparentList.AddSystem(*gStaticMeshRenderSystem);
+        mRenderOpaqueList.AddSystem(*gStaticMeshRenderSystem);
+
+        /*mRenderTransparentList.AddSystem(*gAnimatedMeshRenderSystem);
+        mRenderTransparentList.AddSystem(*gStaticMeshRenderSystem);*/
 
         mUpdateList.AddSystem(*gVelocityIntegrationSystem);
     }
 
-    void AddCamera(EntityHandle entity) {
-        mCamera = entity;
+    // Use GetECS() to get ECS context & then to create camera you self
+    void AddCamera(uint32_t CameraIndex, EntityHandle entity) {
+        mCamera[CameraIndex] = entity;
     }
 
-    void MakeCameraOrtho(float _near, float _far, float width, float height) {
+    void MakeCameraOrtho(uint32_t CameraIndex, float _near, float _far, float width, float height) {
         if( mCamera != NULL_HANDLE ) mECS.RemoveEntity(mCamera);
 
         TransformComponent transf;
         transf.vPosition = {};
         transf.vRotation = {};
+        transf.mWorld = DirectX::XMMatrixIdentity();
 
         CameraComponent cam;
         cam.bOrtho  = true;
@@ -256,16 +523,18 @@ public:
         cam.fWidth  = width;
         cam.fHeight = height;
 
-        mCamera = mECS.MakeEntity(transf, cam);
-        UpdateCameraData();
+        mCamera[CameraIndex] = mECS.MakeEntity(transf, cam);
+        UpdateCameraData(CameraIndex);
+        mCameraData[CameraIndex]->Build();
     }
 
-    void MakeCameraFOVH(float _near, float _far, float width, float height, float fovx) {
+    void MakeCameraFOVH(uint32_t CameraIndex, float _near, float _far, float width, float height, float fovx) {
         if( mCamera != NULL_HANDLE ) mECS.RemoveEntity(mCamera);
 
         TransformComponent transf;
         transf.vPosition = {};
         transf.vRotation = {};
+        transf.mWorld = DirectX::XMMatrixIdentity();
 
         CameraComponent cam;
         cam.bOrtho  = false;
@@ -275,9 +544,12 @@ public:
         cam.fFOV_X  = fovx;
         cam.fFOV_Y  = 0.f;
 
-        mCamera = mECS.MakeEntity(transf, cam);
-        UpdateCameraData();
+        mCamera[CameraIndex] = mECS.MakeEntity(transf, cam);
+        UpdateCameraData(CameraIndex);
+        mCameraData[CameraIndex]->Build();
     }
+
+    void SetActiveCamera(uint32_t i) { mMainCamera = i; }
 
     /*void AddCameras(std::initializer_list<EntityHandle> list) {
         mCameras.resize(mCameras.size() + list.size());
@@ -295,40 +567,129 @@ public:
     //void RemoveCubemap();
     //void RemoveTransparent();
     
-    void UpdateCameraData() {
-        mCameraData->cCam    = GetComponent<CameraComponent>   (mCamera);
-        mCameraData->cTransf = GetComponent<TransformComponent>(mCamera);
+    void UpdateCameraData(uint32_t CameraIndex) {
+        mCameraData[CameraIndex]->cCam    = GetComponent<CameraComponent>   (mCamera[CameraIndex]);
+        mCameraData[CameraIndex]->cTransf = GetComponent<TransformComponent>(mCamera[CameraIndex]);
     }
     
-    void BindCamera(uint32_t types=Shader::Vertex, uint32_t slot=0) {
+    void BindCamera(uint32_t CameraIndex, uint32_t types=Shader::Vertex, uint32_t slot=1) {
         // Copy component refs to mCameraData from Camera entity
-        UpdateCameraData();
+        UpdateCameraData(CameraIndex);
 
         // Copy data to CB
-        mCameraData->UpdateCB(cbCameraData);
+        mCameraData[CameraIndex]->UpdateCB(cbCameraData[CameraIndex]);
 
         // Bind CB
-        cbCameraData->Bind(types, slot);
+        cbCameraData[CameraIndex]->Bind(types, slot);
     }
 
-    inline CameraData* GetCamera() const { return mCameraData; }
+    inline CameraData* GetCamera(uint32_t CameraIndex) const { return mCameraData[CameraIndex]; }
 
-    void RenderCubemap(uint32_t flags) {
-        BindCamera();
-        mECS.UpdateSystems(mRenderCubemapList, 0.f);
+    void RenderCubemap(uint32_t CameraIndex, uint32_t flags=0, Shader::ShaderType type=Shader::Vertex, uint32_t slot=1) {
+        flags |= type << 19;
+        BindCamera(CameraIndex, type, slot);
+        mECS.UpdateSystems(mRenderCubemapList, ieee_float(flags));
     }
 
-    void RenderOpaque(uint32_t flags) {
-        BindCamera();
-        mECS.UpdateSystems(mRenderOpaqueList, 0.f);
+    void RenderOpaque(uint32_t CameraIndex, uint32_t flags=0, Shader::ShaderType type=Shader::Vertex, uint32_t slot=1) {
+        flags |= type << 19;
+        BindCamera(CameraIndex, type, slot);
+        mECS.UpdateSystems(mRenderOpaqueList, ieee_float(flags));
     }
 
-    void RenderTransparent(uint32_t flags) {
-        BindCamera();
-        mECS.UpdateSystems(mRenderTransparentList, 0.f);
+    void RenderTransparent(uint32_t CameraIndex, uint32_t flags=0, Shader::ShaderType type=Shader::Vertex, uint32_t slot=1) {
+        flags |= type << 19;
+        BindCamera(CameraIndex, type, slot);
+        mECS.UpdateSystems(mRenderTransparentList, ieee_float(flags));
     }
 
     void Update(float dt) {
         mECS.UpdateSystems(mUpdateList, dt);
     }
 };
+
+///////////////////////////////// 
+VelocityIntegrationSystem::VelocityIntegrationSystem(): BaseECSSystem() {
+    AddComponentType(TransformComponent::_ID); // 0
+    AddComponentType(VelocityComponent::_ID);  // 1
+}
+
+void VelocityIntegrationSystem::UpdateComponents(float dt, BaseECSComponent** comp) {
+    TransformComponent* transform = (TransformComponent*)comp[0];
+    VelocityComponent* velocity = (VelocityComponent*)comp[1];
+
+    // TODO: Fix +=
+    transform->vPosition += velocity->vDirection * velocity->fVelocity * dt;
+    velocity->fVelocity += velocity->fAcceleration * dt;
+
+    velocity->fAcceleration *= .9f;
+    velocity->fVelocity *= .9f;
+}
+
+///////////////////////////////// 
+StaticMeshRenderSystem::StaticMeshRenderSystem(): BaseECSSystem() {
+    AddComponentType(TransformComponent::_ID);  // 0
+    AddComponentType(MeshStaticComponent::_ID); // 1
+}
+
+void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp) {
+    TransformComponent* transform = (TransformComponent*)comp[0];
+    MeshStaticComponent* mesh = (MeshStaticComponent*)comp[1];
+
+    uint32_t flags = ieee_uint32(dt);
+    Shader::ShaderType type = Shader::ShaderType(flags >> 19);
+
+    mesh->Bind();
+    //transform->Build();
+    transform->Bind(Scene::Current()->cbTransform, type, 0);
+
+    gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);
+}
+
+/*class VelocityIntegrationSystem: public BaseECSSystem {
+public:
+    VelocityIntegrationSystem(): BaseECSSystem() {
+        AddComponentType(TransformComponent::_ID); // 0
+        AddComponentType(VelocityComponent::_ID);  // 1
+    }
+
+    void UpdateComponents(float dt, BaseECSComponent** comp) override {
+        TransformComponent* transform = (TransformComponent*)comp[0];
+        VelocityComponent* velocity = (VelocityComponent*)comp[1];
+
+        // TODO: Fix +=
+        transform->vPosition += velocity->vDirection * velocity->fVelocity * dt;
+        velocity->fVelocity += velocity->fAcceleration * dt;
+
+        velocity->fAcceleration *= .9f;
+        velocity->fVelocity *= .9f;
+    }
+
+};
+
+class StaticMeshRenderSystem: public BaseECSSystem {
+public:
+    StaticMeshRenderSystem(): BaseECSSystem() {
+        AddComponentType(TransformComponent::_ID);  // 0
+        AddComponentType(MeshStaticComponent::_ID); // 1
+    }
+
+    void UpdateComponents(float dt, BaseECSComponent** comp) override {
+        TransformComponent* transform = (TransformComponent*)comp[0];
+        MeshStaticComponent* mesh = (MeshStaticComponent*)comp[1];
+
+        uint32_t flags = ieee_uint32(dt);
+        uint32_t low = (flags >> 24);
+
+        uint32_t slot = low >> Shader::Count;
+        Shader::ShaderType type = Shader::ShaderType(low & ((1 << Shader::Count) - 1));
+        //(type | (slot << Shader::Count));
+
+        mesh->Bind();
+        //transform->Build();
+        transform->Bind(Scene::Current()->cbTransform, Shader::Vertex, 0u);
+
+        gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer.GetNumber(), 0, 0);
+    }
+};*/
+

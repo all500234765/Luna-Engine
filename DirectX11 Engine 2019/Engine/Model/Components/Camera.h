@@ -1,3 +1,4 @@
+#include "ShaderDefines.h"
 
 mfloat4x4 mView;
 mfloat4x4 mProj;

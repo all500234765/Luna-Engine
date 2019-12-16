@@ -220,9 +220,7 @@ public:
 
         // Clear head list to -1
         const UINT ValFF[4] = { 0xFFFFFFFF, 0, 0, 0 };
-        const UINT Val00[4] = { 0, 0, 0, 0 };
         gDirectX->gContext->ClearUnorderedAccessViewUint(rwListHead.GetUAV(), ValFF);
-        gDirectX->gContext->ClearUnorderedAccessViewUint(sbLinkedLists.GetUAV(), Val00);
 
         // Reset counter and bind render target with depth buffer
         ID3D11UnorderedAccessView *UAVs[2] = { sbLinkedLists.GetUAV(), rwListHead.GetUAV() };
