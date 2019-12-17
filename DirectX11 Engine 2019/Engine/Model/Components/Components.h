@@ -18,6 +18,10 @@ struct OpaqueComponent: ECSComponent<OpaqueComponent> {
 
 };
 
+struct TransparentComponent: ECSComponent<TransparentComponent> {
+
+};
+
 struct VelocityComponent: ECSComponent<VelocityComponent> {
     #include "Velocity.h"
 };
