@@ -118,19 +118,12 @@ public:
 
 } *gVelocityIntegrationSystem;
 
-class StaticOpaqueMeshRenderSystem: public BaseECSSystem {
+class StaticMeshRenderSystem: public BaseECSSystem {
 public:
-    StaticOpaqueMeshRenderSystem();
+    StaticMeshRenderSystem();
 
     void UpdateComponents(float dt, BaseECSComponent** comp) override;
-} *gStaticOpaqueMeshRenderSystem;
-
-class StaticTransparentMeshRenderSystem: public BaseECSSystem {
-public:
-    StaticTransparentMeshRenderSystem();
-
-    void UpdateComponents(float dt, BaseECSComponent** comp) override;
-} *gStaticTransparentMeshRenderSystem;
+} *gStaticMeshRenderSystem;
 
 /*class StaticMeshRenderSystem: public BaseECSSystem {
 public:
@@ -183,8 +176,7 @@ public:
 #define SCENE_MAX_CAMERA_COUNT 8
 class Scene: public PipelineState<Scene> {
 private:
-    friend StaticOpaqueMeshRenderSystem;
-    friend StaticTransparentMeshRenderSystem;
+    friend StaticMeshRenderSystem;
 
     std::vector<EntityHandle> mOpaque{};
     std::vector<EntityHandle> mCubemaps{};
@@ -203,12 +195,30 @@ private:
     std::array<CameraData*, SCENE_MAX_CAMERA_COUNT> mCameraData{};
     std::array<ConstantBuffer*, SCENE_MAX_CAMERA_COUNT> cbCameraData{};
     ConstantBuffer* cbTransform = nullptr;
+    ConstantBuffer* cbMaterial = nullptr;
 
     uint32_t mMainCamera{};
     uint32_t bUpdatedCameraLists{};
+    uint32_t bIsTransparentPass{};
 
     std::vector<EntityHandle> LoadModelExternalStatic(const char* fname) {
         //ScopedFileAccessRM file(widen(fname).c_str());
+
+        MaterialComponent mat{};
+        mat._UseVertexColor = false;
+        mat._FlipNormals    = false; // !!!!!!!!!!!!!!!!!!!MUST TODO!!!!!!!!!!!!!!!!!!!!!!!!
+        mat._IsTransparent  = false; // Remove StaticOpaque...System and merge them into single one
+                                     // Set flag for Opaque pass
+                                     //          for Transparent pass
+                                     // And compare those values
+                                     // It's simply better   
+        mat._Alpha = 1.f;
+        mat._AlbedoMul = 1.f;
+        mat._NormalMul = 1.f;
+        mat._MetallnessMul = 1.f;
+        mat._RoughnessMul = 1.f;
+        mat._AmbientOcclusionMul = 1.f;
+        mat._EmissionMul = 1.f;
 
         TransformComponent transform;
         transform.mWorld = DirectX::XMMatrixIdentity();
@@ -275,7 +285,7 @@ private:
         std::vector<EntityHandle> list;
         list.reserve(mMeshList.size());
         for( auto e : mMeshList ) {
-            list.push_back(mECS.MakeEntity(transform, e));
+            list.push_back(mECS.MakeEntity(transform, e, mat));
         }
 
         // Done
@@ -365,14 +375,17 @@ public:
             mCameraData[i] = new CameraData();
         }
 
+        cbMaterial = new ConstantBuffer();
+        cbMaterial->CreateDefault(sizeof(MaterialBuff));
+        cbMaterial->SetName("[Scene::Material]: ConstantBuffer");
+
         cbTransform = new ConstantBuffer();
         cbTransform->CreateDefault(sizeof(TransformBuff));
         cbTransform->SetName("[Scene::MeshTransform]: Constant Buffer");
 
         gVelocityIntegrationSystem = new VelocityIntegrationSystem;
         gAnimatedMeshRenderSystem  = new AnimatedMeshRenderSystem;
-        gStaticOpaqueMeshRenderSystem      = new StaticOpaqueMeshRenderSystem;
-        gStaticTransparentMeshRenderSystem = new StaticTransparentMeshRenderSystem;
+        gStaticMeshRenderSystem    = new StaticMeshRenderSystem;
 
         // 
         ResetLists();
@@ -394,8 +407,7 @@ public:
         //SAFE_DELETE_N(mCameraData, SCENE_MAX_CAMERA_COUNT);
         SAFE_DELETE(gVelocityIntegrationSystem);
         SAFE_DELETE(gAnimatedMeshRenderSystem );
-        SAFE_DELETE(gStaticOpaqueMeshRenderSystem);
-        SAFE_DELETE(gStaticTransparentMeshRenderSystem);
+        SAFE_DELETE(gStaticMeshRenderSystem   );
 
         // ECS
         for( uint32_t i = 0; i < SCENE_MAX_CAMERA_COUNT; i++ ) 
@@ -443,6 +455,8 @@ public:
         mUpdateList.Clear();
     }
 
+    bool IsTransparentPass() const { return bIsTransparentPass; };
+
     // Set current scene as active
     // Everything will refere to active scene
     // Renderer, Update events, etc...
@@ -459,12 +473,9 @@ public:
 
     void AddOpaque(std::vector<EntityHandle> list) {
         mOpaque.resize(list.size() + list.size());
-        OpaqueComponent comp{};
 
-        for( auto e : list ) {
-            mECS.AddComponent(e, &comp);
+        for( auto e : list ) 
             mOpaque.push_back(e);
-        }
     }
     
     void AddCubemaps(std::vector<EntityHandle> list) {
@@ -476,12 +487,9 @@ public:
 
     void AddTransparent(std::vector<EntityHandle> list) {
         mTransparent.resize(mTransparent.size() + list.size());
-        TransparentComponent comp{};
 
-        for( auto e : list ) {
-            mECS.AddComponent(e, &comp);
+        for( auto e : list )
             mTransparent.push_back(e);
-        }
     }
 
     std::vector<EntityHandle> LoadModelStatic(const char* fname) {
@@ -530,10 +538,10 @@ public:
 
         //mRenderCubemapList.;
         mRenderOpaqueList.AddSystem(*gAnimatedMeshRenderSystem);
-        mRenderOpaqueList.AddSystem(*gStaticOpaqueMeshRenderSystem);
+        mRenderOpaqueList.AddSystem(*gStaticMeshRenderSystem);
 
         mRenderTransparentList.AddSystem(*gAnimatedMeshRenderSystem);
-        mRenderTransparentList.AddSystem(*gStaticTransparentMeshRenderSystem);
+        mRenderTransparentList.AddSystem(*gStaticMeshRenderSystem);
 
         mUpdateList.AddSystem(*gVelocityIntegrationSystem);
     }
@@ -639,16 +647,19 @@ public:
 
     void RenderCubemap(uint32_t flags=0, Shader::ShaderType type=Shader::Vertex) {
         flags |= type << 19;
+        bIsTransparentPass = false;
         mECS.UpdateSystems(mRenderCubemapList, ieee_float(flags));
     }
 
     void RenderOpaque(uint32_t flags=0, Shader::ShaderType type=Shader::Vertex) {
         flags |= type << 19;
+        bIsTransparentPass = false;
         mECS.UpdateSystems(mRenderOpaqueList, ieee_float(flags));
     }
 
     void RenderTransparent(uint32_t flags=0, Shader::ShaderType type=Shader::Vertex) {
         flags |= type << 19;
+        bIsTransparentPass = true;
         mECS.UpdateSystems(mRenderTransparentList, ieee_float(flags));
     }
 
@@ -676,44 +687,31 @@ void VelocityIntegrationSystem::UpdateComponents(float dt, BaseECSComponent** co
 }
 
 ///////////////////////////////// Opaque
-StaticOpaqueMeshRenderSystem::StaticOpaqueMeshRenderSystem(): BaseECSSystem() {
+StaticMeshRenderSystem::StaticMeshRenderSystem(): BaseECSSystem() {
     AddComponentType(TransformComponent::_ID);  // 0
     AddComponentType(MeshStaticComponent::_ID); // 1
-    AddComponentType(OpaqueComponent::_ID);     // 2
+    AddComponentType(MaterialComponent::_ID);   // 2
 }
 
-void StaticOpaqueMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp) {
+void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp) {
     TransformComponent* transform = (TransformComponent*)comp[0];
     MeshStaticComponent* mesh     = (MeshStaticComponent*)comp[1];
+    MaterialComponent* material   = (MaterialComponent*)comp[2];
+
+    if( material->_IsTransparent == Scene::Current()->IsTransparentPass() ) return;
 
     uint32_t flags = ieee_uint32(dt);
-    Shader::ShaderType type = Shader::ShaderType(flags >> 19);
+    Shader::ShaderType type = Shader::ShaderType(flags >> 25);
+    Shader::ShaderType mat_type = Shader::ShaderType((flags >> 18) & 0x7F); // <--- TODO in Scene
 
+    // Bind mesh data
     mesh->Bind();
     transform->Build(); // TODO: Build world matrix from pos, rot, scale
     transform->Bind(Scene::Current()->cbTransform, type, 0);
+    material->Bind(Scene::Current()->cbMaterial, mat_type, 0, flags);
+    // TODO: Make sorting by materials
 
-    gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);
-}
-
-///////////////////////////////// Transparent
-StaticTransparentMeshRenderSystem::StaticTransparentMeshRenderSystem(): BaseECSSystem() {
-    AddComponentType(TransformComponent::_ID);   // 0
-    AddComponentType(MeshStaticComponent::_ID);  // 1
-    AddComponentType(TransparentComponent::_ID); // 2
-}
-
-void StaticTransparentMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp) {
-    TransformComponent* transform = (TransformComponent*)comp[0];
-    MeshStaticComponent* mesh     = (MeshStaticComponent*)comp[1];
-
-    uint32_t flags = ieee_uint32(dt);
-    Shader::ShaderType type = Shader::ShaderType(flags >> 19);
-
-    mesh->Bind();
-    transform->Build(); // TODO: Build world matrix from pos, rot, scale
-    transform->Bind(Scene::Current()->cbTransform, type, 0);
-
+    // Draw call1
     gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);
 }
 

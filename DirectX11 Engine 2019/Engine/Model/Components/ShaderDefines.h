@@ -5,8 +5,8 @@
         
         #define mfloat4x4 float4x4
         #define uint32_t uint
-        #define TEXSLOT(x)   : register(t[x])
-        #define SAMPLSLOT(x) : register(s[x])
+        #define TEXSLOT(x)   : register(t[x]);
+        #define SAMPLSLOT(x) : register(s[x]);
         
     #else                               // C++
         

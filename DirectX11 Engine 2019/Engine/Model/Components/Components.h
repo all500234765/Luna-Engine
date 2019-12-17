@@ -14,12 +14,38 @@ struct MaterialBuff {
     #include "Material.h"
 };
 
-struct OpaqueComponent: ECSComponent<OpaqueComponent> {
-
+struct WorldLightBuff {
+    #include "WorldLight.h"
 };
 
-struct TransparentComponent: ECSComponent<TransparentComponent> {
+struct AmbientLightBuff {
+    #include "AmbientLight.h"
+};
 
+struct AmbientLightComponent: ECSComponent<WorldLightComponent> {
+    #include "AmbientLight.h"
+
+    void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot) {
+        {
+            // Update CB
+            ScopeMapConstantBufferCopy<AmbientLightBuff> q(cb, (void*)&this->_AmbientLightColor);
+        }
+
+        cb->Bind(types, slot);
+    }
+};
+
+struct WorldLightComponent: ECSComponent<WorldLightComponent> {
+    #include "WorldLight.h"
+
+    void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot) {
+        {
+            // Update CB
+            ScopeMapConstantBufferCopy<WorldLightBuff> q(cb, (void*)&this->_WorldLightPosition);
+        }
+
+        cb->Bind(types, slot);
+    }
 };
 
 struct VelocityComponent: ECSComponent<VelocityComponent> {
@@ -64,13 +90,34 @@ struct MaterialComponent: ECSComponent<MaterialComponent> {
     #include "Material.h"
     #include "MaterialTextures.h"
     
-    void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot) {
+    void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot, uint32_t flags) {
         {
             // Update CB
             ScopeMapConstantBufferCopy<MaterialBuff> q(cb, (void*)&this->_IsTransparent);
         }
 
         cb->Bind(types, slot);
+
+        if( flags & RendererFlags::DontBindTextures ) return;
+        Shader::ShaderType type = Shader::ShaderType(types >> Shader::Count);
+
+        _AlbedoTex->Bind(type, 0);
+        if( (flags & RendererFlags::DontBindSamplers) == 0 ) _AlbedoSampl->Bind(type, 0);
+        if( (flags & RendererFlags::DepthPass) == 0 ) {
+            _NormalTex          ->Bind(type, 1);
+            _MetallicTex        ->Bind(type, 2);
+            _RougnessTex        ->Bind(type, 3);
+            _EmissionTex        ->Bind(type, 4);
+            _AmbientOcclusionTex->Bind(type, 5);
+
+            if( flags & RendererFlags::DontBindSamplers ) return;
+            _AlbedoSampl          ->Bind(type, 0);
+            _NormalSampl          ->Bind(type, 1);
+            _MetallicSampl        ->Bind(type, 2);
+            _RougnessSampl        ->Bind(type, 3);
+            _EmissionSampl        ->Bind(type, 4);
+            _AmbientOcclusionSampl->Bind(type, 5);
+        }
     }
 };
 
