@@ -336,6 +336,8 @@ public:
         // 
         rtCSM->Clear(0.f, 0);
         rtCSM->Bind();
+
+        shCSM->Bind();
     }
 
     // Bind your default rendering shader for used mesh
@@ -343,7 +345,7 @@ public:
     // Before calling
     void Prepare() {
         // Bind geometry shader
-        shCSM->Bind();
+        //shCSM->Bind();
     }
 
 

@@ -1,9 +1,6 @@
-cbuffer MatrixBuffer : register(b0) {
-    float4x4 mWorld;
-    float4x4 mView;
-    float4x4 mProj;
-    float4   vPosition;
-};
+cbuffer MeshBuffer : register(b0) {
+    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Transform.h"
+}
 
 struct VS {
     float3 Position : POSITION0;

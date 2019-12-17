@@ -37,6 +37,14 @@ struct TransformComponent: ECSComponent<TransformComponent> {
 
         cb->Bind(types, slot);
     }
+
+    void Build() {
+        mWorld = DirectX::XMMatrixIdentity();
+
+        mWorld *= DirectX::XMMatrixRotationRollPitchYaw(vRotation.x, vRotation.y, vRotation.z);
+        mWorld *= DirectX::XMMatrixScaling(vScale.x, vScale.y, vScale.z);
+        mWorld *= DirectX::XMMatrixTranslation(vPosition.x, vPosition.y, vPosition.z);
+    }
 };
 
 struct CameraComponent: ECSComponent<CameraComponent> {

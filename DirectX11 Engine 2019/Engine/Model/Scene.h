@@ -690,7 +690,7 @@ void StaticOpaqueMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent**
     Shader::ShaderType type = Shader::ShaderType(flags >> 19);
 
     mesh->Bind();
-    //transform->Build(); // TODO: Build world matrix from pos, rot, scale
+    transform->Build(); // TODO: Build world matrix from pos, rot, scale
     transform->Bind(Scene::Current()->cbTransform, type, 0);
 
     gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);
@@ -711,7 +711,7 @@ void StaticTransparentMeshRenderSystem::UpdateComponents(float dt, BaseECSCompon
     Shader::ShaderType type = Shader::ShaderType(flags >> 19);
 
     mesh->Bind();
-    //transform->Build(); // TODO: Build world matrix from pos, rot, scale
+    transform->Build(); // TODO: Build world matrix from pos, rot, scale
     transform->Bind(Scene::Current()->cbTransform, type, 0);
 
     gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);

@@ -134,8 +134,10 @@ OM main(PS In, uint sample : SV_SampleIndex) {
     // Further -> less visible
     alpha *= depth * _MaxFadeDist2;
     
+    //xyz, xzy, zxy, zyx, yxz, yzx
+    
     // Closer -> less visible
-    float3 dwp = P - _CameraPos;
+    float3 dwp = P - _CameraPos.xyz;
     float dist = dot(dwp, dwp);
     alpha *= saturate(dist / _MinFadeDist2);
     

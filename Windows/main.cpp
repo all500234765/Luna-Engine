@@ -201,162 +201,6 @@ bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
     
-#pragma region Scene rendering
-    auto RenderScene = [&](Camera *cam, uint32_t flags=RendererFlags::None, Camera *light=nullptr, 
-                           void(*PreRender)(DirectX::XMMATRIX m)=[](DirectX::XMMATRIX m)->void{},
-                           void(*PostBind)(uint32_t flags)=[](uint32_t flags)->void{}) {
-        ScopedRangeProfiler s0("RenderScene");
-
-        cam->Bind();
-
-        // 
-        auto DrawBall = [&](Camera* camera, const pFloat3& pos, float radius) {
-            camera->SetWorldMatrix(DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z));
-            camera->BuildConstantBuffer({ 0., 0., 0., radius });
-            camera->BindBuffer(Shader::Domain, 0);
-
-            gContext->Draw(2, 0);
-        };
-
-        // Some data units being binded
-        if( (flags & RendererFlags::DepthPass) == 0 ) {
-            // Bind light buffer
-            if( light ) light->BindBuffer(Shader::Vertex, 1);
-
-            // Bind default material
-            mDefault->BindTextures(Shader::Pixel, 0);
-            sMipLinear->Bind(Shader::Pixel, 0);
-
-            mDefault->BindTextures(Shader::Pixel, 1);
-            sMipLinear->Bind(Shader::Pixel, 1);
-
-            mDefault->BindTextures(Shader::Pixel, 2);
-            sMipLinearOpacity->Bind(Shader::Pixel, 2);
-
-            mDefault->BindTextures(Shader::Pixel, 3);
-            sMipLinearRougness->Bind(Shader::Pixel, 3);
-
-            // Bind depth buffer
-            rtDepth->Bind(0u, Shader::Pixel, 4);
-            sPointClamp->Bind(Shader::Pixel, 4);
-
-            // Bind noise texture
-            tBlueNoiseRG->Bind(Shader::Pixel, 5);
-            sPoint->Bind(Shader::Pixel, 5);
-
-            // Bind cubemap
-            pCubemap->Bind(Shader::Pixel, 6);
-            sPoint->Bind(Shader::Pixel, 6);
-
-            // 
-            sMipLinearRougness->Bind(Shader::Pixel, 7);
-        }
-
-        if( flags & RendererFlags::OpaquePass ) {
-            // Save shader state
-            if( flags & RendererFlags::DontBindShaders ) {
-                gDirectX->gContext->IASetPrimitiveTopology(miSpaceShip->GetTopology());
-                PreRender(miSpaceShip->GetWorldMatrix());
-            } else {
-                // Render Test scene
-                miSpaceShip->Bind(cam);
-            }
-
-            // 
-            if( flags & RendererFlags::DontBindShaders ) {
-                
-            } else if( flags & RendererFlags::DepthPass ) {
-                shVertexOnly->Bind();
-            }
-
-            // 
-            PostBind(flags);
-
-            // Render scene
-            miSpaceShip->Render(!(flags & RendererFlags::DontBindTextures));
-        }
-
-        if( flags & RendererFlags::OpacityPass ) {
-            mfloat4x4 mWorld = DirectX::XMMatrixIdentity();
-            mWorld *= DirectX::XMMatrixTranslation(0.f, -5.f, 0.f);
-            mWorld *= DirectX::XMMatrixScaling(2.f, 2.f, 2.f);
-
-            // Save shader state
-            if( flags & RendererFlags::DontBindShaders ) {
-                gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                PreRender(mWorld);
-            } else {
-                // Render Test scene
-                //mShadowTest1->Bind(cam);
-                cam->SetWorldMatrix(mWorld);
-                cam->BuildConstantBuffer();
-                cam->BindBuffer(Shader::Vertex, 0);
-            }
-
-            // 
-            if( flags & RendererFlags::DontBindShaders ) {
-
-            } else if( flags & RendererFlags::DepthPass ) {
-                shVertexOnly->Bind();
-            }
-
-            // 
-            PostBind(flags);
-
-            // Render scene
-            mShadowTest1->Render(!(flags & RendererFlags::DontBindTextures));
-        }
-
-        // 
-        // Save shader state
-        /*if( flags & RendererFlags::DontBindShaders ) {
-            gDirectX->gContext->IASetPrimitiveTopology(mCornellBox->GetTopology());
-            PreRender(mCornellBox->GetWorldMatrix());
-        } else {
-            // Render Test scene
-            mCornellBox->Bind(cam);
-        }
-
-        // 
-        if( flags & RendererFlags::DontBindShaders ) {
-
-        } else if( flags & RendererFlags::DepthPass ) {
-            shDepthAlpha->Bind();
-        }
-
-        // 
-        PostBind(flags);
-
-        // Render grass
-        mCornellBox->Render();*/
-
-        // Render physics engine test unit spheres
-        /*if( flags & RendererFlags::DepthPass ) shUnitSphereDepthOnly->Bind();
-        else                                   shUnitSphere->Bind();
-
-        // 
-        gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
-
-        // Balls
-        for( int i = 0; i < gPhysicsEngine->GetNumObjects(); i++ ) {
-            const PhysicsObject *obj = gPhysicsEngine->GetObjectP(i);
-
-            if( obj->GetCollider()->GetShapeType() == PhysicsShapeType::Sphere )
-                DrawBall(cam, obj->GetPosition(), ((PhysicsObjectSphere*)obj)->GetRadius());
-        }*/
-
-        // Render skybox
-        if( flags & RendererFlags::RenderSkybox ) {
-            mSkybox->Bind(cPlayer);
-
-            pCubemap->Bind(Shader::Pixel);
-            sMipLinear->Bind(Shader::Pixel);
-
-            mSkybox->Render();
-        }
-    };
-#pragma endregion
-
     // Bind and clear RTV
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
 
@@ -388,21 +232,17 @@ bool _DirectX::FrameFunction() {
 
         //rsFrontCull->Bind();
         gContext->OMSetDepthStencilState(pDSS_Default, 1);
-
         gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
         shVertexOnly->Bind();
 
         // 
-        
         Scene::Current()->GetCamera(0)->SetView(cLight->GetViewMatrix());
         Scene::Current()->GetCamera(0)->SetProj(cLight->GetProjMatrix());
         Scene::Current()->SetActiveCamera(0);
 
-        Scene::Current()->BindCamera(0, Shader::Vertex, 1); // Main camera
+        Scene::Current()->BindCamera(0, Shader::Vertex, 1); // Light camera
 
         Scene::Current()->RenderOpaque(RendererFlags::DepthPass, Shader::Vertex);
-        //RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
     }
 #pragma endregion
 
@@ -410,12 +250,15 @@ bool _DirectX::FrameFunction() {
     {
         ScopedRangeProfiler s1(L"Cascade Shadow Mapping");
 
+        Scene::Current()->GetCamera(0)->SetView(cLight->GetViewMatrix());
+        Scene::Current()->GetCamera(0)->SetProj(cLight->GetProjMatrix());
+        Scene::Current()->SetActiveCamera(0);
+
         gCascadeShadowMapping->Begin(cLight, *gCSMArgs);
-        
-        RenderScene(cLight, RendererFlags::OpaquePass | RendererFlags::DontBindTextures, 
-                    nullptr, [](mfloat4x4 mWorld) {}, [](uint32_t flags) {
-            gCascadeShadowMapping->Prepare();
-        });
+
+        //Scene::Current()->BindCamera(0, Shader::Vertex, 1); // Light camera
+
+        Scene::Current()->RenderOpaque(RendererFlags::DepthPass, Shader::Vertex);
     }
 
     // Reset to defaults
@@ -424,13 +267,12 @@ bool _DirectX::FrameFunction() {
     } else {
         gContext->RSSetState(gRSDefault);
     }
-    
+
+    cPlayer->Bind();
+
 #pragma region Render to gbuffer
     {
         ScopedRangeProfiler s1(L"Render to gbuffer");
-
-        ID3D11RenderTargetView *pEmptyRTV = nullptr;
-        gContext->OMSetRenderTargets(1, &pEmptyRTV, nullptr);
 
         rtGBuffer->Bind();
         rtGBuffer->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
@@ -439,6 +281,36 @@ bool _DirectX::FrameFunction() {
 
         // 
         shSurface->Bind();
+
+        //cLight->BindBuffer(Shader::Vertex, 1);
+
+        // Bind default material
+        mDefault->BindTextures(Shader::Pixel, 0);
+        sMipLinear->Bind(Shader::Pixel, 0);
+
+        mDefault->BindTextures(Shader::Pixel, 1);
+        sMipLinear->Bind(Shader::Pixel, 1);
+
+        mDefault->BindTextures(Shader::Pixel, 2);
+        sMipLinearOpacity->Bind(Shader::Pixel, 2);
+
+        mDefault->BindTextures(Shader::Pixel, 3);
+        sMipLinearRougness->Bind(Shader::Pixel, 3);
+
+        // Bind depth buffer
+        rtDepth->Bind(0u, Shader::Pixel, 4);
+        sPointClamp->Bind(Shader::Pixel, 4);
+
+        // Bind noise texture
+        tBlueNoiseRG->Bind(Shader::Pixel, 5);
+        sPoint->Bind(Shader::Pixel, 5);
+
+        // Bind cubemap
+        pCubemap->Bind(Shader::Pixel, 6);
+        sPoint->Bind(Shader::Pixel, 6);
+
+        // 
+        sMipLinearRougness->Bind(Shader::Pixel, 7);
 
         // 
         Scene::Current()->GetCamera(0)->SetView(cPlayer->GetViewMatrix());
@@ -489,7 +361,6 @@ bool _DirectX::FrameFunction() {
     {
         gCoverageBuffer->Prepare(rtGBuffer, *gCBuffArgs);
     }
-
 
 #pragma region Occlusion query
     // Begin occlusion query
@@ -733,10 +604,10 @@ bool _DirectX::FrameFunction() {
         gSSLRPostProcess->Begin(rtGBuffer, *gSSLRArgs);
 
         // Render scene w/o depth writing.
-        RenderScene(cPlayer, OpaquePass | DepthPass | DontBindShaders | DontBindTextures, nullptr, [](mfloat4x4 m) {
+        /*RenderScene(cPlayer, OpaquePass | DepthPass | DontBindShaders | DontBindTextures, nullptr, [](mfloat4x4 m) {
             gSSLRArgs->_mWorldView = m * cPlayer->GetViewMatrix();
             gSSLRPostProcess->BuildBuffer(*gSSLRArgs);
-        });
+        });*/
 
         // End
         rtSSLR->Bind();
@@ -785,9 +656,11 @@ bool _DirectX::FrameFunction() {
         gContext->PSSetShaderResources(3, 1, &_ColorD->pSRV);
         sPoint->Bind(Shader::Pixel, 3);
 
-        // 
+        // Draw call
         gContext->Draw(6, 0);
 
+        // 
+        LunaEngine::PSDiscardSRV<8>();
     }
 
 #pragma endregion
@@ -896,7 +769,7 @@ bool _DirectX::FrameFunction() {
     return false;
 }
  
-float fSpeed = 37.f, fRotSpeed = 100.f, fSensetivityX = 2.f, fSensetivityY = 3.f;
+float fSpeed = 37.f, fRotSpeed = 100.f, fSensetivityX = 2*2.f, fSensetivityY = 2*3.f;
 float fDir = 0.f, fPitch = 0.f;
 void _DirectX::Tick(float fDeltaTime) {
     const WindowConfig& winCFG = gWindow->GetCFG();
@@ -1310,7 +1183,7 @@ void _DirectX::ComposeUI() {
     gOITSettings->mInvViewProj = mInvViewProj;
     gOITSettings->fMaxFadeDist = gMaxFadeDist;
     gOITSettings->fMinFadeDist = gMinFadeDist;
-
+    
     // 
     ImGui::End();
     ImGui::Render();
@@ -1416,7 +1289,13 @@ void _DirectX::Load() {
     gScene->SetAsActive();
 
     EntityHandle e = gScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj")[0];
-    gScene->GetComponent<TransformComponent>(e)->mWorld = 
+    TransformComponent *transform = gScene->GetComponent<TransformComponent>(e);
+
+    transform->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
+    transform->vScale    = float3(.125, .125, .125);
+    transform->vPosition = float3(-50.f, 0.f, 50.f);
+
+    /*gScene->GetComponent<TransformComponent>(e)->mWorld = 
         DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
         DirectX::XMMatrixTranslation(-500, -50, 500) *
         //DirectX::XMMatrixScaling(.0625, .0625, .0625) * 
@@ -1425,17 +1304,23 @@ void _DirectX::Load() {
         //DirectX::XMMatrixScaling(50, 50, 50) * 
         //DirectX::XMMatrixScaling(8, 8, 8) *
         DirectX::XMMatrixTranslation(-.5f, -.5f, 0.f) *
-        DirectX::XMMatrixIdentity();
+        DirectX::XMMatrixIdentity();*/
         
         //DirectX::XMMatrixScaling(5.f, 5.f, 5.f);
 
     auto elist = gScene->LoadModelStaticTransparent("../Models/teapot.obj");
-    gScene->GetComponent<TransformComponent>(elist[0])->mWorld =
+    transform = gScene->GetComponent<TransformComponent>(elist[0]);
+    /*gScene->GetComponent<TransformComponent>(elist[0])->mWorld =
         DirectX::XMMatrixTranslation(0.f, -5.f, 0.f) * 
         DirectX::XMMatrixScaling(2.f, 2.f, 2.f) *
-        DirectX::XMMatrixIdentity();
+        DirectX::XMMatrixIdentity();*/
+    
+    transform->vScale    = float3(2.f, 2.f, 2.f);
+    transform->vPosition = float3(0.f, -5.f, 0.f);
 
-    gScene->GetComponent<TransformComponent>(elist[1])->mWorld = gScene->GetComponent<TransformComponent>(elist[0])->mWorld;
+    gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
+    gScene->GetComponent<TransformComponent>(elist[1])->vRotation = gScene->GetComponent<TransformComponent>(elist[0])->vRotation;
+    gScene->GetComponent<TransformComponent>(elist[1])->vScale    = gScene->GetComponent<TransformComponent>(elist[0])->vScale;
     
     
     // Post processing
