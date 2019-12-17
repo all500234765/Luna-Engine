@@ -5,7 +5,7 @@
 
 #include <vector>
 
-class PolygonLayout: public PipelineState<PolygonLayout> {
+class PolygonLayout: public PipelineState<PolygonLayout>, DirectXChild {
 private:
     ID3D11InputLayout *il;
     std::vector<D3D11_INPUT_ELEMENT_DESC> descs;

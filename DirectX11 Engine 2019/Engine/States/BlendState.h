@@ -1,8 +1,9 @@
 #pragma once
 
 #include "PipelineState.h"
+#include "Engine/DirectX/DirectXChild.h"
 
-class BlendState: public PipelineState<BlendState> {
+class BlendState: public PipelineState<BlendState>, DirectXChild {
 private:
     ID3D11BlendState *pState = 0;
     DirectX::XMFLOAT4 Factor = { 1.f, 1.f, 1.f, 1.f };

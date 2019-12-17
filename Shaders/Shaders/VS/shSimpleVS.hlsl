@@ -1,14 +1,15 @@
-cbuffer MatrixBuffer : register(b0) {
-    float4x4 mWorld;
-    float4x4 mView;
-    float4x4 mProj;
-    float4   vPosition;
+cbuffer MeshBuffer : register(b0) {
+    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Transform.h"
+}
+
+cbuffer MatrixBuffer : register(b1) {
+    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Camera.h"
 };
 
 struct VS {
     float3 Position : POSITION0;
-    float3 Normal   : NORMAL0;
     float2 Texcoord : TEXCOORD0;
+    float3 Normal   : NORMAL0;
 };
 
 struct PS {
@@ -17,6 +18,6 @@ struct PS {
 
 PS main(VS In) {
     PS Out;
-        Out.Position = mul(mProj, mul(mView, mul(mWorld, float4(In.Position, 1.))));
+        Out.Position = mul(mProj0, mul(mView0, mul(mWorld, float4(In.Position, 1.))));
     return Out;
 }

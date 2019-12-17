@@ -1,8 +1,9 @@
 #pragma once
 
 #include "PipelineState.h"
+#include "Engine/DirectX/DirectXChild.h"
 
-class DepthStencilState: public PipelineState<DepthStencilState> {
+class DepthStencilState: public PipelineState<DepthStencilState>, DirectXChild {
 private:
     ID3D11DepthStencilState *pState = 0;
     UINT StencilRef = 0;

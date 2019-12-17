@@ -24,7 +24,11 @@ static const char* gcShaderName[] = {
         "Geometry With Stream Output"
 };
 
-class Shader: public PipelineState<Shader> {
+enum LayoutGenerator {
+    LgDefault, LgMesh
+};
+
+class Shader: public PipelineState<Shader>, DirectXChild {
 private:
     ID3D11VertexShader   *sVertex;
     ID3D11PixelShader    *sPixel;
@@ -47,6 +51,11 @@ private:
     // If this shader doesn't have any
     uint8_t DTouch = 0;
 
+    // Defines input layout generation
+    // Default: single vertex buffer
+    // Mesh: multiple vertex buffers; 1 for each element
+    uint8_t Layout = LayoutGenerator::LgDefault;
+
 public:
     typedef enum {
         Vertex     = 1, 
@@ -60,6 +69,8 @@ public:
     } ShaderType;
 
     Shader();
+
+    inline void SetLayoutGenerator(LayoutGenerator lg) { Layout = lg; }
 
     void SetNullShader(ShaderType type);
 

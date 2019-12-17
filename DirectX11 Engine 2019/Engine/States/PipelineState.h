@@ -1,9 +1,7 @@
 #pragma once
 
-#include "Engine/DirectX/DirectXChild.h"
-
 template<typename T>
-class PipelineState: public DirectXChild {
+class PipelineState {
 protected:
     static T *gState;
     static T *gStateOld;

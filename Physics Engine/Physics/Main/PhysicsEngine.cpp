@@ -52,7 +52,5 @@ void PhysicsEngine::Dispatch(float dt) {
 }
 
 void PhysicsEngine::Release() {
-    for( auto v = objects.begin(); v != objects.end(); ++v ) {
-        v = objects.erase(v);
-    }
+    objects.clear();
 }

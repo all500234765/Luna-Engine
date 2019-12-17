@@ -4,17 +4,10 @@ cbuffer MeshBuffer : register(b0) {
 
 cbuffer MatrixBuffer : register(b1) {
     #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Camera.h"
-    /*float4x4 mWorld;
-    float4x4 mView;
-    float4x4 mProj;
-    float4   vPosition;*/
 };
 
 cbuffer LightMatrixBuffer : register(b2) {
-    float4x4 mLightWorld;
-    float4x4 mLightView;
-    float4x4 mLightProj;
-    float4   vLightPosition;
+    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Camera.h"
 };
 
 struct VS {
@@ -43,11 +36,11 @@ PS main(VS In) {
 
     // Tangent, BiTangent, Normal matrix
     float3x3 TBN = float3x3(WorldTan, WorldBiT, WorldNor);
-
+    
     PS Out;
-        Out.Position = mul(mProj, mul(mView, WorldPos));
+        Out.Position = mul(mProj0, mul(mView0, WorldPos));
         Out.WorldTBN = TBN;
-        Out.LightPos = mul(mLightProj, mul(mLightView, float4(WorldPos.xyz, 1.)));
+        Out.LightPos = mul(mProj1, mul(mView1, float4(WorldPos.xyz, 1.)));
         Out.ViewDir  = mul(TBN, /*vPosition.xyz*/0.f - WorldPos.xyz);
         Out.Texcoord = In.Texcoord;
         Out.WorldPos = mul(TBN, WorldPos.xyz);

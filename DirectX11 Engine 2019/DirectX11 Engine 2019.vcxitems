@@ -49,6 +49,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Camera.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Material.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\MaterialTextures.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\ShaderDefines.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Transform.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Velocity.h" />

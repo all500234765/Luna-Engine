@@ -238,24 +238,26 @@ HRESULT Shader::CreateInputLayoutDescFromVertexShaderSignature(ID3D11InputLayout
     pVertexShaderReflection->GetDesc(&shaderDesc);
 
     // Read input layout description from shader info
-    unsigned int byteOffset = 0;
+    uint32_t byteOffset = 0;
+    uint32_t j = 0;
     std::vector<D3D11_INPUT_ELEMENT_DESC> inputLayoutDesc;
     for( unsigned int i = 0; i < shaderDesc.InputParameters; ++i ) {
         D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
         pVertexShaderReflection->GetInputParameterDesc(i, &paramDesc);
 
+        // Skip some auto-generated semantics
+        if( paramDesc.SemanticName == "SV_InstanceID" || paramDesc.SemanticName == "SV_VertexID" ) {
+            continue;
+        }
+
         // create input element desc
         D3D11_INPUT_ELEMENT_DESC elementDesc;
-        elementDesc.SemanticName = paramDesc.SemanticName;
-        elementDesc.SemanticIndex = paramDesc.SemanticIndex;
-        elementDesc.InputSlot = 0;
-        elementDesc.AlignedByteOffset = byteOffset;
-        elementDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+        elementDesc.SemanticName         = paramDesc.SemanticName;
+        elementDesc.SemanticIndex        = paramDesc.SemanticIndex;
+        elementDesc.InputSlot            = (Layout == LayoutGenerator::LgMesh) ? j++ : 0;
+        elementDesc.AlignedByteOffset    = (Layout == LayoutGenerator::LgDefault) ? byteOffset : 0;
+        elementDesc.InputSlotClass       = D3D11_INPUT_PER_VERTEX_DATA;
         elementDesc.InstanceDataStepRate = 0;
-
-        // Skip some auto-generated semantics
-        if( elementDesc.SemanticName == "SV_InstanceID"
-         || elementDesc.SemanticName == "SV_VertexID" ) { continue; }
         //std::cout << elementDesc.SemanticName << std::endl;
 
         // determine DXGI format

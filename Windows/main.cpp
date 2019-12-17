@@ -389,7 +389,20 @@ bool _DirectX::FrameFunction() {
         //rsFrontCull->Bind();
         gContext->OMSetDepthStencilState(pDSS_Default, 1);
 
-        RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
+        gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        shVertexOnly->Bind();
+
+        // 
+        
+        Scene::Current()->GetCamera(0)->SetView(cLight->GetViewMatrix());
+        Scene::Current()->GetCamera(0)->SetProj(cLight->GetProjMatrix());
+        Scene::Current()->SetActiveCamera(0);
+
+        Scene::Current()->BindCamera(0, Shader::Vertex, 1); // Main camera
+
+        Scene::Current()->RenderOpaque(RendererFlags::DepthPass, Shader::Vertex);
+        //RenderScene(cLight, RendererFlags::DepthPass | RendererFlags::OpaquePass);
     }
 #pragma endregion
 
@@ -420,14 +433,22 @@ bool _DirectX::FrameFunction() {
         gContext->OMSetRenderTargets(1, &pEmptyRTV, nullptr);
 
         rtGBuffer->Bind();
-        //bGBuffer->Clear(Clear, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
-        rtGBuffer->Clear(0.f, 0);
+        rtGBuffer->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
+        //               ^ Default is 1.f
         rtGBuffer->Clear(Clear0);
-        //               ^                        Default is 1 ^^^
 
+        // 
         shSurface->Bind();
 
+        // 
         Scene::Current()->GetCamera(0)->SetView(cPlayer->GetViewMatrix());
+        Scene::Current()->GetCamera(0)->SetProj(cPlayer->GetProjMatrix());
+        Scene::Current()->GetCamera(1)->SetView(cLight->GetViewMatrix());
+        Scene::Current()->GetCamera(1)->SetProj(cLight->GetProjMatrix());
+        Scene::Current()->SetActiveCamera(0);
+        
+        Scene::Current()->BindCamera(0, Shader::Vertex, 1); // Main camera
+        Scene::Current()->BindCamera(1, Shader::Vertex, 2); // Shadow camera
 
         Scene::Current()->RenderOpaque(0, Shader::Vertex);
 
@@ -447,11 +468,19 @@ bool _DirectX::FrameFunction() {
         rtGBuffer->MSAAResolve();
 
         // 
-        RenderScene(cPlayer, RendererFlags::OpacityPass | RendererFlags::DontBindShaders, nullptr, [](mfloat4x4 world) {
+        Scene::Current()->GetCamera(0)->SetView(cPlayer->GetViewMatrix());
+        Scene::Current()->GetCamera(0)->SetProj(cPlayer->GetProjMatrix());
+        Scene::Current()->SetActiveCamera(0);
+
+        Scene::Current()->BindCamera(0, Shader::Vertex, 1); // Main camera
+
+        Scene::Current()->RenderTransparent(0, Shader::Vertex);
+
+        /*RenderScene(cPlayer, RendererFlags::OpacityPass | RendererFlags::DontBindShaders, nullptr, [](mfloat4x4 world) {
             Camera::Current()->SetWorldMatrix(world);
             Camera::Current()->BuildConstantBuffer();
             Camera::Current()->BindBuffer(Shader::Vertex, 0);
-        });
+        });*/
 
         gOrderIndendentTransparency->End(*gOITSettings);
     }
@@ -1382,11 +1411,33 @@ void _DirectX::Load() {
 
     gScene = new Scene;
     gScene->MakeCameraFOVH(0, .1f, 10000.f, 1366.f, 768.f, 70.f);
+    gScene->MakeCameraFOVH(1, .1f, 10000.f, 2048.f, 2048.f, 90.f);
+    gScene->UpdateMadeCameras();
     gScene->SetAsActive();
 
-    EntityHandle cube = gScene->LoadModelStaticOpaque("../Models/cube.obj")[0];
-    gScene->GetComponent<TransformComponent>(cube)->mWorld = DirectX::XMMatrixScaling(5.f, 10.f, 2.f);
+    EntityHandle e = gScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj")[0];
+    gScene->GetComponent<TransformComponent>(e)->mWorld = 
+        DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
+        DirectX::XMMatrixTranslation(-500, -50, 500) *
+        //DirectX::XMMatrixScaling(.0625, .0625, .0625) * 
+        DirectX::XMMatrixScaling(.125, .125, .125) *
+        //DirectX::XMMatrixScaling(400, 400, 400) * 
+        //DirectX::XMMatrixScaling(50, 50, 50) * 
+        //DirectX::XMMatrixScaling(8, 8, 8) *
+        DirectX::XMMatrixTranslation(-.5f, -.5f, 0.f) *
+        DirectX::XMMatrixIdentity();
+        
+        //DirectX::XMMatrixScaling(5.f, 5.f, 5.f);
 
+    auto elist = gScene->LoadModelStaticTransparent("../Models/teapot.obj");
+    gScene->GetComponent<TransformComponent>(elist[0])->mWorld =
+        DirectX::XMMatrixTranslation(0.f, -5.f, 0.f) * 
+        DirectX::XMMatrixScaling(2.f, 2.f, 2.f) *
+        DirectX::XMMatrixIdentity();
+
+    gScene->GetComponent<TransformComponent>(elist[1])->mWorld = gScene->GetComponent<TransformComponent>(elist[0])->mWorld;
+    
+    
     // Post processing
     gHDRPostProcess             = new HDRPostProcess;
     gSSAOPostProcess            = new SSAOPostProcess;
@@ -1746,6 +1797,7 @@ void _DirectX::Load() {
 
 #pragma region Load Shaders
     // Load shader
+    shSurface->SetLayoutGenerator(LayoutGenerator::LgMesh);
     shSurface->LoadFile("shSurfaceVS.cso", Shader::Vertex);
     shSurface->LoadFile("shSurfacePS.cso", Shader::Pixel);
 
@@ -1760,6 +1812,7 @@ void _DirectX::Load() {
     //shSkeletalAnimations->LoadFile("shSkeletalAnimationsPS.cso", Shader::Pixel);
 
     // Vertex only shader
+    shVertexOnly->SetLayoutGenerator(LayoutGenerator::LgMesh);
     shVertexOnly->LoadFile("shSimpleVS.cso", Shader::Vertex); // Change to shSurfaceVS
     shVertexOnly->SetNullShader(Shader::Pixel);
 
@@ -2036,34 +2089,34 @@ void _DirectX::Unload() {
     delete gCascadeShadowMapping;
 
     // Release states
-    rsFrontCull->Release();
-    pBlendState0->Release();
+    SAFE_RELEASE(rsFrontCull);
+    SAFE_RELEASE(pBlendState0);
 
     // Physics
-    gPhysicsEngine->Release();
+    SAFE_RELEASE(gPhysicsEngine);
 
     // Release constant buffers
-    cbDeferredGlobalInst->Release();
-    cbDeferredLightInst->Release();
+    SAFE_RELEASE(cbDeferredGlobalInst);
+    SAFE_RELEASE(cbDeferredLightInst);
 
     // Release SFX
-    sfxShotSingle->Release();
-    sfxGunReload->Release();
-    mscMainTheme->Release();
+    SAFE_RELEASE(sfxShotSingle);
+    SAFE_RELEASE(sfxGunReload);
+    SAFE_RELEASE(mscMainTheme);
 
     // Release queries
-    pQuery->Release();
+    SAFE_RELEASE(pQuery);
 
     // Release cubemaps
-    pCubemap->Release();
+    SAFE_RELEASE(pCubemap);
 
     // Release materials
-    mDefault->Release();
+    SAFE_RELEASE(mDefault);
 
     // Release textures
-    tBlueNoiseRG->Release();
-    tClearPixel->Release();
-    //tDefault->Release(); // Material will delete it
+    SAFE_RELEASE(tBlueNoiseRG);
+    SAFE_RELEASE(tClearPixel);
+    //SAFE_RELEASE(tDefault); // Material will delete it
 
     // Release shaders
     shSurface->DeleteShaders();
@@ -2092,12 +2145,12 @@ void _DirectX::Unload() {
     shDepthAlpha->DeleteShaders();
 
     // Release models
-    mModel1->Release();
-    mModel2->Release();
-    mModel3->Release();
-    mScreenPlane->Release();
-    mShadowTest1->Release();
-    mUnitSphereUV->Release();
+    SAFE_RELEASE(mModel1);
+    SAFE_RELEASE(mModel2);
+    SAFE_RELEASE(mModel3);
+    SAFE_RELEASE(mScreenPlane);
+    SAFE_RELEASE(mShadowTest1);
+    SAFE_RELEASE(mUnitSphereUV);
 
     // Release buffers
     SAFE_RELEASE(rtDepth);
@@ -2108,8 +2161,8 @@ void _DirectX::Unload() {
     SAFE_RELEASE(rtGBuffer);
     
     // Text engine
-    fRegular->Release();
-    tTest->Release();
+    SAFE_RELEASE(fRegular);
+    SAFE_RELEASE(tTest);
 }
 
 #if USE_ANSEL
@@ -2329,4 +2382,8 @@ int main() {
     gWindow->Destroy();
     gDirectX->Unload();
     gAudioDevice->Release();
+
+    gDirectX->gContext->Release();
+    std::cout << "[DX]: Unreleased references " << gDirectX->gDevice->Release() << "\n";
+    Sleep(1000);
 }

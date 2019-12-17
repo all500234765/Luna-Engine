@@ -2,8 +2,6 @@
 
 #include "PipelineState.h"
 
-#include "Engine/Singleton.h"
-
 typedef D3D_PRIMITIVE_TOPOLOGY Topology;
 
 class TopologyState: public PipelineState<TopologyState> {
