@@ -6,6 +6,96 @@
 I made trello panel, so you can see what i want to do, what i already done and what i am working on atm.
 https://trello.com/b/T8T6vkBN/directx-11-engine-2019
 
+# Version 
+# 0.1.
+# 140
+* Order Independent Transparency
+# Screenshot here
+* Screen-Door Transparency
+# Screenshot here
+* More 2D drawing functions
+    * Triangle
+    * CircleOuter
+    * Texture
+* Entity Component System is now part of LunaEngine!
+* ECS based Scene system!
+    * Load & add models with ease
+    ```cpp
+    gScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj");
+    ```
+    
+    * New id based camera system
+    You can now create multiple cameras per single scene!
+    ```cpp
+    gScene->MakeCameraFOVH(0, .1f, 10000.f, 1366.f, 768.f, 70.f);
+    ```
+    
+    * Scene stack
+    
+* New ECS based mesh system
+    * Now all shaders that will be used for new Scene rendering system, must specify Layout Generator flag before loading shaders
+    ```cpp
+    SetLayoutGenerator(LayoutGenerator::LgMesh);
+    ```
+    
+    * New Scene's Mesh component separates all vertex buffers into several (Position, Texcoord, Normal, etc...)
+    * All other shaders will remain unaffected by this change
+    
+* Old camera system will be deprecated soon!
+* New utils
+    * File System (WIP)
+        * File Mapping
+        * R/W Access
+        * (In future) Virtual file system
+        * Config files
+    * Singleton class
+    * TopologyState
+    * Scoped Resource Mapping
+        ```cpp
+        ScopeMapConstantBuffer<Type> q(CB);
+        ```
+        
+        Order of operations:
+        * Map CB
+        * Your code with q.data
+        * Unmap CB
+        ```cpp
+        {
+            ScopeMapConstantBuffer<DataBuffer> q(cbDataBuffer);
+            
+            q.data->_InvViewProj  = params.mInvViewProj;
+            q.data->_CameraPos    = Camera::Current()->GetPosition();
+            q.data->_MinFadeDist2 = params.fMinFadeDist * params.fMinFadeDist;
+            q.data->_MaxFadeDist2 = params.fMaxFadeDist * params.fMaxFadeDist;
+        }
+        ```
+        
+        ```cpp
+        ScopeMapConstantBufferCopy<Type> q(CB, DataPtr);
+        ```
+        
+        Order of operations:
+        * Map CB
+        * Copy from DataPtr to q.data
+        * Your code with q.data
+        * Unmap CB
+        ```cpp
+        {
+            // Update CB
+            ScopeMapConstantBufferCopy<TransformBuff> q(cb, (void*)&this->mWorld);
+        }
+
+        cb->Bind(types, slot);
+        ```
+        
+        Same goes for ScopedMapResource
+    * Fixed CountLines powershell script
+    
+* Fixed
+    * Crash on physics destroy event
+    * Some warnings
+    * Working on resolving un released objects at the end of the app
+
 # Version 0.1.120
 * Added Attribute Vertex Clouds example. Quick and dirty.
 * Some basic profiling tools for graphics debugging
