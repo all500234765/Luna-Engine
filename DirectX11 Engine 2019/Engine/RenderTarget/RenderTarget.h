@@ -849,7 +849,7 @@ public:
         return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pSRV;
     }
 
-    template<UINT index, bool noMSAA = true>
+    template<UINT index, bool noMSAA=true>
     inline ID3D11RenderTargetView* GetBufferRTV() const {
         if constexpr( !BufferNum ) return nullptr;
         return std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pView);

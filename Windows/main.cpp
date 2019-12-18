@@ -656,11 +656,15 @@ bool _DirectX::FrameFunction() {
         gContext->PSSetShaderResources(3, 1, &_ColorD->pSRV);
         sPoint->Bind(Shader::Pixel, 3);
 
+        // OIT
+        ID3D11ShaderResourceView *srv = gOrderIndendentTransparency->GetColorSRV();
+        gDirectX->gContext->PSSetShaderResources(9, 1, &srv);
+
         // Draw call
         gContext->Draw(6, 0);
 
         // 
-        LunaEngine::PSDiscardSRV<8>();
+        LunaEngine::PSDiscardSRV<9>();
     }
 
 #pragma endregion
@@ -1295,26 +1299,9 @@ void _DirectX::Load() {
     transform->vScale    = float3(.125, .125, .125);
     transform->vPosition = float3(-50.f, 0.f, 50.f);
 
-    /*gScene->GetComponent<TransformComponent>(e)->mWorld = 
-        DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(270.f)) *
-        DirectX::XMMatrixTranslation(-500, -50, 500) *
-        //DirectX::XMMatrixScaling(.0625, .0625, .0625) * 
-        DirectX::XMMatrixScaling(.125, .125, .125) *
-        //DirectX::XMMatrixScaling(400, 400, 400) * 
-        //DirectX::XMMatrixScaling(50, 50, 50) * 
-        //DirectX::XMMatrixScaling(8, 8, 8) *
-        DirectX::XMMatrixTranslation(-.5f, -.5f, 0.f) *
-        DirectX::XMMatrixIdentity();*/
-        
-        //DirectX::XMMatrixScaling(5.f, 5.f, 5.f);
-
     auto elist = gScene->LoadModelStaticTransparent("../Models/teapot.obj");
     transform = gScene->GetComponent<TransformComponent>(elist[0]);
-    /*gScene->GetComponent<TransformComponent>(elist[0])->mWorld =
-        DirectX::XMMatrixTranslation(0.f, -5.f, 0.f) * 
-        DirectX::XMMatrixScaling(2.f, 2.f, 2.f) *
-        DirectX::XMMatrixIdentity();*/
-    
+
     transform->vScale    = float3(2.f, 2.f, 2.f);
     transform->vPosition = float3(0.f, -5.f, 0.f);
 
@@ -1322,6 +1309,8 @@ void _DirectX::Load() {
     gScene->GetComponent<TransformComponent>(elist[1])->vRotation = gScene->GetComponent<TransformComponent>(elist[0])->vRotation;
     gScene->GetComponent<TransformComponent>(elist[1])->vScale    = gScene->GetComponent<TransformComponent>(elist[0])->vScale;
     
+    // 
+    elist = gScene->Instantiate(elist);
     
     // Post processing
     gHDRPostProcess             = new HDRPostProcess;

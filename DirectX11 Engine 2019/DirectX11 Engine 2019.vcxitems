@@ -46,6 +46,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Materials\TextureMaps.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Mesh.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Models\Model.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\AmbientLight.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Camera.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Components.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Material.h" />
@@ -53,6 +54,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\ShaderDefines.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Transform.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\Velocity.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\WorldLight.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Scene.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\VertexSets.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Mesh.h" />

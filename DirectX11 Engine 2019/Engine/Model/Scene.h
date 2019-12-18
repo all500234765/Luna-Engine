@@ -173,14 +173,16 @@ public:
 
 } *gVelocityIntegrationSystem;*/
 
+typedef std::vector<EntityHandle> EntityHandleList;
+
 #define SCENE_MAX_CAMERA_COUNT 8
 class Scene: public PipelineState<Scene> {
 private:
     friend StaticMeshRenderSystem;
 
-    std::vector<EntityHandle> mOpaque{};
-    std::vector<EntityHandle> mCubemaps{};
-    std::vector<EntityHandle> mTransparent{};
+    EntityHandleList mOpaque{};
+    EntityHandleList mCubemaps{};
+    EntityHandleList mTransparent{};
 
     //std::vector<EntityHandle> mParticleEmitters;
     //std::vector<EntityHandle> mParticleSystems;
@@ -201,7 +203,7 @@ private:
     uint32_t bUpdatedCameraLists{};
     uint32_t bIsTransparentPass{};
 
-    std::vector<EntityHandle> LoadModelExternalStatic(const char* fname) {
+    EntityHandleList LoadModelExternalStatic(const char* fname) {
         //ScopedFileAccessRM file(widen(fname).c_str());
 
         MaterialComponent mat{};
@@ -278,11 +280,11 @@ private:
 
         // Done
         if( mMeshList.size() == 1 ) {
-            return { mECS.MakeEntity(transform, mMeshList[0]) };
+            return { mECS.MakeEntity(transform, mMeshList[0], mat) };
         }
 
         // Return list of entites
-        std::vector<EntityHandle> list;
+        EntityHandleList list;
         list.reserve(mMeshList.size());
         for( auto e : mMeshList ) {
             list.push_back(mECS.MakeEntity(transform, e, mat));
@@ -416,6 +418,7 @@ public:
         auto ReleaseMesh = [&](EntityHandle e, std::string_view name) {
             auto static_mesh = GetComponent<MeshStaticComponent>(e);
             auto anim_mesh   = GetComponent<MeshAnimatedComponent>(e);
+            //auto // TODO: Release material
 
             // Unload mesh
             if( static_mesh ) {
@@ -466,33 +469,53 @@ public:
     template<typename T>
     T* GetComponent(EntityHandle handle) { return mECS.GetComponent<T>(handle); }
 
+    EntityHandleList Instantiate(EntityHandleList list) {
+        EntityHandleList new_list;
+        new_list.reserve(list.size());
+
+        for( EntityHandle e : list ) {
+            // Copy components & instantiate new Entity
+            MeshStaticComponent* static_mesh = GetComponent<MeshStaticComponent>(e);
+            MeshAnimatedComponent* anim_mesh = GetComponent<MeshAnimatedComponent>(e);
+            TransformComponent transf       = *GetComponent<TransformComponent>(e);
+            MaterialComponent mat           = *GetComponent<MaterialComponent>(e);
+
+            if( static_mesh != NULL_HANDLE ) new_list.push_back(mECS.MakeEntity(transf, *static_mesh, mat));
+            else if( anim_mesh != NULL_HANDLE ) new_list.push_back(mECS.MakeEntity(transf, *anim_mesh, mat));
+        }
+
+        return new_list;
+    }
+
     // TODO: 
     uint32_t AddOpaqueStaticInstance(EntityHandle handle, mfloat4x4 mWorld) {
         return 0; // Instance id
     }
 
-    void AddOpaque(std::vector<EntityHandle> list) {
+    void AddOpaque(EntityHandleList list) {
         mOpaque.resize(list.size() + list.size());
 
         for( auto e : list ) 
             mOpaque.push_back(e);
     }
     
-    void AddCubemaps(std::vector<EntityHandle> list) {
+    void AddCubemaps(EntityHandleList list) {
         mCubemaps.resize(mCubemaps.size() + list.size());
 
         for( auto e : list )
             mCubemaps.push_back(e);
     }
 
-    void AddTransparent(std::vector<EntityHandle> list) {
+    void AddTransparent(EntityHandleList list) {
         mTransparent.resize(mTransparent.size() + list.size());
 
-        for( auto e : list )
+        for( auto e : list ) {
+            GetComponent<MaterialComponent>(e)->_IsTransparent = true;
             mTransparent.push_back(e);
+        }
     }
 
-    std::vector<EntityHandle> LoadModelStatic(const char* fname) {
+    EntityHandleList LoadModelStatic(const char* fname) {
         std::string_view ext = path_ext(fname);
 
         if( ext == "obj" || ext == "dae" || ext == "fbx" ) {
@@ -504,14 +527,14 @@ public:
         return {};
     }
 
-    std::vector<EntityHandle> LoadModelStaticOpaque(const char* fname) {
-        std::vector<EntityHandle> list = LoadModelStatic(fname);
+    EntityHandleList LoadModelStaticOpaque(const char* fname) {
+        EntityHandleList list = LoadModelStatic(fname);
         AddOpaque(list);
         return list;
     }
 
-    std::vector<EntityHandle> LoadModelStaticTransparent(const char* fname) {
-        std::vector<EntityHandle> list = LoadModelStatic(fname);
+    EntityHandleList LoadModelStaticTransparent(const char* fname) {
+        EntityHandleList list = LoadModelStatic(fname);
         AddTransparent(list);
         return list;
 
@@ -645,20 +668,26 @@ public:
 
     inline CameraData* GetCamera(uint32_t CameraIndex) const { return mCameraData[CameraIndex]; }
 
-    void RenderCubemap(uint32_t flags=0, Shader::ShaderType type=Shader::Vertex) {
-        flags |= type << 19;
+    void RenderCubemap(uint32_t flags=0, Shader::ShaderType type_transf=Shader::Vertex, Shader::ShaderType type_tex=Shader::Pixel) {
+        flags |= type_transf << (32 - Shader::Count);
+        flags |= type_tex    << (32 - Shader::Count * 2);
+
         bIsTransparentPass = false;
         mECS.UpdateSystems(mRenderCubemapList, ieee_float(flags));
     }
 
-    void RenderOpaque(uint32_t flags=0, Shader::ShaderType type=Shader::Vertex) {
-        flags |= type << 19;
+    void RenderOpaque(uint32_t flags=0, Shader::ShaderType type_transf=Shader::Vertex, Shader::ShaderType type_tex=Shader::Pixel) {
+        flags |= type_transf << (32 - Shader::Count);
+        flags |= type_tex    << (32 - Shader::Count * 2);
+
         bIsTransparentPass = false;
         mECS.UpdateSystems(mRenderOpaqueList, ieee_float(flags));
     }
 
-    void RenderTransparent(uint32_t flags=0, Shader::ShaderType type=Shader::Vertex) {
-        flags |= type << 19;
+    void RenderTransparent(uint32_t flags=0, Shader::ShaderType type_transf=Shader::Vertex, Shader::ShaderType type_tex=Shader::Pixel) {
+        flags |= type_transf << (32 - Shader::Count);
+        flags |= type_tex    << (32 - Shader::Count * 2);
+
         bIsTransparentPass = true;
         mECS.UpdateSystems(mRenderTransparentList, ieee_float(flags));
     }
@@ -698,17 +727,19 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
     MeshStaticComponent* mesh     = (MeshStaticComponent*)comp[1];
     MaterialComponent* material   = (MaterialComponent*)comp[2];
 
-    if( material->_IsTransparent == Scene::Current()->IsTransparentPass() ) return;
+    Scene* scene = Scene::Current();
+
+    if( material->_IsTransparent != scene->IsTransparentPass() ) return;
 
     uint32_t flags = ieee_uint32(dt);
     Shader::ShaderType type = Shader::ShaderType(flags >> 25);
-    Shader::ShaderType mat_type = Shader::ShaderType((flags >> 18) & 0x7F); // <--- TODO in Scene
+    Shader::ShaderType mat_type = Shader::ShaderType((flags >> 18) & 0x7F);
 
     // Bind mesh data
     mesh->Bind();
-    transform->Build(); // TODO: Build world matrix from pos, rot, scale
-    transform->Bind(Scene::Current()->cbTransform, type, 0);
-    material->Bind(Scene::Current()->cbMaterial, mat_type, 0, flags);
+    transform->Build();
+    transform->Bind(scene->cbTransform, type, 0);
+    material->Bind(scene->cbMaterial, mat_type, 0, flags);
     // TODO: Make sorting by materials
 
     // Draw call1

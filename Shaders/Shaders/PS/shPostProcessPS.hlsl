@@ -40,6 +40,7 @@ Texture2D<float4> _BloomTexture     : register(t5);
 Texture2D<float4> _BlurTexture      : register(t6);
 Texture2D<float1> _DepthTexture     : register(t7);
 Texture2D<float1> _AmbientOcclusion : register(t8);
+Texture2D<float4> _OITransparencyCl : register(t9);
 
 SamplerState _LinearSampler : register(s5);
 
@@ -167,7 +168,14 @@ half4 main(PS In): SV_Target0 {
     // Tonemapping
     //Diff.rgb = _toneReinhard(Diff.rgb, 1.f, 1.f, 1.f);
     //Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
-
+    
+    // Ambient Occlusion
+    float AO = 1.f;
+    [flatten] if( _RenderFlags & 2 ) {
+        AO = _AmbientOcclusion.Sample(_LinearSampler, In.Texcoord);
+        Diff.rgb *= AO;
+    }
+    
     // Depth of Field
     [flatten] if( _RenderFlags & 8 ) {
         float depth = 1.f - _DepthTexture.Sample(_LinearSampler, In.Texcoord);
@@ -185,14 +193,13 @@ half4 main(PS In): SV_Target0 {
         }
     }
 
+    // Order Independent Transparency
+    float4 OIT = _OITransparencyCl.Sample(_Sampler, In.Texcoord);
+    Diff.rgb += OIT.rgb;// * OIT.a;
+    
     // Deferred lightning
     [flatten] if( _RenderFlags & 128 ) {
         //Diff.rgb = Deferred;
-    }
-
-    // Ambient Occlusion
-    [flatten] if( _RenderFlags & 2 ) {
-        Diff.rgb *= _AmbientOcclusion.Sample(_LinearSampler, In.Texcoord);
     }
     
     // Bloom

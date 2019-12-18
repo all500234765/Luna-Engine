@@ -155,7 +155,7 @@ OM main(PS In, uint sample : SV_SampleIndex) {
     float3 N = normalize(cross(ddx(P.xyz), ddy(P.xyz)));
 
     OM Out;
-        Out.Color  = float4(color, .1f + alpha);
+        Out.Color  = float4(color, alpha);
         Out.Normal = float4(EncodeNormal(N.xyz), 0.f, 1.f);
         Out.Depth  = depth;
     return Out;

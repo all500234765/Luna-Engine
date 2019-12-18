@@ -22,7 +22,7 @@ struct AmbientLightBuff {
     #include "AmbientLight.h"
 };
 
-struct AmbientLightComponent: ECSComponent<WorldLightComponent> {
+struct AmbientLightComponent: ECSComponent<AmbientLightComponent> {
     #include "AmbientLight.h"
 
     void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot) {
@@ -96,27 +96,30 @@ struct MaterialComponent: ECSComponent<MaterialComponent> {
             ScopeMapConstantBufferCopy<MaterialBuff> q(cb, (void*)&this->_IsTransparent);
         }
 
+        // Material params
         cb->Bind(types, slot);
 
+        // Textures
         if( flags & RendererFlags::DontBindTextures ) return;
-        Shader::ShaderType type = Shader::ShaderType(types >> Shader::Count);
+        Shader::ShaderType type = Shader::ShaderType(types);
 
-        _AlbedoTex->Bind(type, 0);
-        if( (flags & RendererFlags::DontBindSamplers) == 0 ) _AlbedoSampl->Bind(type, 0);
+        if( _AlbedoTex ) _AlbedoTex->Bind(type, 0);
+        if( (flags & RendererFlags::DontBindSamplers) == 0 && _AlbedoSampl ) _AlbedoSampl->Bind(type, 0);
+
         if( (flags & RendererFlags::DepthPass) == 0 ) {
-            _NormalTex          ->Bind(type, 1);
-            _MetallicTex        ->Bind(type, 2);
-            _RougnessTex        ->Bind(type, 3);
-            _EmissionTex        ->Bind(type, 4);
-            _AmbientOcclusionTex->Bind(type, 5);
+            if( _NormalTex           ) _NormalTex          ->Bind(type, 1);
+            if( _MetallicTex         ) _MetallicTex        ->Bind(type, 2);
+            if( _RougnessTex         ) _RougnessTex        ->Bind(type, 3);
+            if( _EmissionTex         ) _EmissionTex        ->Bind(type, 4);
+            if( _AmbientOcclusionTex ) _AmbientOcclusionTex->Bind(type, 5);
 
             if( flags & RendererFlags::DontBindSamplers ) return;
-            _AlbedoSampl          ->Bind(type, 0);
-            _NormalSampl          ->Bind(type, 1);
-            _MetallicSampl        ->Bind(type, 2);
-            _RougnessSampl        ->Bind(type, 3);
-            _EmissionSampl        ->Bind(type, 4);
-            _AmbientOcclusionSampl->Bind(type, 5);
+            if( _AlbedoSampl           ) _AlbedoSampl          ->Bind(type, 0);
+            if( _NormalSampl           ) _NormalSampl          ->Bind(type, 1);
+            if( _MetallicSampl         ) _MetallicSampl        ->Bind(type, 2);
+            if( _RougnessSampl         ) _RougnessSampl        ->Bind(type, 3);
+            if( _EmissionSampl         ) _EmissionSampl        ->Bind(type, 4);
+            if( _AmbientOcclusionSampl ) _AmbientOcclusionSampl->Bind(type, 5);
         }
     }
 };

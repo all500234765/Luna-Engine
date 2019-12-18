@@ -288,6 +288,11 @@ public:
 
         // Resolve MSAA
         rtTransparent->MSAAResolve();
+
+        // Unbind
+        //ID3D11UnorderedAccessView *pEmptyUAV4[4] = { nullptr };
+        //ID3D11RenderTargetView *pEmptyRTV4[4] = { nullptr };
+        //gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(4, pEmptyRTV4, nullptr, 4, 4, pEmptyUAV4, 0);
         
         // Restore old states
         //TopologyState::Pop();
