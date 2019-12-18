@@ -199,6 +199,9 @@ private:
     ConstantBuffer* cbTransform = nullptr;
     ConstantBuffer* cbMaterial = nullptr;
 
+    EntityHandle mAmbientLight{};
+    EntityHandle mWorldLight{};
+
     uint32_t mMainCamera{};
     uint32_t bUpdatedCameraLists{};
     uint32_t bIsTransparentPass{};
@@ -322,11 +325,23 @@ private:
 
 public:
     Scene() {
+        // Create default lights
+        AmbientLightComponent ambient;
+        ambient._AmbientLightStrengh = 1.f;
+        ambient._AmbientLightColor = float3(.1f, .1f, .1f);
+        mAmbientLight = mECS.MakeEntity(ambient);
+
+        WorldLightComponent world;
+        world._WorldLightDirection = float3(1.f, 1.f, 1.f);
+        world._WorldLightPosition = {};
+        world._WorldLightColor = float3(.7f, .6f, .3f);
+        mWorldLight = mECS.MakeEntity(world);
+
+        // 
         char buff[128]{};
         bUpdatedCameraLists = false;
 
         for( uint32_t i = 0; i < SCENE_MAX_CAMERA_COUNT; i++ ) {
-            //SecureZeroMemory(&buff[0], 128);
             sprintf_s(&buff[0], 128, "[Scene::Camera]: Constant Buffer #%u", i);
 
             cbCameraData[i] = new ConstantBuffer();
@@ -486,7 +501,15 @@ public:
         return new_list;
     }
 
+    void AmbientLight(float3 color, float strengh=1.f) {
+        AmbientLightComponent* comp = GetComponent<AmbientLightComponent>(mAmbientLight);
+        comp->_AmbientLightColor = color;
+        comp->_AmbientLightStrengh = strengh;
+    }
+
     // TODO: 
+    // StructuredBuffer<float4x4> _WorldMatrices[MAX_INSTANCE_NUM];
+    // DrawIndexedInstanced
     uint32_t AddOpaqueStaticInstance(EntityHandle handle, mfloat4x4 mWorld) {
         return 0; // Instance id
     }

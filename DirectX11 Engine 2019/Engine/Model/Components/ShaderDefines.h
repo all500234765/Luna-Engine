@@ -13,7 +13,7 @@
         #define Texture2D Texture* 
         #define SamplerState Sampler* 
         #define TEXSLOT(x) 
-        #define SAMPLSLOT(x)
+        #define SAMPLSLOT(x) = nullptr;
         
     #endif
     

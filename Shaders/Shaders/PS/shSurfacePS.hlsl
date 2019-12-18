@@ -99,7 +99,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     
     // Sample PBR textures
     float3 Albedo   = _AlbedoTex.Sample(_AlbedoSampl, In.Texcoord).rgb * _AlbedoMul;
-    float1 Metallic = _MetallicTex.Sample(_MetallicTex, In.Texcoord).r * _MetallnessMul;
+    float1 Metallic = _MetallicTex.Sample(_MetallicSampl, In.Texcoord).r * _MetallnessMul;
     float1 Rougness = _RoughnessTex.Sample(_RoughnessSampl, In.Texcoord).r * _RoughnessMul;
     float1 AOccl    = _AmbientOcclusionTex.Sample(_AmbientOcclusionSampl, In.Texcoord).r * _AmbientOcclusionMul;
     
@@ -107,7 +107,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     
     
     // Ambient light
-    float3 Ambient = Albedo * _AmbientLightColor * _AmbientLightStrenght;
+    float3 Ambient = Albedo * _AmbientLightColor * _AmbientLightStrengh;
     
     // Direct light
     float3 Direct = Albedo;

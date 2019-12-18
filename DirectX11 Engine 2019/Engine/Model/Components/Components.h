@@ -91,6 +91,15 @@ struct MaterialComponent: ECSComponent<MaterialComponent> {
     #include "MaterialTextures.h"
 
     void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot, uint32_t flags) {
+        if( (flags & RendererFlags::DepthPass) == 0 ) {
+            _Alb   = _AlbedoTex           != nullptr;
+            _Metal = _MetallicTex         != nullptr;
+            _Rough = _RoughnessTex        != nullptr;
+            _Emis  = _EmissionTex         != nullptr;
+            _AO    = _AmbientOcclusionTex != nullptr;
+
+        }
+
         {
             // Update CB
             ScopeMapConstantBufferCopy<MaterialBuff> q(cb, (void*)&this->_IsTransparent);
@@ -109,7 +118,7 @@ struct MaterialComponent: ECSComponent<MaterialComponent> {
         if( (flags & RendererFlags::DepthPass) == 0 ) {
             if( _NormalTex           ) _NormalTex          ->Bind(type, 1);
             if( _MetallicTex         ) _MetallicTex        ->Bind(type, 2);
-            if( _RougnessTex         ) _RougnessTex        ->Bind(type, 3);
+            if( _RoughnessTex        ) _RoughnessTex       ->Bind(type, 3);
             if( _EmissionTex         ) _EmissionTex        ->Bind(type, 4);
             if( _AmbientOcclusionTex ) _AmbientOcclusionTex->Bind(type, 5);
 
@@ -117,7 +126,7 @@ struct MaterialComponent: ECSComponent<MaterialComponent> {
             if( _AlbedoSampl           ) _AlbedoSampl          ->Bind(type, 0);
             if( _NormalSampl           ) _NormalSampl          ->Bind(type, 1);
             if( _MetallicSampl         ) _MetallicSampl        ->Bind(type, 2);
-            if( _RougnessSampl         ) _RougnessSampl        ->Bind(type, 3);
+            if( _RoughnessSampl        ) _RoughnessSampl       ->Bind(type, 3);
             if( _EmissionSampl         ) _EmissionSampl        ->Bind(type, 4);
             if( _AmbientOcclusionSampl ) _AmbientOcclusionSampl->Bind(type, 5);
         }

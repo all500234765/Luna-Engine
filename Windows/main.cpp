@@ -282,35 +282,23 @@ bool _DirectX::FrameFunction() {
         // 
         shSurface->Bind();
 
-        //cLight->BindBuffer(Shader::Vertex, 1);
-
-        // Bind default material
-        mDefault->BindTextures(Shader::Pixel, 0);
-        sMipLinear->Bind(Shader::Pixel, 0);
-
-        mDefault->BindTextures(Shader::Pixel, 1);
-        sMipLinear->Bind(Shader::Pixel, 1);
-
-        mDefault->BindTextures(Shader::Pixel, 2);
-        sMipLinearOpacity->Bind(Shader::Pixel, 2);
-
-        mDefault->BindTextures(Shader::Pixel, 3);
-        sMipLinearRougness->Bind(Shader::Pixel, 3);
+        // Bind default material textures
+        for( uint32_t i = 0; i < 6; i++ ) {
+            mDefault->BindTextures(Shader::Pixel, i);
+            sMipLinear->Bind(Shader::Pixel, i);
+        }
 
         // Bind depth buffer
-        rtDepth->Bind(0u, Shader::Pixel, 4);
-        sPointClamp->Bind(Shader::Pixel, 4);
+        rtDepth->Bind(0u, Shader::Pixel, 6);
+        sPointClamp->Bind(Shader::Pixel, 6);
 
         // Bind noise texture
-        tBlueNoiseRG->Bind(Shader::Pixel, 5);
-        sPoint->Bind(Shader::Pixel, 5);
+        tBlueNoiseRG->Bind(Shader::Pixel, 7);
+        sPoint->Bind(Shader::Pixel, 7);
 
         // Bind cubemap
-        pCubemap->Bind(Shader::Pixel, 6);
-        sPoint->Bind(Shader::Pixel, 6);
-
-        // 
-        sMipLinearRougness->Bind(Shader::Pixel, 7);
+        pCubemap->Bind(Shader::Pixel, 8);
+        sPoint->Bind(Shader::Pixel, 8);
 
         // 
         Scene::Current()->GetCamera(0)->SetView(cPlayer->GetViewMatrix());
@@ -323,6 +311,8 @@ bool _DirectX::FrameFunction() {
         Scene::Current()->BindCamera(1, Shader::Vertex, 2); // Shadow camera
 
         Scene::Current()->RenderOpaque(0, Shader::Vertex);
+
+        LunaEngine::PSDiscardSRV<8>();
 
         // Render scene
         //RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
@@ -664,7 +654,7 @@ bool _DirectX::FrameFunction() {
         gContext->Draw(6, 0);
 
         // 
-        LunaEngine::PSDiscardSRV<9>();
+        LunaEngine::PSDiscardSRV<10>();
     }
 
 #pragma endregion
@@ -700,6 +690,9 @@ bool _DirectX::FrameFunction() {
             rtGBuffer->GetBufferSRV<0>(),
             rtGBuffer->GetBufferSRV<1>(),
             //rtGBuffer->GetBufferSRV<2>(),*/
+            rtGBuffer->GetBufferSRV<0>(),
+            rtGBuffer->GetBufferSRV<1>(),
+            rtGBuffer->GetBufferSRV<2>(),
             gOrderIndendentTransparency->GetColorSRV(),
             gOrderIndendentTransparency->GetNormalSRV(),
             gOrderIndendentTransparency->GetDepthSRV()
@@ -751,6 +744,8 @@ bool _DirectX::FrameFunction() {
             // Render plane
             gContext->Draw(6, 0);
         }
+
+        LunaEngine::PSDiscardSRV<1>();
     }
 
     // 2D Rendering
@@ -1286,19 +1281,28 @@ void _DirectX::Load() {
     // Enable MSAA
     RenderTargetMSAA::GlobalInit();
 
-    gScene = new Scene;
+    gScene = new Scene();
     gScene->MakeCameraFOVH(0, .1f, 10000.f, 1366.f, 768.f, 70.f);
     gScene->MakeCameraFOVH(1, .1f, 10000.f, 2048.f, 2048.f, 90.f);
     gScene->UpdateMadeCameras();
     gScene->SetAsActive();
 
+    gScene->AmbientLight(float3(.4f, .5f, .8f), .1f);
+
     EntityHandle e = gScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj")[0];
     TransformComponent *transform = gScene->GetComponent<TransformComponent>(e);
+    MaterialComponent *mat = gScene->GetComponent<MaterialComponent>(e);
 
     transform->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
     transform->vScale    = float3(.125, .125, .125);
     transform->vPosition = float3(-50.f, 0.f, 50.f);
 
+    mat->_AlbedoTex    = new Texture("../Textures/Rusted Iron/rustediron2_basecolor.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    mat->_NormalTex    = new Texture("../Textures/Rusted Iron/rustediron2_normal.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    mat->_MetallicTex  = new Texture("../Textures/Rusted Iron/rustediron2_metallic.png", DXGI_FORMAT_R8_UNORM);
+    mat->_RoughnessTex = new Texture("../Textures/Rusted Iron/rustediron2_roughness.png", DXGI_FORMAT_R8_UNORM);
+
+    // 
     auto elist = gScene->LoadModelStaticTransparent("../Models/teapot.obj");
     transform = gScene->GetComponent<TransformComponent>(elist[0]);
 
