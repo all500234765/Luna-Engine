@@ -99,7 +99,7 @@ CubemapTexture *pCubemap;
 RenderTarget2DDepth *rtDepth;
 RenderTarget2DColor1 *rtSSLR, *rtDeferred, *rtShadows;
 
-RenderTarget2DColor3DepthMSAA *rtGBuffer;
+RenderTarget2DColor4DepthMSAA *rtGBuffer;
 
 // Queries
 Query *pQuery;
@@ -1311,7 +1311,20 @@ void _DirectX::Load() {
     
     // 
     elist = gScene->Instantiate(elist);
-    
+    transform = gScene->GetComponent<TransformComponent>(elist[0]);
+
+    transform->vPosition.z += 25.f;
+
+    gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
+
+    // 
+    elist = gScene->Instantiate(elist);
+    transform = gScene->GetComponent<TransformComponent>(elist[0]);
+
+    transform->vPosition.z -= 12.5f;
+
+    gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
+
     // Post processing
     gHDRPostProcess             = new HDRPostProcess;
     gSSAOPostProcess            = new SSAOPostProcess;
@@ -1477,13 +1490,14 @@ void _DirectX::Load() {
     rtDepth->Create(32);
 
     // Geometry Buffer
-    rtGBuffer = new RenderTarget2DColor3DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
+    rtGBuffer = new RenderTarget2DColor4DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
     //if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
     rtGBuffer->SetMSAAMaxLevel(8);
     rtGBuffer->Create(32);
     rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,
                              DXGI_FORMAT_R16G16B16A16_FLOAT, 
-                             DXGI_FORMAT_R8G8B8A8_UNORM);
+                             DXGI_FORMAT_R16G16B16A16_FLOAT);
 
     // Deferred buffer
     rtDeferred = new RenderTarget2DColor1(cfg.CurrentWidth, cfg.CurrentHeight, 1, "Deferred Buffer");

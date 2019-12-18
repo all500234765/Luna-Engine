@@ -1,13 +1,132 @@
-cbuffer cbBoolTextures : register(b0) {
-    bool bDiffuse;
-    bool bNormals;
-    bool bOpacity;
-    bool bSpecular;
-    bool bCubemap;
-    bool PADDING[11];
+cbuffer cbMaterial : register(b0) {
+    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Material.h"
 };
 
-Texture2D _DiffuseTexture    : register(t0);
+cbuffer cbAmbientLight : register(b1) {
+    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/AmbientLight.h"
+};
+
+#include "../../../DirectX11 Engine 2019/Engine/Model/Components/MaterialTextures.h"
+
+Texture2D<float1> _DepthTexture       : register(t6);
+SamplerComparisonState  _DepthSampler : register(s6) {
+    Filter = COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+    ComparisonFunc = GREATER;
+};
+
+Texture2D<float2> _NoiseTexture : register(t7);
+SamplerState _NoiseSampler      : register(s7);
+
+TextureCube<float3> _CubemapTexture : register(t8);
+SamplerState        _CubemapSampler : register(s8);
+
+struct PS {
+    float4   Position : SV_Position;
+    float3x3 WorldTBN : TEXCOORD0;
+    float2   Texcoord : TEXCOORD3;
+    float3   WorldPos : TEXCOORD4;
+    float4   LightPos : TEXCOORD5;
+    float3   InputPos : TEXCOORD6;
+    float3   ViewDir  : TEXCOORD7;
+};
+
+float SampleShadow(float4 lpos) {
+    const float _ShadowMapTexel = 1.f / 2048.f;
+    const float bias = -.000005; // +_ShadowMapTexel;
+    const float _Far = 10000.f;
+
+    float3 projCoords = float3(.5 + (lpos.x / lpos.w) * .5,
+                               .5 - (lpos.y / lpos.w) * .5,
+                                    (lpos.z / lpos.w));
+
+    // Apply bias
+    projCoords.z -= bias;
+
+    // If out of bounds - no shadows should be applied
+    [flatten] if( saturate(projCoords.x) != projCoords.x || saturate(projCoords.y) != projCoords.y ) return 0.;
+
+    // Calculate dx and dy based on Noise
+    float2 fNoise = _NoiseTexture.Sample(_NoiseSampler, projCoords.xy * 20.f) * 2. - 1.; // * .00625;
+    float2 dx = float2(fNoise.x * _ShadowMapTexel, 0.);
+    float2 dy = float2(0., fNoise.y * _ShadowMapTexel);
+    float2 p_dxdy = (dx + dy);
+    float2 n_dxdy = (dx - dy);
+
+    // 
+    float2 samples[8] = { dx, -dx, dy, -dy, p_dxdy, -p_dxdy, n_dxdy, -n_dxdy };
+
+    // 
+    float sDepth = 0.;
+
+    [unroll(8)]
+    for( int i = 0; i < 8; i++ )
+        sDepth += _DepthTexture.SampleCmpLevelZero(_DepthSampler, projCoords.xy + samples[i], projCoords.z);
+	
+    return sDepth * .125;
+}
+
+struct GBuffer {
+    half4 Direct   : SV_Target0;
+    half4 Normal   : SV_Target1;
+    half4 Ambient  : SV_Target2;
+    half4 Emission : SV_Target3;
+};
+
+// https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
+// Spherical Coordinates
+#define kPI 3.1415926536f
+half2 EncodeNormal(half3 n) {
+    return half2(atan2(n.y, n.x) / kPI, n.z) * .5f + .5f;
+}
+
+GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_SampleIndex) {
+    //const half3 _LightPos = half3(100.f, 10.f, 0.f);
+    //const half3 _LightColor = half3(.7f, .9f, .8f);
+    
+    // Get normal
+    half3 N = 0.f;
+    [branch] if( _Norm ) {
+        N = normalize(mul(In.WorldTBN, _NormalTex.Sample(_NormalSampl, In.Texcoord).rgb * 2.f - 1.f));
+        
+        // Flip normals
+        //N *= (1. - bIsFront * 2.);
+    } else {
+        N = normalize(In.WorldTBN._m20_m21_m22);
+    }
+
+    // Flip normals
+    if( _FlipNormals ) N *= -1.f;
+    
+    // Sample PBR textures
+    float3 Albedo   = _AlbedoTex.Sample(_AlbedoSampl, In.Texcoord).rgb * _AlbedoMul;
+    float1 Metallic = _MetallicTex.Sample(_MetallicTex, In.Texcoord).r * _MetallnessMul;
+    float1 Rougness = _RoughnessTex.Sample(_RoughnessSampl, In.Texcoord).r * _RoughnessMul;
+    float1 AOccl    = _AmbientOcclusionTex.Sample(_AmbientOcclusionSampl, In.Texcoord).r * _AmbientOcclusionMul;
+    
+    // PBR Here
+    
+    
+    // Ambient light
+    float3 Ambient = Albedo * _AmbientLightColor * _AmbientLightStrenght;
+    
+    // Direct light
+    float3 Direct = Albedo;
+    
+    // Shadow mapping
+    const float s = 1.f;
+    float S = SampleShadow(In.LightPos) * s + (1. - s);
+    Direct *= S;
+    
+    // Final result
+    GBuffer Out;
+        Out.Direct    = float4(Direct, 1.f);
+        Out.Ambient   = float4(Ambient, 1.f);
+        Out.Normal    = half4(EncodeNormal(N), 0., 1.);
+        Out.Emission  = _EmissionTex.Sample(_EmissionSampl, In.Texcoord) * _EmissionMul;
+    return Out;
+}
+
+/*Texture2D _DiffuseTexture    : register(t0);
 SamplerState _DiffuseSampler : register(s0);
 
 Texture2D _NormalTexture    : register(t1);
@@ -158,7 +277,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
         //N *= (1. - bIsFront * 2.);
     } /*else {
         N = normalize(In.WorldTBN._m20_m21_m22);
-    } //*/
+    } //* /
 
     // Shadow mapping
     const float s = .5;

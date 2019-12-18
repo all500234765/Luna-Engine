@@ -89,7 +89,7 @@ struct CameraComponent: ECSComponent<CameraComponent> {
 struct MaterialComponent: ECSComponent<MaterialComponent> {
     #include "Material.h"
     #include "MaterialTextures.h"
-    
+
     void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot, uint32_t flags) {
         {
             // Update CB
@@ -132,6 +132,8 @@ struct MeshComponent {
     //VertexBuffer *mVBQuaternion; // TODO: GPU Pro 3; Replace tangent and bitangent with quats
 
     IndexBuffer *mIndexBuffer;
+
+    uint32_t mReferenced;
 };
 
 struct MeshStaticComponent: ECSComponent<MeshStaticComponent>, MeshComponent {

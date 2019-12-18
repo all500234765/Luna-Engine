@@ -204,16 +204,10 @@ private:
     uint32_t bIsTransparentPass{};
 
     EntityHandleList LoadModelExternalStatic(const char* fname) {
-        //ScopedFileAccessRM file(widen(fname).c_str());
-
         MaterialComponent mat{};
         mat._UseVertexColor = false;
-        mat._FlipNormals    = false; // !!!!!!!!!!!!!!!!!!!MUST TODO!!!!!!!!!!!!!!!!!!!!!!!!
-        mat._IsTransparent  = false; // Remove StaticOpaque...System and merge them into single one
-                                     // Set flag for Opaque pass
-                                     //          for Transparent pass
-                                     // And compare those values
-                                     // It's simply better   
+        mat._FlipNormals    = false;
+        mat._IsTransparent  = false;   
         mat._Alpha = 1.f;
         mat._AlbedoMul = 1.f;
         mat._NormalMul = 1.f;
@@ -241,42 +235,6 @@ private:
         // Process scene
         std::vector<MeshStaticComponent> mMeshList;
         ProcessNodeStatic(scene->mRootNode, scene, &mMeshList);
-
-        // Some error occured
-        /*if( file.berror() ) return NULL_HANDLE;
-
-        size_t sz;
-        char *line = new char[1024];
-        float x, y, z;
-        uint32_t i0, i1, i2,  i3, i4, i5,  i6, i7, i8;
-
-        line = file.getline(sz);
-
-        enum NowReading {
-            rVertex, 
-            rUV, 
-            rNormal, 
-
-            rIndex
-        } rState;
-
-        while( sz && !file.is_eof() ) {
-            //printf_s("[OBJ]: %s\n", line);
-
-            // Remove comments
-            //uint32_t p = ; // 
-
-            // 
-            sscanf_s(line, "v %f %f %f", &x, &y, &z);
-            printf_s("v %f %f %f\n", x, y, z);
-
-            // Read next line
-            line = file.getline(sz);
-        }
-
-        // WIP
-        delete[] line;
-        return NULL_HANDLE;*/
 
         // Done
         if( mMeshList.size() == 1 ) {
@@ -350,6 +308,7 @@ private:
         mesh.mVBPosition  = new VertexBuffer();
         mesh.mVBTexcoord  = new VertexBuffer();
         mesh.mVBNormal    = new VertexBuffer();
+        mesh.mReferenced  = false;
 
         mesh.mVBPosition->CreateDefault(Position.size(), sizeof(float3), &Position[0]);
         mesh.mVBTexcoord->CreateDefault(Texcoord.size(), sizeof(float2), &Texcoord[0]);
@@ -422,20 +381,24 @@ public:
 
             // Unload mesh
             if( static_mesh ) {
-                SAFE_RELEASE(static_mesh->mIndexBuffer);
+                if( !static_mesh->mReferenced ) {
+                    SAFE_RELEASE(static_mesh->mIndexBuffer);
 
-                SAFE_RELEASE(static_mesh->mVBPosition);
-                SAFE_RELEASE(static_mesh->mVBTexcoord);
-                SAFE_RELEASE(static_mesh->mVBNormal);
+                    SAFE_RELEASE(static_mesh->mVBPosition);
+                    SAFE_RELEASE(static_mesh->mVBTexcoord);
+                    SAFE_RELEASE(static_mesh->mVBNormal);
+                }
             } else if( anim_mesh ) {
-                SAFE_RELEASE(anim_mesh->mIndexBuffer);
+                if( !static_mesh->mReferenced ) {
+                    SAFE_RELEASE(anim_mesh->mIndexBuffer);
 
-                SAFE_RELEASE(anim_mesh->mVBPosition);
-                SAFE_RELEASE(anim_mesh->mVBTexcoord);
-                SAFE_RELEASE(anim_mesh->mVBNormal);
+                    SAFE_RELEASE(anim_mesh->mVBPosition);
+                    SAFE_RELEASE(anim_mesh->mVBTexcoord);
+                    SAFE_RELEASE(anim_mesh->mVBNormal);
 
-                SAFE_RELEASE(anim_mesh->mVBWeights);
-                SAFE_RELEASE(anim_mesh->mVBJoints);
+                    SAFE_RELEASE(anim_mesh->mVBWeights);
+                    SAFE_RELEASE(anim_mesh->mVBJoints);
+                }
             } else {
                 printf_s("[Scene::~Scene]: Error occured during unloading %s mesh %u\n", name, e);
             }
@@ -475,13 +438,49 @@ public:
 
         for( EntityHandle e : list ) {
             // Copy components & instantiate new Entity
-            MeshStaticComponent* static_mesh = GetComponent<MeshStaticComponent>(e);
-            MeshAnimatedComponent* anim_mesh = GetComponent<MeshAnimatedComponent>(e);
-            TransformComponent transf       = *GetComponent<TransformComponent>(e);
-            MaterialComponent mat           = *GetComponent<MaterialComponent>(e);
+            MeshStaticComponent* static_mesh_ref = GetComponent<MeshStaticComponent>(e);
+            MeshAnimatedComponent* anim_mesh_ref = GetComponent<MeshAnimatedComponent>(e);
+            TransformComponent transf_ref        = *GetComponent<TransformComponent>(e);
+            MaterialComponent mat_ref            = *GetComponent<MaterialComponent>(e);
 
-            if( static_mesh != NULL_HANDLE ) new_list.push_back(mECS.MakeEntity(transf, *static_mesh, mat));
-            else if( anim_mesh != NULL_HANDLE ) new_list.push_back(mECS.MakeEntity(transf, *anim_mesh, mat));
+            MeshStaticComponent static_mesh{};
+            MeshAnimatedComponent anim_mesh{};
+            TransformComponent transf{};
+            MaterialComponent mat{};
+
+            // Copy transform data
+            memcpy((void*)&transf.mWorld, (void*)&transf_ref.mWorld, sizeof(TransformBuff));
+
+            // Copy material data
+            memcpy((void*)&mat._IsTransparent, (void*)&mat_ref._IsTransparent, sizeof(MaterialBuff));
+            memcpy((void*)&mat._AlbedoTex, (void*)&mat_ref._AlbedoTex, sizeof(uint64_t) * 6 * 2);
+
+            EntityHandle ent = NULL_HANDLE;
+            if( static_mesh_ref != NULL_HANDLE ) {
+                static_mesh.mIndexBuffer = static_mesh_ref->mIndexBuffer;
+                static_mesh.mVBPosition  = static_mesh_ref->mVBPosition;
+                static_mesh.mVBTexcoord  = static_mesh_ref->mVBTexcoord;
+                static_mesh.mVBNormal    = static_mesh_ref->mVBNormal;
+                static_mesh.mReferenced  = true;
+
+                ent = mECS.MakeEntity(transf, static_mesh, mat);
+            } else if( anim_mesh_ref != NULL_HANDLE ) {
+                anim_mesh.mIndexBuffer = anim_mesh_ref->mIndexBuffer;
+                anim_mesh.mVBPosition  = anim_mesh_ref->mVBPosition;
+                anim_mesh.mVBTexcoord  = anim_mesh_ref->mVBTexcoord;
+                anim_mesh.mVBNormal    = anim_mesh_ref->mVBNormal;
+                anim_mesh.mVBWeights   = anim_mesh_ref->mVBWeights;
+                anim_mesh.mVBJoints    = anim_mesh_ref->mVBJoints;
+                anim_mesh.mReferenced  = true;
+
+                ent = mECS.MakeEntity(transf, anim_mesh, mat);
+            }
+
+            if( ent != NULL_HANDLE ) {
+                new_list.push_back(ent);
+                if( mat_ref._IsTransparent ) mTransparent.push_back(ent);
+                else                     mOpaque.push_back(ent);
+            }
         }
 
         return new_list;

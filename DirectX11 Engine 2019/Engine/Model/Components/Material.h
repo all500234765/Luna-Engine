@@ -3,13 +3,15 @@
 bool _IsTransparent;
 bool _UseVertexColor;
 bool _FlipNormals;
-/*bool _Alb;
+bool _Alb;
 bool _Norm;
 bool _Metal;
 bool _Rough;
 bool _AO;
-bool _Emis;*/
-bool _MatPadding[24 + 5];
+bool _Emis;
+bool _ShadowReceiver;
+bool _ShadowCaster;
+bool _MatPadding[32 - 11];
 
 float _Alpha;
 
