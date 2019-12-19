@@ -97,6 +97,10 @@
       <FileType>Document</FileType>
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shCombinationPassPS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDepthAlphaPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>

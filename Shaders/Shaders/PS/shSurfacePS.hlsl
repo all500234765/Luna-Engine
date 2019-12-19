@@ -19,7 +19,6 @@ SamplerState _NoiseSampler      : register(s7);
 
 TextureCube<float3> _CubemapTexture : register(t8);
 SamplerState        _CubemapSampler : register(s8);
-
 struct PS {
     float4   Position : SV_Position;
     float3x3 WorldTBN : TEXCOORD0;
@@ -79,6 +78,41 @@ half2 EncodeNormal(half3 n) {
     return half2(atan2(n.y, n.x) / kPI, n.z) * .5f + .5f;
 }
 
+#define InvPI (1.f / kPI)
+
+// IBL / PBR
+float3 FresnelShlick(float cTheta, float3 F0, float R) {
+    return mad(max((float3) (1.f - R), F0) -F0, pow(1.f - cTheta, 5.f), F0);
+}
+
+float DistrGGX(float3 N, float3 H, float R) {
+    float r4 = pow(R * R, 2.f);
+    float NdotH = saturate(dot(N, H));
+    float NdotH2 = pow(NdotH, 2.f);
+	
+    float d = kPI * pow(mad(NdotH2, (r4 - 1.f), 1.f), 2.f);
+	
+    return r4 / d;
+}
+
+float GSchlickGGX(float NdotV, float _Rougness) {
+    float r = _Rougness + 1.f;
+    float k = pow(r, 2.f) * .125f;
+
+    float d = mad(NdotV, 1.f - k, k);
+	return NdotV / d;
+}
+
+float GSmith(float3 N, float3 V, float3 L, float _Rougness) {
+    float NdotV = saturate(dot(N, V));
+    float NdotL = saturate(dot(N, L));
+	
+    float ggx1 = GSchlickGGX(NdotL, _Rougness);
+    float ggx2 = GSchlickGGX(NdotV, _Rougness);
+
+    return ggx1 * ggx2;
+}
+
 GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_SampleIndex) {
     //const half3 _LightPos = half3(100.f, 10.f, 0.f);
     //const half3 _LightColor = half3(.7f, .9f, .8f);
@@ -103,18 +137,60 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     float1 Rougness = _RoughnessTex.Sample(_RoughnessSampl, In.Texcoord).r * _RoughnessMul;
     float1 AOccl    = _AmbientOcclusionTex.Sample(_AmbientOcclusionSampl, In.Texcoord).r * _AmbientOcclusionMul;
     
-    // PBR Here
-    
-    
     // Ambient light
-    float3 Ambient = Albedo * _AmbientLightColor * _AmbientLightStrengh;
+    float3 Ambient = _AmbientLightColor * _AmbientLightStrengh;
     
     // Direct light
-    float3 Direct = Albedo;
+    float3 Direct = 1.f;
+    
+    // PBR Here
+    // Vectors
+    float3 L = normalize(In.LightPos.xyz - In.WorldPos);
+    float3 V = normalize(In.ViewDir 	 - In.Position.xyz);
+    float3 H = normalize(L + V);
+
+    // 
+    float NdotV = dot(N, V);
+    float NdotL = dot(N, L);
+
+    // PBR
+    float3 F0 = lerp(.04f, Albedo.rgb, Metallic);
+    
+    float Dist = length(In.Position - In.LightPos);
+    float invD = 1.f / (Dist * Dist); // TODO: Use inverse sqrt (rsqrt)
+    
+    float3 Radiance = /*_WorldLightColor */ invD;
+
+    // Cook-Torrance BRDF
+    float  NDF = DistrGGX(N, H, Rougness);
+	float  G   = GSmith(N, V, L, Rougness);
+    float3 F   = FresnelShlick(saturate(dot(H, V)), F0, Rougness);
+
+    float3 KS = F;
+    float3 KD = (1.f - KS) * (1.f - Metallic); // TODO: MAD
+
+    float3 N_ = NDF * G * F;
+    float1 D  = mad(4.f * saturate(NdotV), saturate(NdotL), .001f); // .001f: Prevent division by zero
+    float3 Spec = N_ / D;
+
+	// Light
+    float3 Light = (KD * Albedo.rgb * InvPI + Spec) * Radiance * saturate(NdotL);
+
+    // IBL
+    KS = FresnelShlick(saturate(NdotV), F0, Rougness);
+    KD = (1.f - KS) * (1.f - Metallic);
+    
+    float3 Irradiance = _CubemapTexture.SampleLevel(_CubemapSampler, N.xzy, 1).rgb;
+    float3 Diffuse    = Irradiance * Albedo.rgb;
+    float3 AmbientIBL = KD / Diffuse;
+    
+    Ambient = AmbientIBL;
+    Direct = Diffuse;
     
     // Shadow mapping
+    //float S = SampleShadow(In.LightPos) * s + (1. - s); // lerp(a, b, x) = a + (b - a) * x;
     const float s = 1.f;
-    float S = SampleShadow(In.LightPos) * s + (1. - s);
+    float S = lerp(1.f - s, 1.f, SampleShadow(In.LightPos));
     Direct *= S;
     
     // Final result

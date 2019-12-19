@@ -6,6 +6,8 @@
 #include "Engine Includes/Types.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/States/PipelineState.h"
+#include "HighLevel/DirectX/Utlities.h"
+
 #include <variant>
 #include <algorithm>
 #include <array>
@@ -706,12 +708,13 @@ public:
     // slot=0
     template<typename ...FORMAT>
     void CreateList(UINT slot=0, FORMAT... formats) {
+        if constexpr( !BufferNum ) return;
         //if( typeid(DXGI_FORMAT) == typeid(FORMAT) ) 
         //    static_assert("[RT::Create(UINT slot=0, FORMAT... formats)]: Arguments must be DXGI_FORMAT.");
 
         std::array<DXGI_FORMAT, sizeof...(formats)> mFormats{ formats... };
 
-        for( UINT i = 0; i < sizeof...(formats); i++ ) {
+        for( UINT i = 0; i < LunaEngine::Math::min(sizeof...(formats), BufferNum); i++ ) {
             Create(mFormats[i], slot + i);
         }
     }

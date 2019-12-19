@@ -7,6 +7,8 @@
 #include "Engine/Materials/Texture.h"
 
 //#include <random>
+#undef min
+#undef max
 
 extern _DirectX *gDirectX;
 

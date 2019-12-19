@@ -80,7 +80,7 @@ Shader *shSurface, *shTerrain, *shSkeletalAnimations, *shGUI, *shVertexOnly,
        *shUnitSphere, *shUnitSphereDepthOnly, *shUnitSphereFur, 
        *shUnitSphereFurDepthOnly, *shSurfaceFur, *shSurfaceFurDepthOnly, 
        *shTextSimple, *shTextEffects, *shTextSimpleSDF, *shTextEffectsSDF, 
-       *shDepthAlpha;
+       *shDepthAlpha, *shCombinationPass;
 
 // Models
 Model *mModel1, *mModel2, *mScreenPlane, *mModel3, *mSpaceShip, *mShadowTest1, *mUnitSphereUV;
@@ -100,6 +100,7 @@ RenderTarget2DDepth *rtDepth;
 RenderTarget2DColor1 *rtSSLR, *rtDeferred, *rtShadows;
 
 RenderTarget2DColor4DepthMSAA *rtGBuffer;
+RenderTarget2DColor1 *rtCombinedGBuffer;
 
 // Queries
 Query *pQuery;
@@ -110,6 +111,7 @@ Music *mscMainTheme;
 
 // States
 BlendState *pBlendState0;
+BlendState *pBlendState1;
 RasterState *rsFrontCull;
 
 // Physical objects
@@ -352,6 +354,16 @@ bool _DirectX::FrameFunction() {
         gCoverageBuffer->Prepare(rtGBuffer, *gCBuffArgs);
     }
 
+#pragma region SSAO
+    {
+        Timer timer("SSAO Post Process", false, [](float ms)->void {
+            PlotUpdate(gSSAOPlot, ms);
+        });
+
+        gSSAOPostProcess->Begin(rtGBuffer, *gSSAOArgs);
+    }
+#pragma endregion
+
 #pragma region Occlusion query
     // Begin occlusion query
     //pQuery->Begin();
@@ -563,6 +575,39 @@ bool _DirectX::FrameFunction() {
 #pragma region Deferred final pass
 
 #pragma endregion
+    
+    // Combine pass
+    {
+        ScopedRangeProfiler q("Combine Pass");
+        BlendState::Push();
+
+        pBlendState1->Bind();
+        rtCombinedGBuffer->Bind();
+        shCombinationPass->Bind();
+        rtCombinedGBuffer->Clear(Clear0);
+
+        // TODO: Replace
+        c2DScreen->SetWorldMatrix(DirectX::XMMatrixIdentity());
+        c2DScreen->BuildConstantBuffer(); // Constant buffer
+        c2DScreen->BindBuffer(Shader::Vertex, 0);
+
+        // Bind resources
+        sLinear->Bind(Shader::Pixel, 0);
+
+        rtGBuffer->Bind(1, Shader::Pixel, 0);
+        rtGBuffer->Bind(3, Shader::Pixel, 1);
+        gSSAOPostProcess->BindAO(Shader::Pixel, 2);
+
+        // Draw call
+        gContext->Draw(6, 0);
+
+        // 
+        BlendState::Pop();
+        LunaEngine::PSDiscardSRV<3>();
+
+        // Copy result
+        gContext->CopyResource(rtGBuffer->GetBufferTexture<0>(), rtCombinedGBuffer->GetBufferTexture<0>());
+    }
 
 #pragma region HDR Pre-Processing Steps, Eye adaptation
     {
@@ -571,16 +616,6 @@ bool _DirectX::FrameFunction() {
         });
 
         gHDRPostProcess->Begin(rtGBuffer);
-    }
-#pragma endregion
-
-#pragma region SSAO
-    {
-        Timer timer("SSAO Post Process", false, [](float ms)->void {
-            PlotUpdate(gSSAOPlot, ms);
-        });
-
-        gSSAOPostProcess->Begin(rtGBuffer, *gSSAOArgs);
     }
 #pragma endregion
 
@@ -690,6 +725,7 @@ bool _DirectX::FrameFunction() {
             rtGBuffer->GetBufferSRV<0>(),
             rtGBuffer->GetBufferSRV<1>(),
             //rtGBuffer->GetBufferSRV<2>(),*/
+            rtCombinedGBuffer->GetBufferSRV<0>(),
             rtGBuffer->GetBufferSRV<0>(),
             rtGBuffer->GetBufferSRV<1>(),
             rtGBuffer->GetBufferSRV<2>(),
@@ -1289,13 +1325,17 @@ void _DirectX::Load() {
 
     gScene->AmbientLight(float3(.4f, .5f, .8f), .1f);
 
-    EntityHandle e = gScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj")[0];
+    EntityHandle e = gScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj")[0];
     TransformComponent *transform = gScene->GetComponent<TransformComponent>(e);
     MaterialComponent *mat = gScene->GetComponent<MaterialComponent>(e);
 
-    transform->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
-    transform->vScale    = float3(.125, .125, .125);
-    transform->vPosition = float3(-50.f, 0.f, 50.f);
+    //transform->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
+    transform->vScale    = { 50.f, 50.f, 50.f };
+    //transform->vPosition = float3(-50.f, 0.f, 50.f);
+
+    //transform->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
+    //transform->vScale    = float3(.125, .125, .125);
+    //transform->vPosition = float3(-50.f, 0.f, 50.f);
 
     mat->_AlbedoTex    = new Texture("../Textures/Rusted Iron/rustediron2_basecolor.png", DXGI_FORMAT_R8G8B8A8_UNORM);
     mat->_NormalTex    = new Texture("../Textures/Rusted Iron/rustediron2_normal.png", DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -1303,31 +1343,33 @@ void _DirectX::Load() {
     mat->_RoughnessTex = new Texture("../Textures/Rusted Iron/rustediron2_roughness.png", DXGI_FORMAT_R8_UNORM);
 
     // 
-    auto elist = gScene->LoadModelStaticTransparent("../Models/teapot.obj");
-    transform = gScene->GetComponent<TransformComponent>(elist[0]);
+    if( false ) {
+        auto elist = gScene->LoadModelStaticTransparent("../Models/teapot.obj");
+        transform = gScene->GetComponent<TransformComponent>(elist[0]);
 
-    transform->vScale    = float3(2.f, 2.f, 2.f);
-    transform->vPosition = float3(0.f, -5.f, 0.f);
+        transform->vScale    = float3(2.f, 2.f, 2.f);
+        transform->vPosition = float3(0.f, -5.f, 0.f);
 
-    gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
-    gScene->GetComponent<TransformComponent>(elist[1])->vRotation = gScene->GetComponent<TransformComponent>(elist[0])->vRotation;
-    gScene->GetComponent<TransformComponent>(elist[1])->vScale    = gScene->GetComponent<TransformComponent>(elist[0])->vScale;
-    
-    // 
-    elist = gScene->Instantiate(elist);
-    transform = gScene->GetComponent<TransformComponent>(elist[0]);
+        gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
+        gScene->GetComponent<TransformComponent>(elist[1])->vRotation = gScene->GetComponent<TransformComponent>(elist[0])->vRotation;
+        gScene->GetComponent<TransformComponent>(elist[1])->vScale    = gScene->GetComponent<TransformComponent>(elist[0])->vScale;
+        
+        // 
+        elist = gScene->Instantiate(elist);
+        transform = gScene->GetComponent<TransformComponent>(elist[0]);
 
-    transform->vPosition.z += 25.f;
+        transform->vPosition.z += 25.f;
 
-    gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
+        gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
 
-    // 
-    elist = gScene->Instantiate(elist);
-    transform = gScene->GetComponent<TransformComponent>(elist[0]);
+        // 
+        elist = gScene->Instantiate(elist);
+        transform = gScene->GetComponent<TransformComponent>(elist[0]);
 
-    transform->vPosition.z -= 12.5f;
+        transform->vPosition.z -= 12.5f;
 
-    gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
+        gScene->GetComponent<TransformComponent>(elist[1])->vPosition = gScene->GetComponent<TransformComponent>(elist[0])->vPosition;
+    }
 
     // Post processing
     gHDRPostProcess             = new HDRPostProcess;
@@ -1422,7 +1464,8 @@ void _DirectX::Load() {
     shTextSimpleSDF          = new Shader();
     shTextEffectsSDF         = new Shader();
     shDepthAlpha             = new Shader();
-    
+    shCombinationPass        = new Shader();
+
     cPlayer   = new Camera(float3(-24.6051f, 16.3883f, -17.3885f), float3(34.7667f, 64.2277f, 0.f));
     c2DScreen = new Camera();
     cLight    = new Camera(float3(-11.2933f, 18.686f, 1.10003f), float3(58.7915f, 116.043f, 0.f));
@@ -1494,14 +1537,17 @@ void _DirectX::Load() {
     rtDepth->Create(32);
 
     // Geometry Buffer
-    rtGBuffer = new RenderTarget2DColor4DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer#2");
+    rtGBuffer = new RenderTarget2DColor4DepthMSAA(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer");
     //if( this->cfg.MSAA ) rtGBuffer->EnableMSAA();
     rtGBuffer->SetMSAAMaxLevel(8);
     rtGBuffer->Create(32);
-    rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,
-                             DXGI_FORMAT_R16G16B16A16_FLOAT,
-                             DXGI_FORMAT_R16G16B16A16_FLOAT, 
-                             DXGI_FORMAT_R16G16B16A16_FLOAT);
+    rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,  // Direct light
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,  // Normal
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,  // Ambient light
+                             DXGI_FORMAT_R16G16B16A16_FLOAT); // Emission
+
+    rtCombinedGBuffer = new RenderTarget2DColor1(cfg.CurrentWidth, cfg.CurrentHeight, 1, "GBuffer combined");
+    rtCombinedGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
     // Deferred buffer
     rtDeferred = new RenderTarget2DColor1(cfg.CurrentWidth, cfg.CurrentHeight, 1, "Deferred Buffer");
@@ -1529,7 +1575,7 @@ void _DirectX::Load() {
     
     rsFrontCull->Create(rDesc2);
     
-    // Create blend state with no color write
+    // Create blend state
     pBlendState0 = new BlendState();
 
     D3D11_BLEND_DESC pDesc_;
@@ -1546,6 +1592,23 @@ void _DirectX::Load() {
     pDesc_.IndependentBlendEnable = false;
 
     pBlendState0->Create(pDesc_, { 1.f, 1.f, 1.f, 1.f });
+
+    // 
+    pBlendState1 = new BlendState();
+
+    pDesc_.RenderTarget[0].BlendEnable = true;
+    pDesc_.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    pDesc_.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    pDesc_.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    pDesc_.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    pDesc_.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    pDesc_.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    pDesc_.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+    pDesc_.AlphaToCoverageEnable = false;
+    pDesc_.IndependentBlendEnable = false;
+
+    pBlendState1->Create(pDesc_, { 1.f, 1.f, 1.f, 1.f });
 
     // Create occlusion query
     pQuery->Create(D3D11_QUERY_OCCLUSION);
@@ -1723,6 +1786,10 @@ void _DirectX::Load() {
     // Post process
     shPostProcess->LoadFile("shPostProcessVS.cso", Shader::Vertex);
     shPostProcess->LoadFile("shPostProcessPS.cso", Shader::Pixel);
+
+    // Combination pass
+    shCombinationPass->AttachShader(shPostProcess, Shader::Vertex);
+    shCombinationPass->LoadFile("shCombinationPassPS.cso", Shader::Pixel);
 
     // SSLR
     shSSLR->AttachShader(shPostProcess, Shader::Vertex);
