@@ -1,3 +1,5 @@
+#include "Other/CPUID.h"
+
 #include <array>
 //#include <algorithm>
 
@@ -312,9 +314,13 @@ bool _DirectX::FrameFunction() {
         Scene::Current()->BindCamera(0, Shader::Vertex, 1); // Main camera
         Scene::Current()->BindCamera(1, Shader::Vertex, 2); // Shadow camera
 
+        Scene::Current()->SetLayersState(0);
+        Scene::Current()->SetLayersState(Scene::Clouds, true);
+
         Scene::Current()->RenderOpaque(0, Shader::Vertex);
 
         LunaEngine::PSDiscardSRV<8>();
+        Scene::Current()->SetLayersState(0xFFFFFFFF);
 
         // Render scene
         //RenderScene(cPlayer, RendererFlags::OpaquePass | RendererFlags::RenderSkybox, cLight);
@@ -1329,18 +1335,20 @@ void _DirectX::Load() {
     TransformComponent *transform = gScene->GetComponent<TransformComponent>(e);
     MaterialComponent *mat = gScene->GetComponent<MaterialComponent>(e);
 
+    float scale = 25.f;
+    transform->vScale    = { scale, scale, scale };
     //transform->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
-    transform->vScale    = { 50.f, 50.f, 50.f };
     //transform->vPosition = float3(-50.f, 0.f, 50.f);
 
     //transform->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
     //transform->vScale    = float3(.125, .125, .125);
     //transform->vPosition = float3(-50.f, 0.f, 50.f);
 
-    mat->_AlbedoTex    = new Texture("../Textures/Rusted Iron/rustediron2_basecolor.png", DXGI_FORMAT_R8G8B8A8_UNORM);
-    mat->_NormalTex    = new Texture("../Textures/Rusted Iron/rustediron2_normal.png", DXGI_FORMAT_R8G8B8A8_UNORM);
-    mat->_MetallicTex  = new Texture("../Textures/Rusted Iron/rustediron2_metallic.png", DXGI_FORMAT_R8_UNORM);
-    mat->_RoughnessTex = new Texture("../Textures/Rusted Iron/rustediron2_roughness.png", DXGI_FORMAT_R8_UNORM);
+    mat->_AlbedoTex     = new Texture("../Textures/Rusted Iron/rustediron2_basecolor.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    mat->_NormalTex     = new Texture("../Textures/Rusted Iron/rustediron2_normal.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    mat->_MetallicTex   = new Texture("../Textures/Rusted Iron/rustediron2_metallic.png", DXGI_FORMAT_R8_UNORM);
+    mat->_RoughnessTex  = new Texture("../Textures/Rusted Iron/rustediron2_roughness.png", DXGI_FORMAT_R8_UNORM);
+    mat->_MaterialLayer = Scene::Clouds;
 
     // 
     if( false ) {
@@ -2227,6 +2235,11 @@ void _DirectX::AnselSession() {
 #endif
 
 int main() {
+    {
+        CPUID GenCPUInfo;
+        GenCPUInfo.PrintBasicInfo();
+    }
+
     // Create global engine objects
     gWindow        = new Window();
     gDirectX       = new _DirectX();

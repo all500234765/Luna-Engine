@@ -170,11 +170,11 @@ half4 main(PS In): SV_Target0 {
     //Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
     
     // Ambient Occlusion
-    float AO = 1.f;
+    /*float AO = 1.f;
     [flatten] if( _RenderFlags & 2 ) {
         AO = _AmbientOcclusion.Sample(_LinearSampler, In.Texcoord);
         Diff.rgb *= AO;
-    }
+    }*/
     
     // Depth of Field
     [flatten] if( _RenderFlags & 8 ) {

@@ -206,6 +206,8 @@ private:
     uint32_t bUpdatedCameraLists{};
     uint32_t bIsTransparentPass{};
 
+    uint32_t mMaterialLayerStates = 0xFFFFFFFF;
+
     EntityHandleList LoadModelExternalStatic(const char* fname) {
         MaterialComponent mat{};
         mat._UseVertexColor = false;
@@ -324,6 +326,14 @@ private:
     }
 
 public:
+    enum MaterialLayers {
+        Default = 1,
+        Clouds = 2,
+
+
+        Count = 32
+    };
+
     Scene() {
         // Create default lights
         AmbientLightComponent ambient;
@@ -436,6 +446,7 @@ public:
         mUpdateList.Clear();
     }
 
+    uint32_t GetEnabledMaterialLayers() const { return mMaterialLayerStates; }
     bool IsTransparentPass() const { return bIsTransparentPass; };
 
     // Set current scene as active
@@ -690,6 +701,19 @@ public:
 
     inline CameraData* GetCamera(uint32_t CameraIndex) const { return mCameraData[CameraIndex]; }
 
+    void SetLayersState(uint32_t Layers, bool Enable) {
+        for( uint i = 0, j = 1; i < Layers; j = 1 <<++ i ) {
+            if( Layers & j ) {
+                if( Enable ) {
+                    mMaterialLayerStates |= j;
+                } else {
+                    mMaterialLayerStates &= ~j;
+                }
+            }
+        }
+    }
+    inline void SetLayersState(uint32_t NewState) { mMaterialLayerStates = NewState; }
+
     void RenderCubemap(uint32_t flags=0, Shader::ShaderType type_transf=Shader::Vertex, Shader::ShaderType type_tex=Shader::Pixel) {
         flags |= type_transf << (32 - Shader::Count);
         flags |= type_tex    << (32 - Shader::Count * 2);
@@ -751,7 +775,8 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
 
     Scene* scene = Scene::Current();
 
-    if( material->_IsTransparent != scene->IsTransparentPass() ) return;
+    if(    material->_IsTransparent != scene->IsTransparentPass()
+    || ( !(material->_MaterialLayer &  scene->GetEnabledMaterialLayers()) && material->_MaterialLayer ) ) return;
 
     uint32_t flags = ieee_uint32(dt);
     Shader::ShaderType type = Shader::ShaderType(flags >> 25);

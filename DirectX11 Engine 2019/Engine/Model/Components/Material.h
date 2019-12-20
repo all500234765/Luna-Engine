@@ -1,4 +1,4 @@
-//#include "ShaderDefines.h"
+#include "ShaderDefines.h"
 
 float _IsTransparent;
 float _UseVertexColor;
@@ -26,7 +26,7 @@ float _RoughnessMul;
 float _AmbientOcclusionMul;
 float _EmissionMul;
 
-float _MatPadding1;
+uint32_t _MaterialLayer;
 
 float3 _EmissionColor;
 float _MatPadding2;
