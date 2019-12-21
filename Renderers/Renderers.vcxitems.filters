@@ -3,4 +3,8 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\RendererBase.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Renderer\RendererDeferred.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Renderer\RendererDeferred.cpp" />
+  </ItemGroup>
 </Project>

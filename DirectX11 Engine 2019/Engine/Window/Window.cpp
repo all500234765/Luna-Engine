@@ -5,6 +5,8 @@
 #include "Window.h"
 
 void Window::Create(const WindowConfig& config) {
+    gState = this;
+
     WNDCLASSEX wc;
     int posX, posY;
     DEVMODE dmScreenSettings;

@@ -5,6 +5,7 @@
 
 #include "Engine/Input/Input.h"
 #include "Engine/DirectX/DirectX.h"
+#include "Engine/States/PipelineState.h"
 
 struct WindowConfig {
     // On create only
@@ -24,7 +25,7 @@ struct WindowConfig {
     bool Resized; // Modification implemented
 };
 
-class Window {
+class Window: public PipelineState<Window> {
 private:
     bool (_DirectX::*FrameFunction)();
     int screenWidth, screenHeight;

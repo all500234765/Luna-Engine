@@ -190,7 +190,7 @@ private:
     std::array<EntityHandle, SCENE_MAX_CAMERA_COUNT> mCamera{};
 
     ECSSystemList mRenderOpaqueList{}, mRenderCubemapList{}, mRenderTransparentList{};
-    ECSSystemList mUpdateList{};
+    ECSSystemList mUpdateList{}, mRenderList{};
 
     ECS mECS{};
 
@@ -331,7 +331,8 @@ public:
         Clouds = 2,
 
 
-        Count = 32
+        Count = 32,
+        All = 0xFFFFFFFF
     };
 
     Scene() {
@@ -593,11 +594,14 @@ public:
         ClearUpdateList();
 
         //mRenderCubemapList.;
-        mRenderOpaqueList.AddSystem(*gAnimatedMeshRenderSystem);
+        /*mRenderOpaqueList.AddSystem(*gAnimatedMeshRenderSystem);
         mRenderOpaqueList.AddSystem(*gStaticMeshRenderSystem);
 
         mRenderTransparentList.AddSystem(*gAnimatedMeshRenderSystem);
-        mRenderTransparentList.AddSystem(*gStaticMeshRenderSystem);
+        mRenderTransparentList.AddSystem(*gStaticMeshRenderSystem);*/
+
+        mRenderList.AddSystem(*gAnimatedMeshRenderSystem);
+        mRenderList.AddSystem(*gStaticMeshRenderSystem);
 
         mUpdateList.AddSystem(*gVelocityIntegrationSystem);
     }
@@ -660,7 +664,8 @@ public:
         bUpdatedCameraLists = true;
     }
 
-    void SetActiveCamera(uint32_t i) { mMainCamera = i; }
+    inline uint32_t GetActiveCamera() const { return mMainCamera; }
+    inline void SetActiveCamera(uint32_t i) { mMainCamera = i; }
 
     /*void AddCameras(std::initializer_list<EntityHandle> list) {
         mCameras.resize(mCameras.size() + list.size());
@@ -713,6 +718,14 @@ public:
         }
     }
     inline void SetLayersState(uint32_t NewState) { mMaterialLayerStates = NewState; }
+
+    void Render(uint32_t flags=0, Shader::ShaderType type_transf=Shader::Vertex, Shader::ShaderType type_tex=Shader::Pixel) {
+        flags |= type_transf << (32 - Shader::Count);
+        flags |= type_tex << (32 - Shader::Count * 2);
+
+        bIsTransparentPass = (flags & RendererFlags::OpacityPass);
+        mECS.UpdateSystems(mRenderList, ieee_float(flags));
+    }
 
     void RenderCubemap(uint32_t flags=0, Shader::ShaderType type_transf=Shader::Vertex, Shader::ShaderType type_tex=Shader::Pixel) {
         flags |= type_transf << (32 - Shader::Count);
@@ -775,11 +788,21 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
 
     Scene* scene = Scene::Current();
 
+    // If it's transparency pass, but material is opaque, 
+    // or material layer mask doesn't have at least one bit with current renderable material layer
+    //      Skip rendering
     if(    material->_IsTransparent != scene->IsTransparentPass()
     || ( !(material->_MaterialLayer &  scene->GetEnabledMaterialLayers()) && material->_MaterialLayer ) ) return;
 
+    // Get flags
     uint32_t flags = ieee_uint32(dt);
-    Shader::ShaderType type = Shader::ShaderType(flags >> 25);
+    
+    // If material can't cast shadows and currently we are rendering shadow map
+    //      Then skip
+    if( !material->_ShadowCaster && (flags & RendererFlags::ShadowPass) ) return;
+
+    // Target shader types
+    Shader::ShaderType type     = Shader::ShaderType(flags >> 25);
     Shader::ShaderType mat_type = Shader::ShaderType((flags >> 18) & 0x7F);
 
     // Bind mesh data

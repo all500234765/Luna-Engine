@@ -8,6 +8,7 @@ enum RendererFlags {
     RenderSkybox     = 8,  // Deprecated!
     DontBindShaders  = 16, 
     DontBindTextures = 32, 
-    DontBindSamplers = 64
+    DontBindSamplers = 64,
+    ShadowPass       = 128
 
 };

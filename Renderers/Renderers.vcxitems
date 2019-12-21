@@ -16,4 +16,8 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\RendererBase.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Renderer\RendererDeferred.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Renderer\RendererDeferred.h" />
+  </ItemGroup>
 </Project>

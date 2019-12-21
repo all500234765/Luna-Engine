@@ -24,9 +24,11 @@ private:
 
 public:
     virtual void Init() = 0;
-    virtual void Render(uint32_t) = 0;
+    virtual void Render() = 0;
     virtual void Release() = 0;
     virtual void ImGui() = 0;
 
+    inline uint32_t Width() const { return Window::Current()->GetCFG().CurrentWidth; }
+    inline uint32_t Height() const { return Window::Current()->GetCFG().CurrentHeight2; }
 };
 

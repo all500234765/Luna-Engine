@@ -13,6 +13,41 @@
 
 class RendererDeferred: public RendererBase {
 private:
+    // Defaults
+    struct {
+        union {
+            float4 black_void1[4];
+            const float black_void2[4] = { 0.f, 0.f, 0.f, 0.f };
+        };
+
+        union {
+            float4 white_snow1[4];
+            const float white_snow2[4] = { 1.f, 1.f, 1.f, 1.f };
+        };
+
+
+    } s_clear;
+
+    struct {
+        struct {
+            Texture *checkboard;
+            Texture *bluenoise_rg_512;
+            Texture *checkboard;
+        } tex;
+
+        struct {
+            SamplerState point;
+            SamplerState linear;
+            SamplerState point_comp;
+            SamplerState linear_comp;
+        } sampl;
+
+    } s_material;
+
+    // TODO: Do clustered rendering
+    CubemapTexture *mCubemap;
+
+
     // Effects
     HDRPostProcess                 *gHDRPostProcess;
     SSAOPostProcess                *gSSAOPostProcess;
@@ -30,15 +65,24 @@ private:
 
     // Resources
     RenderTarget2DColor1DepthMSAA *rtDepth;
-    Shader *shSurface;
+    RenderTarget2DColor4DepthMSAA *rtGBuffer;
+    RenderTarget2DColor2DepthMSAA *rtTransparency;
+
+    Shader *shSurface, *shVertexOnly;
+
+    // Local
+    Scene *mScene;
 
     // Geometry Passes
-    void Shadows();
-    void GBuffer();
-    void OIT();
-    void GBufferMSAAResolve();
+    void Shadows();             // Done
+    void GBuffer();             // Done
+    void OIT();                 // Done
+
+    // Occlusion tests
+    void CoverageBuffer();
 
     // Screen-Space Passes
+    void Deferred();
     void SSAO();
     void SSLR();
     void SSLF();
@@ -52,7 +96,7 @@ private:
 
 public:
     void Init() override;
-    void Render(uint32_t CameraIndex) override;
+    void Render() override;
     void Release() override;
     void ImGui() override;
 };

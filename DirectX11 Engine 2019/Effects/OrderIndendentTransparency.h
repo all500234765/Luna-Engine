@@ -43,8 +43,6 @@ private:
     RasterState *rsNoCulling;
     TopologyState *tState;
 
-    RenderTarget<2, 2, true, 1, true, false> *rtTransparent;
-
     Texture texTemp;
 
     Camera cam2D;
@@ -74,11 +72,6 @@ public:
         // Create resources with default size
         uint32_t Width = 1366;
         uint32_t Height = 768;
-
-        rtTransparent = new RenderTarget<2, 2, true, 1, true, false>(Width, Height, 1, "Transparency");
-        rtTransparent->Create(32);                                      // Depth
-        rtTransparent->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM,        // Color
-                                  DXGI_FORMAT_R16G16B16A16_FLOAT);   // Normals
 
         rwListHead = Texture(Width, Height, DXGI_FORMAT_R32_UINT, true);
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
@@ -171,7 +164,6 @@ public:
         SAFE_RELEASE(bsMaskZero);
         SAFE_RELEASE(bsNoBlend);
         SAFE_RELEASE(rsNoCulling);
-        SAFE_RELEASE(rtTransparent);
 
         SAFE_DELETE(tState);
 
@@ -235,7 +227,12 @@ public:
 
     // Resolve MSAA; Render transparency
     
-    void End(const OITSettings& params) {
+    // Depth, Albedo, Normal at least
+    template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
+             size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps
+                                                         to create per RT buffer   */
+             bool WillHaveMSAA=false, bool Cube=false>
+    void End(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>* rtTransparent, const OITSettings& params) {
         ScopedRangeProfiler s0(L"End");
 
         {

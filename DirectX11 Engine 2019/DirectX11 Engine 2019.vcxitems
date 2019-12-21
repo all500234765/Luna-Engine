@@ -92,6 +92,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\FloatTypeMath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedSemaphore.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedThreadSync.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Other\StaticReference.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Effects\EffectBase.cpp" />
