@@ -88,6 +88,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utlities.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\Console.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\CPUID.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Other\DrawCall.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\FileSystem.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\FloatTypeMath.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedSemaphore.h" />
@@ -139,6 +140,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Vertices.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\CPUID.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Other\DrawCall.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\FileSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\ScopedMapper.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\FloatTypeMath.cpp" />

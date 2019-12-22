@@ -19,7 +19,6 @@ HighLevel gHighLevel;
 
 RendererBase *gRenderer;
 Scene *gMainScene;
-Camera *gCamera;
 
 int main() {
     CPUID cpu;
@@ -80,10 +79,17 @@ int main() {
 }
 
 bool _DirectX::FrameFunction() {
+    static uint gRenderFrame = 0;
+
+    // Reset counters
+    gDrawCallInstanceCount = 0;
+    gDispatchCallCount = 0;
+    gDrawCallCount = 0;
+
     // Resize event
     Resize();
 
-    // DefaultTexture
+    // DefaultTexture.png
 
 
     // Bind and clear RTV
@@ -96,12 +102,21 @@ bool _DirectX::FrameFunction() {
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
     gRenderer->FinalScreen();
 
+    // Debug statistics
+    if( (gRenderFrame % 120) == 0 ) {
+        printf_s("Frame=%u; Drawcalls=%u; Instances=%u; Dispatches=%u\n", 
+                 gRenderFrame, gDrawCallCount, gDrawCallInstanceCount, gDispatchCallCount);
+    }
+
     // End of frame
     gSwapchain->Present(1, 0);
+    gRenderFrame++;
     return false;
 }
 
 void _DirectX::Tick(float fDeltaTime) {
+    gMainScene->Update(fDeltaTime);
+
 
 }
 

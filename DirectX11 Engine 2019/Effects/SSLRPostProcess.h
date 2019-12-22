@@ -252,7 +252,7 @@ public:
         _PointSampler->Bind(Shader::Pixel, 0);
 
         // Draw call
-        gDirectX->gContext->Draw(6, 0);
+        DXDraw(6, 0);
 
         // Restore old states
         BlendState::Pop();

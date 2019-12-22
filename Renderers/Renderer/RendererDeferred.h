@@ -37,6 +37,24 @@ private:
 
     } s_material{};
 
+    struct {
+        struct {
+            BlendState *normal;
+            BlendState *add;
+        } blend;
+
+        struct {
+            DepthStencilState *normal;
+        } depth;
+
+        struct {
+            RasterState *normal;
+            RasterState *wire;
+            RasterState *normal_scissors;
+            RasterState *wire_scissors;
+        } raster;
+    } s_states{};
+
     // Effects
     HDRPostProcess                 *gHDRPostProcess{};
     SSAOPostProcess                *gSSAOPostProcess{};
@@ -54,13 +72,18 @@ private:
 
     // Resources
     RenderTarget2DDepthMSAA       *rtDepth{};
-    RenderTarget2DColor4DepthMSAA *rtGBuffer{};
+    RenderTarget2DColor4DepthMSAA *rtGBuffer{}, *rtCombinedGBuffer{};
     RenderTarget2DColor2DepthMSAA *rtTransparency{};
+    RenderTarget2DColor1          *rtFinalPass{};
 
-    Shader *shSurface{}, *shVertexOnly{};
+    Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
 
     // Local
     Scene *mScene{};
+
+    // 
+    TransformComponent *IdentityTransf;
+    ConstantBuffer *cbTransform;
 
     // Geometry Passes
     void Shadows();             // Done
@@ -83,12 +106,14 @@ private:
     // Final Passes
     void Final();
 
+    void BindOrtho();
+
 public:
-    void Init()                   override;
-    void Resize(float W, float H) override;
-    void Render()                 override;
-    void FinalScreen()            override;
-    void Release()                override;
-    void ImGui()                  override;
-    void ClearMainRT()            override;
+    virtual void Init()                   override;
+    virtual void Resize(float W, float H) override;
+    virtual void Render()                 override;
+    virtual void FinalScreen()            override;
+    virtual void Release()                override;
+    virtual void ImGui()                  override;
+    virtual void ClearMainRT()            override;
 };

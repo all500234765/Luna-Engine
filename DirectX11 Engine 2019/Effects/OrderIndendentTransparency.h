@@ -257,7 +257,7 @@ public:
         sbLinkedLists.Bind(Shader::Pixel, 1);
         rwListHead.Bind(Shader::Pixel, 2);
 
-        gDirectX->gContext->Draw(6, 0);
+        DXDraw(6, 0);
 
         // Unbind
         ID3D11UnorderedAccessView *pEmptyUAV[2] = { nullptr, nullptr };

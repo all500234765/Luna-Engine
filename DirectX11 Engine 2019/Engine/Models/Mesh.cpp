@@ -12,17 +12,17 @@ void Mesh::Bind() {
 
 void Mesh::Render() {
     if( ib ) {
-        gDirectX->gContext->DrawIndexed(ib->GetNumber(), 0, 0);
+        DXDrawIndexed(ib->GetNumber(), 0, 0);
     } else if( vb ) {
-        gDirectX->gContext->Draw(vb->GetNumber(), 0);
+        DXDraw(vb->GetNumber(), 0);
     }
 }
 
 void Mesh::Render(UINT num) {
     if( ib ) {
-        gDirectX->gContext->DrawIndexedInstanced(ib->GetNumber(), num, 0, 0, 0);
+        DXDrawIndexedInstanced(ib->GetNumber(), num, 0, 0, 0);
     } else if( vb ) {
-        gDirectX->gContext->DrawInstanced(vb->GetNumber(), num, 0, 0);
+        DXDrawInstanced(vb->GetNumber(), num, 0, 0);
     }
 }
 

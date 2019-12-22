@@ -16,6 +16,8 @@
 
 #include "Engine/Model/Scene.h"
 
+#include "Other/DrawCall.h"
+
 struct RendererConfig {
     float r_width = 1366.f;
     float r_height = 768.f;

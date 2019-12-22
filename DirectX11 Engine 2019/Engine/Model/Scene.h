@@ -31,6 +31,7 @@
 #include "Engine/DirectX/IndexBuffer.h"
 #include "Engine/Extensions/Safe.h"
 #include "HighLevel/DirectX/Utlities.h"
+#include "Other/DrawCall.h"
 
 // Components
 #include "Components/Components.h"
@@ -148,54 +149,6 @@ public:
     void UpdateComponents(float dt, BaseECSComponent** comp) override;
 };
 
-/*class StaticMeshRenderSystem: public BaseECSSystem {
-public:
-    StaticMeshRenderSystem(): BaseECSSystem() {
-        AddComponentType(TransformComponent::_ID);  // 0
-        AddComponentType(MeshStaticComponent::_ID); // 1
-    }
-
-    void UpdateComponents(float dt, BaseECSComponent** comp) override {
-        TransformComponent* transform = (TransformComponent*)comp[0];
-        MeshStaticComponent* mesh     = (MeshStaticComponent*)comp[1];
-
-        uint32_t flags = ieee_uint32(dt);
-        uint32_t low = (flags >> 24);
-
-        uint32_t slot           = low >> Shader::Count;
-        Shader::ShaderType type = Shader::ShaderType(low & ((1 << Shader::Count) - 1));
-        //(type | (slot << Shader::Count));
-
-        mesh->Bind();
-        //transform->Build();
-        transform->Bind(Scene::Current()->cbTransform, Shader::Vertex, 0u);
-
-        gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer.GetNumber(), 0, 0);
-    }
-
-} *gStaticMeshRenderSystem;*/
-
-/*class VelocityIntegrationSystem: public BaseECSSystem {
-public:
-    VelocityIntegrationSystem() {
-        AddComponentType(TransformComponent::_ID); // 0
-        AddComponentType(VelocityComponent::_ID);  // 1
-    }
-
-    void UpdateComponents(float dt, BaseECSComponent** comp) override {
-        TransformComponent* transform = (TransformComponent*)comp[0];
-        VelocityComponent* velocity   = (VelocityComponent*)comp[1];
-
-        // TODO: Fix +=
-        transform->vPosition += velocity->vDirection * velocity->fVelocity * dt;
-        velocity->fVelocity  += velocity->fAcceleration * dt;
-
-        velocity->fAcceleration *= .9f;
-        velocity->fVelocity     *= .9f;
-    }
-
-} *gVelocityIntegrationSystem;*/
-
 typedef std::vector<EntityHandle> EntityHandleList;
 
 //struct CameraInstance {
@@ -204,6 +157,16 @@ typedef std::vector<EntityHandle> EntityHandleList;
 //    ConstantBuffer* cbCameraData{};
 //};
 
+// Reserved slots:
+//  0 - Main player camera
+//  1 - Light camera
+//  2 - Ortho screen space camera
+//  3 - For further use (TBD)
+//  4 - For further use (TBD)
+//  5 - For further use (TBD)
+// 
+// The rest is free to use
+// Max value is 32
 #define SCENE_MAX_CAMERA_COUNT 8
 class Scene: public PipelineState<Scene> {
 private:
@@ -689,6 +652,8 @@ public:
         cam.fAspect = width / height;
         cam.fFOV_X  = fovx;
         cam.fFOV_Y  = 0.f;
+        cam.fWidth  = width;
+        cam.fHeight = height;
 
         mCamera[CameraIndex] = mECS.MakeEntity(transf, cam);
         bUpdatedCameraLists = false;
@@ -706,11 +671,29 @@ public:
     }
     
     void DefineCameraOrtho(uint32_t i, float _near, float _far, float width, float height) {
-        if( mCamera[i] == NULL_HANDLE ) MakeCameraOrtho(i, _near, _far, width, height);
+        if( mCamera[i] == NULL_HANDLE ) {
+            MakeCameraOrtho(i, _near, _far, width, height);
+        } else {
+            mCameraData[i]->cCam->fWidth  = width;
+            mCameraData[i]->cCam->fHeight = height;
+            mCameraData[i]->cCam->fAspect = width / height;
+            mCameraData[i]->cCam->fNear   = _near;
+            mCameraData[i]->cCam->fFar    = _far;
+            mCameraData[i]->BuildProj();
+        }
     }
 
     void DefineCameraFOVH(uint32_t i, float _near, float _far, float width, float height, float fovx) {
-        if( mCamera[i] == NULL_HANDLE ) MakeCameraFOVH(i, _near, _far, width, height, fovx);
+        if( mCamera[i] == NULL_HANDLE ) {
+            MakeCameraFOVH(i, _near, _far, width, height, fovx);
+        } else {
+            mCameraData[i]->cCam->fWidth  = width;
+            mCameraData[i]->cCam->fHeight = height;
+            mCameraData[i]->cCam->fAspect = width / height;
+            mCameraData[i]->cCam->fNear   = _near;
+            mCameraData[i]->cCam->fFar    = _far;
+            mCameraData[i]->BuildProj();
+        }
     }
 
     inline EntityHandle GetActiveCameraHandle() const { return mCamera[mMainCamera]; }

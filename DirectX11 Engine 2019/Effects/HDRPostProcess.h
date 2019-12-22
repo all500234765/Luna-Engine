@@ -13,6 +13,7 @@
 #include "Engine/States/RasterState.h"
 #include "Engine/States/TopologyState.h"
 #include "Engine/Materials/Sampler.h"
+#include "Other/DrawCall.h"
 
 // (WIP)
 // Eye adaptation
@@ -523,7 +524,7 @@ public:
         cbGeometry->Bind(Shader::Geometry, 0);
 
         // Render bokeh
-        gDirectX->gContext->DrawInstancedIndirect(sbBokehIndirect->GetBuffer(), 0);
+        DXDrawInstancedIndirect(sbBokehIndirect->GetBuffer(), 0);
 
         // Restore old states
         shEmptyShader->Bind();

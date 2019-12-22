@@ -59,8 +59,8 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
     material->Bind(scene->cbMaterial, mat_type, 0, flags);
     // TODO: Make sorting by materials
 
-    // Draw call1
-    gDirectX->gContext->DrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);
+    // Draw call
+    DXDrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);
 }
 
 MovementControlIntegrationSystem::MovementControlIntegrationSystem(): BaseECSSystem() {

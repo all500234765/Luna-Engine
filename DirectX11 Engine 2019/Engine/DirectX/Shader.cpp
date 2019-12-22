@@ -206,7 +206,7 @@ void Shader::Bind() {
 void Shader::Dispatch(UINT x, UINT y, UINT z) {
     if( __Has(Compute) ) {
         gDirectX->gContext->CSSetShader(sCompute, NULL, 0);
-        gDirectX->gContext->Dispatch(x, y, z);
+        DXDispatch(x, y, z);
     }
 }
 

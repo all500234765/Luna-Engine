@@ -360,7 +360,7 @@ namespace LunaEngine {
             gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(2, 0);
+            DXDraw(2, 0);
         }
 
         void Rectangle(float x1, float y1, float x2, float y2) {
@@ -383,7 +383,7 @@ namespace LunaEngine {
             gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(6, 0);
+            DXDraw(6, 0);
         }
 
         void Circle(float x, float y, float r, UINT precision) {
@@ -407,7 +407,7 @@ namespace LunaEngine {
             gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(precision * 3 + 1, 0);
+            DXDraw(precision * 3 + 1, 0);
         }
         
         void Triangle(float x1, float y1, float x2, float y2, float x3, float y3) {
@@ -431,7 +431,7 @@ namespace LunaEngine {
             gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(3, 0);
+            DXDraw(3, 0);
         }
         
         
@@ -455,7 +455,7 @@ namespace LunaEngine {
             gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(5, 0);
+            DXDraw(5, 0);
         }
 
         void TriangleOuter(float x1, float y1, float x2, float y2, float x3, float y3) {
@@ -479,7 +479,7 @@ namespace LunaEngine {
             gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(4, 0);
+            DXDraw(4, 0);
         }
 
         void CircleOuter(float x, float y, float r, UINT precision) {
@@ -503,7 +503,7 @@ namespace LunaEngine {
             gPrimitiveColorBuff->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(precision + 1, 0);
+            DXDraw(precision + 1, 0);
         }
 
 
@@ -534,7 +534,7 @@ namespace LunaEngine {
             tex->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(6, 0);
+            DXDraw(6, 0);
         }
 
         void TextureStreched(Texture* tex, float x, float y, float xscale, float yscale, float ang) {
@@ -570,7 +570,7 @@ namespace LunaEngine {
             tex->Bind(Shader::Pixel, 0);
 
             // Draw call
-            gDirectX->gContext->Draw(6, 0);
+            DXDraw(6, 0);
         }
     }
 
