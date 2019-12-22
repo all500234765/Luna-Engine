@@ -6,11 +6,7 @@
 #include "Engine/DirectX/DirectX.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/PolygonLayout.h"
-#include "Engine/DirectX/Buffer.h"
-#include "Engine/DirectX/IndexBuffer.h"
-#include "Engine/DirectX/VertexBuffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"
-#include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/Materials/Texture.h"
 
 //#include <random>
@@ -28,34 +24,16 @@ namespace LunaEngine {
         gDirectX->gContext->CSSetUnorderedAccessViews(0, dim, pEmpty, 0);
     }
 
-    template<>
-    void CSDiscardUAV<1>() {
-        ID3D11UnorderedAccessView *pEmpty = nullptr;
-        gDirectX->gContext->CSSetUnorderedAccessViews(0, 1, &pEmpty, 0);
-    }
-
     template<UINT dim>
     void CSDiscardCB() {
         ID3D11Buffer *pEmpty[dim] = { nullptr };
         gDirectX->gContext->CSSetConstantBuffers(0, dim, pEmpty);
     }
 
-    template<>
-    void CSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->CSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
     template<UINT dim>
     void CSDiscardSRV() {
         ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
         gDirectX->gContext->CSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void CSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->CSSetShaderResources(0, 1, &pEmpty);
     }
 #pragma endregion
 
@@ -66,22 +44,10 @@ namespace LunaEngine {
         gDirectX->gContext->VSSetConstantBuffers(0, dim, pEmpty);
     }
 
-    template<>
-    void VSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->VSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
     template<UINT dim>
     void VSDiscardSRV() {
         ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
         gDirectX->gContext->VSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void VSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->VSSetShaderResources(0, 1, &pEmpty);
     }
 #pragma endregion
 
@@ -92,22 +58,10 @@ namespace LunaEngine {
         gDirectX->gContext->PSSetConstantBuffers(0, dim, pEmpty);
     }
 
-    template<>
-    void PSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->PSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
     template<UINT dim>
     void PSDiscardSRV() {
         ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
         gDirectX->gContext->PSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void PSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->PSSetShaderResources(0, 1, &pEmpty);
     }
 #pragma endregion
 
@@ -118,22 +72,10 @@ namespace LunaEngine {
         gDirectX->gContext->GSSetConstantBuffers(0, dim, pEmpty);
     }
 
-    template<>
-    void GSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->GSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
     template<UINT dim>
     void GSDiscardSRV() {
         ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
         gDirectX->gContext->GSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void GSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->GSSetShaderResources(0, 1, &pEmpty);
     }
 #pragma endregion
 
@@ -144,22 +86,10 @@ namespace LunaEngine {
         gDirectX->gContext->HSSetConstantBuffers(0, dim, pEmpty);
     }
 
-    template<>
-    void HSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->HSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
     template<UINT dim>
     void HSDiscardSRV() {
         ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
         gDirectX->gContext->HSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void HSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->HSSetShaderResources(0, 1, &pEmpty);
     }
 #pragma endregion
 
@@ -170,22 +100,10 @@ namespace LunaEngine {
         gDirectX->gContext->DSSetConstantBuffers(0, dim, pEmpty);
     }
 
-    template<>
-    void DSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->DSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
     template<UINT dim>
     void DSDiscardSRV() {
         ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
         gDirectX->gContext->DSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void DSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->DSSetShaderResources(0, 1, &pEmpty);
     }
 #pragma endregion
     

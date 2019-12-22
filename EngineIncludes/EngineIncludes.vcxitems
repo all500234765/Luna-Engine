@@ -29,4 +29,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Textures.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine Includes\Types.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine Includes\MainInclude.cpp" />
+  </ItemGroup>
 </Project>

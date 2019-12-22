@@ -6,10 +6,6 @@
 
 // Core engine includes
 #include "Core.h"
-#include "Models.h"
-#include "RenderBuffers.h"
-#include "Textures.h"
-#include "Engine/Model/Scene.h"
 
 // Audio engine using XAudio2
 #include "Audio.h"
@@ -17,6 +13,23 @@
 // Physics Engine
 #define _LUNA_ENGINE_DX11_
 #include "Physics.h"
+
+// Global game instances
+extern _DirectX      *gDirectX      ;
+extern Window        *gWindow       ;
+extern Input         *gInput        ;
+extern Mouse         *gMouse        ;
+extern Keyboard      *gKeyboard     ;
+extern AudioDevice   *gAudioDevice  ;
+extern PhysicsEngine *gPhysicsEngine;
+
+#if USE_GAMEPADS
+extern Gamepad* gGamepad[NUM_GAMEPAD];
+#endif
+
+#include "Models.h"
+#include "RenderBuffers.h"
+#include "Textures.h"
 
 // Text engine
 #include "Text.h"
@@ -30,18 +43,6 @@
 #include "Engine/Profiler/RangeProfiler.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 
-// Global game instances
-static _DirectX      *gDirectX      ; // = 0
-static Window        *gWindow       ; // = 0
-static Input         *gInput        ; // = 0
-static Mouse         *gMouse        ; // = 0
-static Keyboard      *gKeyboard     ; // = 0
-static AudioDevice   *gAudioDevice  ; // = 0
-static PhysicsEngine *gPhysicsEngine; // = 0
-
-#if USE_GAMEPADS
-static Gamepad* gGamepad[NUM_GAMEPAD] = {};
-#endif
-
 #include "Types.h"
 
+#include "Engine/Model/Scene.h"

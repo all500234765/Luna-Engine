@@ -1,15 +1,24 @@
-#pragma once
+//#pragma once
 
-#include "Engine Includes/Types.h"
 
 // Fuck...
-#ifndef ___SAFE_GUARD_TYPE_OPERATORS2___
-#define ___SAFE_GUARD_TYPE_OPERATORS2___
+//#pragma once
+#ifndef ___SAFE_GUARD_TYPE_OPERATORS2___3333
+#define ___SAFE_GUARD_TYPE_OPERATORS2___3333
+
+#include <DirectXMath.h>
+#include "Engine Includes/Types.h"
+
 //////////////////////////////////////// float3 x float3
-#define OPERATOR(op) \
-float3 __cdecl operator op(float3 lhs, float3 rhs) { \
-    return { lhs.x op rhs.x, lhs.y op rhs.y, lhs.z op rhs.z}; \
-}
+#ifdef _____________TYPE_FLOAT_OPERATORS22____3333
+    #define OPERATOR(op) \
+    float3 __cdecl operator op(float3 lhs, float3 rhs) { \
+        return { lhs.x op rhs.x, lhs.y op rhs.y, lhs.z op rhs.z}; \
+    }
+#else 
+    #define OPERATOR(op) \
+    float3 __cdecl operator op(float3 lhs, float3 rhs);
+#endif
 
 OPERATOR(+)
 OPERATOR(-)
@@ -19,10 +28,15 @@ OPERATOR(/ )
 #undef OPERATOR
 
 //////////////////////////////////////// float3 x float
-#define OPERATOR(op) \
-float3 __cdecl operator op(float3 lhs, float rhs) { \
-    return { lhs.x op rhs, lhs.y op rhs, lhs.z op rhs }; \
-}
+#ifdef _____________TYPE_FLOAT_OPERATORS22____3333
+    #define OPERATOR(op) \
+    float3 __cdecl operator op(float3 lhs, float rhs) { \
+        return { lhs.x op rhs, lhs.y op rhs, lhs.z op rhs }; \
+    }
+#else
+    #define OPERATOR(op) \
+    float3 __cdecl operator op(float3 lhs, float rhs);
+#endif
 
 OPERATOR(+)
 OPERATOR(-)
@@ -30,7 +44,7 @@ OPERATOR(*)
 OPERATOR(/ )
 
 #undef OPERATOR
-#endif // ___SAFE_GUARD_TYPE_OPERATORS2___
+#endif // ___SAFE_GUARD_TYPE_OPERATORS2___3333
 
 #ifdef ___SAFE_GUARD_TYPE_OPERATORS___
 #define ___SAFE_GUARD_TYPE_OPERATORS___

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Engine/Model/Scene.h"
-
 #include "RendererBase.h"
 
 class RendererDeferred: public RendererBase {

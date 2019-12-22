@@ -1,5 +1,8 @@
 #include "Other/CPUID.h"
 
+#undef _____________TYPE_FLOAT_OPERATORS22____3333
+#include "Other/FloatTypeMath.h"
+
 #include <array>
 //#include <algorithm>
 
@@ -14,7 +17,7 @@
 
 HighLevel gHighLevel;
 
-RendererBase *gRenderer;
+RendererDeferred *gRenderer;
 Scene *gMainScene;
 
 int main() {

@@ -1,6 +1,7 @@
 #include "Scene.h"
 
-
+#undef _____________TYPE_FLOAT_OPERATORS22____3333
+#include "Other/FloatTypeMath.h"
 
 ///////////////////////////////// 
 VelocityIntegrationSystem::VelocityIntegrationSystem(): BaseECSSystem() {

@@ -3,7 +3,86 @@
 
 namespace LunaEngine {
     // Discard items(SRV, UAV, CB) from shader slots
+#ifndef _____LUNA___ENGINE___DISCARD____
+#define _____LUNA___ENGINE___DISCARD____
+    template<>
+    void CSDiscardUAV<1>() {
+        ID3D11UnorderedAccessView *pEmpty = nullptr;
+        gDirectX->gContext->CSSetUnorderedAccessViews(0, 1, &pEmpty, 0);
+    }
 
+    template<>
+    void CSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->CSSetConstantBuffers(0, 1, &pEmpty);
+    }
+
+    template<>
+    void CSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->CSSetShaderResources(0, 1, &pEmpty);
+    }
+
+    template<>
+    void VSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->VSSetConstantBuffers(0, 1, &pEmpty);
+    }
+
+    template<>
+    void VSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->VSSetShaderResources(0, 1, &pEmpty);
+    }
+
+    template<>
+    void PSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->PSSetConstantBuffers(0, 1, &pEmpty);
+    }
+
+    template<>
+    void PSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->PSSetShaderResources(0, 1, &pEmpty);
+    }
+
+    template<>
+    void GSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->GSSetConstantBuffers(0, 1, &pEmpty);
+    }
+
+    template<>
+    void GSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->GSSetShaderResources(0, 1, &pEmpty);
+    }
+
+    template<>
+    void HSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->HSSetConstantBuffers(0, 1, &pEmpty);
+    }
+
+    template<>
+    void HSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->HSSetShaderResources(0, 1, &pEmpty);
+    }
+
+    template<>
+    void DSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->DSSetConstantBuffers(0, 1, &pEmpty);
+    }
+
+    template<>
+    void DSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->DSSetShaderResources(0, 1, &pEmpty);
+    }
+#endif // _____LUNA___ENGINE___DISCARD____
 
     namespace Random {
         /*float Gen01() {

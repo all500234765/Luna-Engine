@@ -18,6 +18,8 @@
 // * Fix MSAA only 1 sample
 //  
 
+extern _DirectX *gDirectX;
+
 enum RenderTargetFlags {
     dim_1 = 1, dim_2 = 2, dim_3 = 4, 
 
@@ -42,38 +44,11 @@ struct implRenderTarget {
     ID3D11UnorderedAccessView *pUAV;
     ID3D11ShaderResourceView  *pSRV;
 
-    void Release() {
-        if( pTexture.index() > 0 ) {
-            if( (mFlags & dim_1) && std::get<ID3D11Texture1D*>(pTexture) ) { std::get<ID3D11Texture1D*>(pTexture)->Release(); }
-            if( (mFlags & dim_2) && std::get<ID3D11Texture2D*>(pTexture) ) { std::get<ID3D11Texture2D*>(pTexture)->Release(); }
-            if( (mFlags & dim_3) && std::get<ID3D11Texture3D*>(pTexture) ) { std::get<ID3D11Texture3D*>(pTexture)->Release(); }
-        }
-
-        if( pView.index() > 0 ) {
-            if( mFlags & _Depth ) {
-                if( pUAV == nullptr ) {
-                    auto q = std::get<ID3D11DepthStencilView*>(pView);
-                    if( q ) { q->Release(); }
-                }
-            } else {
-                auto q = std::get<ID3D11RenderTargetView*>(pView);
-                if( q ) { q->Release(); }
-            }
-        }
-
-        if( pSRV ) { pSRV->Release(); }
-        if( pUAV ) { pUAV->Release(); }
-
-        pSRV = nullptr;
-        pUAV = nullptr;
-        pView = false;
-        pTexture = false;
-    }
+    void Release();
 };
 
 class RenderTargetMSAA: public DirectXChild {
 protected:
-
     struct _MSAA_DepthResolve {
         uint2 _Dim;       // Depth buffer dimensions
         uint1 _Samples;   // MSAA Sample count
@@ -86,26 +61,9 @@ protected:
     //static Texture*        g_MSAATextureUAV;
 
 public:
-    static void GlobalInit() {
-        g_shMSAADepthResolve = new Shader();
-        g_shMSAADepthResolve->LoadFile("shMSAADepthResolveCS.cso", Shader::Compute);
-        g_shMSAADepthResolve->ReleaseBlobs();
+    static void GlobalInit();
 
-        g_MSAAConstantBuffer = new ConstantBuffer();
-        g_MSAAConstantBuffer->CreateDefault(sizeof(_MSAA_DepthResolve));
-    }
-
-    static void GlobalRelease() {
-        if( g_shMSAADepthResolve ) {
-            g_shMSAADepthResolve->Release();
-            delete g_shMSAADepthResolve;
-        }
-
-        if( g_MSAAConstantBuffer ) {
-            g_MSAAConstantBuffer->Release();
-            delete g_MSAAConstantBuffer;
-        }
-    }
+    static void GlobalRelease();
 
 };
 

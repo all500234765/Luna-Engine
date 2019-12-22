@@ -141,6 +141,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\CPUID.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\FileSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\ScopedMapper.h" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Other\FloatTypeMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utilities.cpp" />

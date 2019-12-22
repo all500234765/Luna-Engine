@@ -12,6 +12,8 @@
 #include "Effects/OrderIndendentTransparency.h"
 //#include "Effects/CoverageBuffer.h"
 
+#include "Engine/Model/Scene.h"
+
 struct RendererConfig {
     float r_width = 1366.f;
     float r_height = 768.f;
@@ -39,6 +41,7 @@ public:
     virtual void ImGui() = 0;
     virtual void ClearMainRT() = 0;
     virtual void Resize(float W, float H) = 0;
+
 
     inline uint32_t Width() const { return Window::Current()->GetCFG().CurrentWidth; }
     inline uint32_t Height() const { return Window::Current()->GetCFG().CurrentHeight2; }
