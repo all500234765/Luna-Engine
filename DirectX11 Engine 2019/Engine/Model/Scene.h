@@ -183,6 +183,12 @@ public:
 
 typedef std::vector<EntityHandle> EntityHandleList;
 
+//struct CameraInstance {
+//    EntityHandle    mHandle;
+//    CameraData*     mCameraData{};
+//    ConstantBuffer* cbCameraData{};
+//};
+
 #define SCENE_MAX_CAMERA_COUNT 8
 class Scene: public PipelineState<Scene> {
 private:
@@ -199,6 +205,7 @@ private:
     //std::vector<EntityHandle> mParticleEmitters;
     //std::vector<EntityHandle> mParticleSystems;
 
+    //std::array<CameraInstance*, SCENE_MAX_CAMERA_COUNT> mCameraInst{};
     std::array<EntityHandle, SCENE_MAX_CAMERA_COUNT> mCamera{};
 
     ECSSystemList mRenderOpaqueList{}, mRenderCubemapList{}, mRenderTransparentList{};
@@ -410,9 +417,10 @@ public:
 
         // ECS
         for( uint32_t i = 0; i < SCENE_MAX_CAMERA_COUNT; i++ ) 
-            mECS.RemoveEntity(mCamera[i]);
+            if( mCamera[i] != NULL_HANDLE ) mECS.RemoveEntity(mCamera[i]);
 
         auto ReleaseMesh = [&](EntityHandle e, std::string_view name) {
+            if( e == NULL_HANDLE ) return;
             auto static_mesh = GetComponent<MeshStaticComponent>(e);
             auto anim_mesh   = GetComponent<MeshAnimatedComponent>(e);
             //auto // TODO: Release material
@@ -438,7 +446,7 @@ public:
                     SAFE_RELEASE(anim_mesh->mVBJoints);
                 }
             } else {
-                printf_s("[Scene::~Scene]: Error occured during unloading %s mesh %u\n", name, e);
+                printf_s("[Scene::~Scene]: Error occured during unloading %s mesh %u\n", name.data(), e);
             }
 
             mECS.RemoveEntity(e);
@@ -676,6 +684,14 @@ public:
         }
 
         bUpdatedCameraLists = true;
+    }
+    
+    void DefineCameraOrtho(uint32_t i, float _near, float _far, float width, float height) {
+        if( mCamera[i] == NULL_HANDLE ) MakeCameraOrtho(i, _near, _far, width, height);
+    }
+
+    void DefineCameraFOVH(uint32_t i, float _near, float _far, float width, float height, float fovx) {
+        if( mCamera[i] == NULL_HANDLE ) MakeCameraFOVH(i, _near, _far, width, height, fovx);
     }
 
     inline uint32_t GetActiveCamera() const { return mMainCamera; }

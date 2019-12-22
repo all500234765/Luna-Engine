@@ -35,13 +35,13 @@ private:
 
 
 public:
-    virtual void Init() = 0;
-    virtual void Render() = 0;
-    virtual void Release() = 0;
-    virtual void ImGui() = 0;
-    virtual void ClearMainRT() = 0;
-    virtual void Resize(float W, float H) = 0;
-
+    virtual void Init() { return; };
+    virtual void Render() { return; };
+    virtual void Release() { return; };
+    virtual void ImGui() { return; };
+    virtual void ClearMainRT() { return; };
+    virtual void Resize(float W, float H) { return; };
+    virtual void FinalScreen() { return; };
 
     inline uint32_t Width() const { return Window::Current()->GetCFG().CurrentWidth; }
     inline uint32_t Height() const { return Window::Current()->GetCFG().CurrentHeight2; }

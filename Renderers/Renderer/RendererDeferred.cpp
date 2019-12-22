@@ -138,6 +138,10 @@ void RendererDeferred::Render() {
     }
 }
 
+void RendererDeferred::FinalScreen() {
+
+}
+
 void RendererDeferred::Resize(float W, float H) {
 
 }

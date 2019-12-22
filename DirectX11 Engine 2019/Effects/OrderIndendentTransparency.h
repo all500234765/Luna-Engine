@@ -10,7 +10,7 @@
 #include "Engine/States/RasterState.h"
 #include "Engine/States/TopologyState.h"
 #include "Engine/Materials/Sampler.h"
-#include "Engine/Camera/Camera.h"
+#include "Engine/Model/Scene.h"
 #include "Engine/ScopedMapper.h"
 #include <iostream>
 #include <vector>
@@ -45,7 +45,7 @@ private:
 
     Texture texTemp;
 
-    Camera cam2D;
+    mfloat4x4 mViewTmp, mProjTmp;
 
 public:
     OrderIndendentTransparency() {
@@ -77,23 +77,6 @@ public:
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
 
         texTemp = Texture(Width, Height, DXGI_FORMAT_R16G16B16A16_FLOAT, false);
-
-        // Camera
-        cam2D = Camera();
-
-        CameraConfig cam_cfg;
-        cam_cfg.Ortho = true;
-        cam_cfg.ViewW = Width;
-        cam_cfg.ViewH = Height;
-        cam_cfg.fFar = 10.f;
-        cam_cfg.fNear = .1f;
-
-        cam2D.Init();
-        cam2D.SetParams(cam_cfg);
-        cam2D.SetProjMatrix(DirectX::XMMatrixIdentity());
-        cam2D.SetViewMatrix(DirectX::XMMatrixIdentity());
-        cam2D.SetWorldMatrix(DirectX::XMMatrixIdentity());
-        cam2D.BuildConstantBuffer();
 
         // Topology state
         tState = new TopologyState();
@@ -178,11 +161,6 @@ public:
         //rtTransparent->Resize(Width, Height, 1);
         rwListHead.Resize(Width, Height);
         texTemp.Resize(Width, Height);
-
-        // Update camera
-        cam2D.SetViewMatrix(DirectX::XMMatrixIdentity());
-        cam2D.SetProjMatrix(DirectX::XMMatrixIdentity());
-        cam2D.BuildConstantBuffer();
     }
     
     // Must have:
@@ -238,8 +216,8 @@ public:
         {
             ScopeMapConstantBuffer<DataBuffer> q(cbDataBuffer);
 
+            q.data->_CameraPos    = Scene::Current()->GetCamera(Scene::Current()->GetActiveCamera())->cTransf->vPosition;
             q.data->_InvViewProj  = params.mInvViewProj;
-            q.data->_CameraPos    = Camera::Current()->GetPosition();
             q.data->_MinFadeDist2 = params.fMinFadeDist * params.fMinFadeDist;
             q.data->_MaxFadeDist2 = params.fMaxFadeDist * params.fMaxFadeDist;
         }
@@ -260,16 +238,19 @@ public:
         shOITFinal->Bind();
 
         // 
-        Camera::Push();
-        RasterState::Pop();
-
         dssWrite->Bind();
         //bsNoBlend->Bind();
+
+        // Store states
+        Scene::Current()->DefineCameraOrtho(2, .1f, 10.f, 1.f, 1.f);
+        mProjTmp = Scene::Current()->GetCamera(2)->cCam->mProj;
+        mViewTmp = Scene::Current()->GetCamera(2)->cCam->mView;
+        RasterState::Pop();
         BlendState::Pop();
 
         // Bind camera
-        cam2D.Bind();
-        cam2D.BindBuffer(Shader::Vertex, 0);
+        Scene::Current()->GetCamera(2)->ProjIdentity();
+        Scene::Current()->GetCamera(2)->ViewIdentity();
 
         // Bind resources
         cbDataBuffer->Bind(Shader::Pixel, 0);
@@ -286,14 +267,10 @@ public:
         // Resolve MSAA
         rtTransparent->MSAAResolve();
 
-        // Unbind
-        //ID3D11UnorderedAccessView *pEmptyUAV4[4] = { nullptr };
-        //ID3D11RenderTargetView *pEmptyRTV4[4] = { nullptr };
-        //gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(4, pEmptyRTV4, nullptr, 4, 4, pEmptyUAV4, 0);
-        
         // Restore old states
+        Scene::Current()->GetCamera(2)->SetProj(mProjTmp);
+        Scene::Current()->GetCamera(2)->SetView(mViewTmp);
         //TopologyState::Pop();
-        Camera::Pop();
         DepthStencilState::Pop();
 
         // L"Order Independent Transparency"
@@ -303,17 +280,5 @@ public:
     inline ID3D11ShaderResourceView *GetHeadSRV() const {
         return rwListHead.GetSRV();
     }
-
-    //inline ID3D11ShaderResourceView *GetColorSRV() const {
-    //    return rtTransparent->GetBufferSRV<0>();
-    //}
-    //
-    //inline ID3D11ShaderResourceView *GetNormalSRV() const {
-    //    return rtTransparent->GetBufferSRV<1>();
-    //}
-    //
-    //inline ID3D11ShaderResourceView *GetDepthSRV() const {
-    //    return rtTransparent->GetDepthBuffer<0>()->pSRV;
-    //}
 
 };

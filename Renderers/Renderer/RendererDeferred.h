@@ -37,8 +37,6 @@ private:
 
     } s_material{};
 
-
-
     // Effects
     HDRPostProcess                 *gHDRPostProcess{};
     SSAOPostProcess                *gSSAOPostProcess{};
@@ -87,10 +85,10 @@ private:
 
 public:
     void Init()                   override;
-    void Render()                 override;
     void Resize(float W, float H) override;
+    void Render()                 override;
+    void FinalScreen()            override;
     void Release()                override;
     void ImGui()                  override;
-
     void ClearMainRT()            override;
 };

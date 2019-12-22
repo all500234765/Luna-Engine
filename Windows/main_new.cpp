@@ -17,10 +17,14 @@
 
 HighLevel gHighLevel;
 
-RendererDeferred *gRenderer;
+RendererBase *gRenderer;
 Scene *gMainScene;
+Camera *gCamera;
 
 int main() {
+    CPUID cpu;
+    cpu.PrintBasicInfo();
+
     // Window config
     WindowConfig winCFG;
     winCFG.Borderless = false;
@@ -79,21 +83,23 @@ bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
 
-    // 
+    // DefaultTexture
 
 
     // Bind and clear RTV
-    gContext->OMSetRenderTargets(1, &gRTV, gDSV);
     gRenderer->ClearMainRT();
 
+    // Render world
     gRenderer->Render();
 
+    // Render to screen
+    gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+    gRenderer->FinalScreen();
 
     // End of frame
     gSwapchain->Present(1, 0);
     return false;
 }
-
 
 void _DirectX::Tick(float fDeltaTime) {
 
@@ -108,15 +114,18 @@ void _DirectX::Load() {
     gRenderer->Init();
     
     gMainScene = new Scene();
-    gMainScene->SetAsActive();
+    gMainScene->SetAsActive(); // Bind current scene as active
 
-    gMainScene->MakeCameraFOVH(0, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f);
+    // Create cameras
+    gMainScene->MakeCameraFOVH(0, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Player
+    gMainScene->MakeCameraFOVH(1, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Light
+
+    // Add model
     gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj", [](TransformComponent *transf) {
         transf->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
         transf->vScale    = float3(.125, .125, .125);
         transf->vPosition = float3(-50.f, 0.f, 50.f);
     });
-
 
 
 }
