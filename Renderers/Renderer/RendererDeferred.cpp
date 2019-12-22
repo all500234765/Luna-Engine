@@ -30,6 +30,7 @@ void RendererDeferred::Init() {
     shSurface->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
     shPostProcess->ReleaseBlobs();
+    shCombinationPass->ReleaseBlobs();
     shGUI->ReleaseBlobs();
 #pragma endregion
 
@@ -93,6 +94,7 @@ void RendererDeferred::Init() {
 
         // Compare point sampler
         pDesc.ComparisonFunc = D3D11_COMPARISON_GREATER;
+        pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
         s_material.sampl.point_comp = new Sampler();
         s_material.sampl.point_comp->Create(pDesc);
 
@@ -103,6 +105,7 @@ void RendererDeferred::Init() {
         s_material.sampl.linear->Create(pDesc);
 
         // Compare linear sampler
+        pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
         pDesc.ComparisonFunc = D3D11_COMPARISON_GREATER;
         s_material.sampl.linear_comp = new Sampler();
         s_material.sampl.linear_comp->Create(pDesc);
@@ -148,7 +151,28 @@ void RendererDeferred::Init() {
     s_states.depth.normal = new DepthStencilState;
 
     {
+        D3D11_DEPTH_STENCIL_DESC pDesc;
+        pDesc.DepthEnable = true;
+        pDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        pDesc.DepthFunc = D3D11_COMPARISON_GREATER; //D3D11_COMPARISON_LESS
+        
+        pDesc.StencilEnable = !true;
+        pDesc.StencilReadMask = 0xFF;
+        pDesc.StencilWriteMask = 0xFF;
 
+        // Stencil operations if pixel is front-facing.
+        pDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        pDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+        pDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        pDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+        // Stencil operations if pixel is back-facing.
+        pDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        pDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+        pDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        pDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+        
+        s_states.depth.normal->Create(pDesc, 0);
     }
 #pragma endregion
 
@@ -281,6 +305,7 @@ void RendererDeferred::Release() {
 
     // Render Targets
     SAFE_RELEASE(rtTransparency);
+    SAFE_RELEASE(rtCombinedGBuffer);
     SAFE_RELEASE(rtGBuffer);
     SAFE_RELEASE(rtDepth);
     SAFE_RELEASE(rtFinalPass);

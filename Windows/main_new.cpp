@@ -89,8 +89,6 @@ bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
 
-    // DefaultTexture.png
-
 
     // Bind and clear RTV
     gRenderer->ClearMainRT();
@@ -151,12 +149,14 @@ void _DirectX::Load() {
     gMainScene->AddComponent(gMainScene->GetActiveCameraHandle(), &lMovementControlComp);
 
     // Add model
-    gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj", [](TransformComponent *transf) {
+    auto q = gMainScene->GetComponent<TransformComponent>(gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj", [](TransformComponent *transf) {
         transf->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
         transf->vScale    = float3(.125, .125, .125);
         transf->vPosition = float3(-50.f, 0.f, 50.f);
-    });
+        transf->Build();
+    })[0]);
 
+    // TODO: Try DefaultTexture.png
 
 }
 

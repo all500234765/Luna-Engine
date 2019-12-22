@@ -39,6 +39,9 @@ private:
 
 
 public:
+    //RendererBase() {};
+    virtual ~RendererBase() {};
+
     virtual void Init() { return; };
     virtual void Render() { return; };
     virtual void Release() { return; };

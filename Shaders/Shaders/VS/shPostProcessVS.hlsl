@@ -1,8 +1,9 @@
-cbuffer MatrixBuffer : register(b0) {
-    float4x4 mWorld;
-    float4x4 mView;
-    float4x4 mProj;
-    float4   vPosition;
+cbuffer MeshBuffer : register(b0) {
+    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Transform.h"
+}
+
+cbuffer MatrixBuffer : register(b1) {
+    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Camera.h"
 };
 
 static const float2 arrPos[6] = {
@@ -42,6 +43,6 @@ PS main(uint index : SV_VertexID) {
     PS Out;
         Out.Position  = mul(mWorld, float4(Pos, 1., 1.));
         Out.Texcoord  = UV;
-        Out.CameraPos = vPosition;
+        Out.CameraPos = float4(vPosition, 0.f);
     return Out;
 }

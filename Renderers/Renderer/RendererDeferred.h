@@ -44,6 +44,7 @@ private:
         } blend;
 
         struct {
+            // Depth test/write, no stencil
             DepthStencilState *normal;
         } depth;
 
@@ -109,6 +110,11 @@ private:
     void BindOrtho();
 
 public:
+    RendererDeferred(): RendererBase() {};
+    ~RendererDeferred() {
+        printf_s("[~RendererDeferred]\n");
+    };
+
     virtual void Init()                   override;
     virtual void Resize(float W, float H) override;
     virtual void Render()                 override;
@@ -116,4 +122,6 @@ public:
     virtual void Release()                override;
     virtual void ImGui()                  override;
     virtual void ClearMainRT()            override;
+
+
 };
