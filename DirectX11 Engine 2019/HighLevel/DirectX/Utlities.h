@@ -107,6 +107,47 @@ namespace LunaEngine {
     }
 #pragma endregion
     
+#pragma region
+    template<>
+    void CSDiscardUAV<1>();
+
+    template<>
+    void CSDiscardCB<1>();
+
+    template<>
+    void CSDiscardSRV<1>();
+
+    template<>
+    void VSDiscardCB<1>();
+
+    template<>
+    void VSDiscardSRV<1>();
+
+    template<>
+    void PSDiscardCB<1>();
+
+    template<>
+    void PSDiscardSRV<1>();
+
+    template<>
+    void GSDiscardCB<1>();
+
+    template<>
+    void GSDiscardSRV<1>();
+
+    template<>
+    void HSDiscardCB<1>();
+
+    template<>
+    void HSDiscardSRV<1>();
+
+    template<>
+    void DSDiscardCB<1>();
+
+    template<>
+    void DSDiscardSRV<1>();
+#pragma endregion
+
     namespace Random {
         //std::default_random_engine gGen;
         //
@@ -174,15 +215,28 @@ namespace LunaEngine {
         template<typename T>
         float length(T v) { return point_distance(v); }
 
-#ifndef min
         template<typename T>
-        T min(T a, T b) { return (a < b) ? a : b; };
-#endif
+        float length2(T v) { return dot(v, v); }
 
-#ifndef max
-        template<typename T>
-        T max(T a, T b) { return (a > b) ? a : b; };
-#endif
+        float min(float a, float b);
+        float2 min(float2 a, float b);
+        float3 min(float3 a, float b);
+        float4 min(float4 a, float b);
+        float4 min(float4 a, float4 b);
+        float3 min(float3 a, float3 b);
+        float2 min(float2 a, float2 b);
+
+        float max(float a, float b);
+        float2 max(float2 a, float b);
+        float3 max(float3 a, float b);
+        float4 max(float4 a, float b);
+        float4 max(float4 a, float4 b);
+        float3 max(float3 a, float3 b);
+        float2 max(float2 a, float2 b);
+
+        float2 normalize(float2 v);
+        float3 normalize(float3 v);
+        float4 normalize(float4 v);
 
         template<typename T>
         T clamp(T v, T left, T right) { return max(min(v, right), left); }

@@ -132,12 +132,12 @@ namespace LunaEngine {
                 a.x * b.y - a.y * b.x
             };
         }
-        
-        float4 normalize(float4 v) {
-            if( v.x == 0.f && v.y == 0.f && v.z == 0.f && v.w == 0.f ) return { 0.f, 0.f, 1.f, 0.f };
+
+        float2 normalize(float2 v) {
+            if( v.x == 0.f && v.y == 0.f ) return { 0.f, 1.f };
 
             float l = length(v);
-            return { v.x / l, v.y / l, v.z / l, v.w / l };
+            return { v.x / l, v.y / l };
         }
 
         float3 normalize(float3 v) {
@@ -145,6 +145,13 @@ namespace LunaEngine {
 
             float l = length(v);
             return { v.x / l, v.y / l, v.z / l };
+        }
+        
+        float4 normalize(float4 v) {
+            if( v.x == 0.f && v.y == 0.f && v.z == 0.f && v.w == 0.f ) return { 0.f, 0.f, 1.f, 0.f };
+
+            float l = length(v);
+            return { v.x / l, v.y / l, v.z / l, v.w / l };
         }
 
         float3 clamp(float3 v, float left, float right) { return { clamp(v.x, left, right), clamp(v.y, left, right), clamp(v.z, left, right) }; }
@@ -172,7 +179,23 @@ namespace LunaEngine {
         // Matricies
 
 
-        // 
+        // min
+        float min(float a, float b) { return (a < b) ? a : b; };
+        float2 min(float2 a, float b) { return { min(a.x, b), min(a.y, b) }; }
+        float3 min(float3 a, float b) { return { min(a.x, b), min(a.y, b), min(a.z, b) }; }
+        float4 min(float4 a, float b) { return { min(a.x, b), min(a.y, b), min(a.z, b), min(a.w, b) }; }
+        float4 min(float4 a, float4 b) { return { min(a.x, b.x), min(a.y, b.y), min(a.z, b.z), min(a.w, b.w) }; }
+        float3 min(float3 a, float3 b) { return { min(a.x, b.x), min(a.y, b.y), min(a.z, b.z) }; }
+        float2 min(float2 a, float2 b) { return { min(a.x, b.x), min(a.y, b.y) }; }
+
+        // max
+        float max(float a, float b) { return (a > b) ? a : b; };
+        float2 max(float2 a, float b) { return { max(a.x, b), max(a.y, b) }; }
+        float3 max(float3 a, float b) { return { max(a.x, b), max(a.y, b), max(a.z, b) }; }
+        float4 max(float4 a, float b) { return { max(a.x, b), max(a.y, b), max(a.z, b), max(a.w, b) }; }
+        float4 max(float4 a, float4 b) { return { max(a.x, b.x), max(a.y, b.y), max(a.z, b.z), max(a.w, b.w) }; }
+        float3 max(float3 a, float3 b) { return { max(a.x, b.x), max(a.y, b.y), max(a.z, b.z) }; }
+        float2 max(float2 a, float2 b) { return { max(a.x, b.x), max(a.y, b.y) }; }
 
     }
 

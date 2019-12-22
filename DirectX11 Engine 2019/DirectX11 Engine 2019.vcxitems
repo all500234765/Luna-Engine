@@ -144,6 +144,11 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\FloatTypeMath.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utilities.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utilities.cpp">
+      <DeploymentContent>
+      </DeploymentContent>
+      <ExcludedFromBuild>
+      </ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
 </Project>

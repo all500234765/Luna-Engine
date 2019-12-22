@@ -30,11 +30,19 @@
 #include "Engine/DirectX/VertexBuffer.h"
 #include "Engine/DirectX/IndexBuffer.h"
 #include "Engine/Extensions/Safe.h"
+#include "HighLevel/DirectX/Utlities.h"
 
 // Components
 #include "Components/Components.h"
 
+#include "Defines.h"
+
 extern _DirectX *gDirectX;
+extern Mouse    *gMouse;
+extern Keyboard *gKeyboard;
+extern Gamepad  *gGamepad[NUM_GAMEPAD];
+
+float fsignf(float x);
 
 struct CameraData {
     CameraComponent    *cCam;
@@ -133,6 +141,13 @@ public:
     void UpdateComponents(float dt, BaseECSComponent** comp) override;
 };
 
+class MovementControlIntegrationSystem: public BaseECSSystem {
+public:
+    MovementControlIntegrationSystem();
+
+    void UpdateComponents(float dt, BaseECSComponent** comp) override;
+};
+
 /*class StaticMeshRenderSystem: public BaseECSSystem {
 public:
     StaticMeshRenderSystem(): BaseECSSystem() {
@@ -195,6 +210,7 @@ private:
     StaticMeshRenderSystem *gStaticMeshRenderSystem;
     VelocityIntegrationSystem *gVelocityIntegrationSystem;
     AnimatedMeshRenderSystem *gAnimatedMeshRenderSystem;
+    MovementControlIntegrationSystem *gMovementControlIntegrationSystem;
 
     friend StaticMeshRenderSystem;
 
@@ -479,6 +495,9 @@ public:
     template<typename T>
     T* GetComponent(EntityHandle handle) { return mECS.GetComponent<T>(handle); }
 
+    template<typename T>
+    void AddComponent(EntityHandle handle, T *comp) { mECS.AddComponent(handle, comp); }
+
     EntityHandleList Instantiate(EntityHandleList list) {
         EntityHandleList new_list;
         new_list.reserve(list.size());
@@ -694,6 +713,7 @@ public:
         if( mCamera[i] == NULL_HANDLE ) MakeCameraFOVH(i, _near, _far, width, height, fovx);
     }
 
+    inline EntityHandle GetActiveCameraHandle() const { return mCamera[mMainCamera]; }
     inline uint32_t GetActiveCamera() const { return mMainCamera; }
     inline void SetActiveCamera(uint32_t i) { mMainCamera = i; }
 

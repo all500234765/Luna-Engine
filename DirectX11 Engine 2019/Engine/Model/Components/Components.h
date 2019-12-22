@@ -22,6 +22,12 @@ struct AmbientLightBuff {
     #include "AmbientLight.h"
 };
 
+#include "Engine/Input/Mouse.h"
+#include "Engine/Input/Gamepad.h"
+#include "Engine/Input/Keyboard.h"
+#include "Engine/DirectX/VertexBuffer.h"
+#include "Engine/DirectX/IndexBuffer.h"
+
 struct AmbientLightComponent: ECSComponent<AmbientLightComponent> {
     #include "AmbientLight.h"
 
@@ -48,12 +54,9 @@ struct WorldLightComponent: ECSComponent<WorldLightComponent> {
     }
 };
 
-struct VelocityComponent: ECSComponent<VelocityComponent> {
-    #include "Velocity.h"
-};
-
 struct TransformComponent: ECSComponent<TransformComponent> {
     #include "Transform.h"
+    #include "Velocity.h"
 
     void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot) {
         {
@@ -131,6 +134,74 @@ struct MaterialComponent: ECSComponent<MaterialComponent> {
             if( _AmbientOcclusionSampl ) _AmbientOcclusionSampl->Bind(type, 5);
         }
     }
+};
+
+struct InputControl {
+    // Keyboard
+    bool bKeyboard = false;
+    uint32 mKeyboardKey;
+
+    // Mouse
+    bool bMouse = false;
+    MouseButton mMouseButton;
+
+    // Gamepad
+    bool bGamepad = false;
+    int mGamepadIndex = 0;
+    GamepadButtonState mGamepadButton;
+
+    // Is camera controller
+    bool bOrientationDependent = false;
+
+    // Keyboard only
+    InputControl(uint32 key): bKeyboard(true), mKeyboardKey(key) {};
+
+    // Mouse only
+    InputControl(MouseButton mb): bMouse(true), mMouseButton(mb) {};
+
+    // Gamepad only
+    InputControl(GamepadButtonState b, int gpIndex = 0): bGamepad(true), mGamepadButton(b), mGamepadIndex(gpIndex) {};
+
+    // Keyboard + Mouse
+    InputControl(uint32 key, MouseButton mb): bKeyboard(true), mKeyboardKey(key), bMouse(true), mMouseButton(mb) {};
+
+    // Keyboard + Gamepad
+    InputControl(uint32 key, GamepadButtonState b, int gpIndex = 0): bKeyboard(true), mKeyboardKey(key),
+        bGamepad(true), mGamepadButton(b), mGamepadIndex(gpIndex) {
+    };
+
+    // Mouse + Gamepad
+    InputControl(MouseButton mb, GamepadButtonState b, int gpIndex = 0):
+        bMouse(true), mMouseButton(mb),
+        bGamepad(true), mGamepadButton(b), mGamepadIndex(gpIndex) {
+    };
+
+    // Keyboard + Mouse + Gamepad
+    InputControl(uint32 key, MouseButton mb, GamepadButtonState b, int gpIndex = 0):
+        bKeyboard(true), mKeyboardKey(key), bMouse(true), mMouseButton(mb),
+        bGamepad(true), mGamepadButton(b), mGamepadIndex(gpIndex) {
+    };
+
+    // 
+    float3 fValue = { 0.f, 0.f, 0.f };
+    inline InputControl SetValue(float a = 0.f, float b = 0.f, float c = 0.f) { fValue = { a, b, c }; return *this; }
+
+    bool bDirectional = false;
+    inline InputControl SetDirectional(bool b) { bDirectional = b; return *this; }
+
+    bool bCallback = false;
+    void(*mCallback)(TransformComponent* T, float dt);
+    inline InputControl SetCallback(void(*callback)(TransformComponent* T, float dt)) {
+        mCallback = callback;
+        bCallback = true;
+        return *this;
+    }
+
+    inline InputControl OrientationDependent() { bOrientationDependent ^= true; return *this; }
+};
+
+struct MovementControlComponent: public ECSComponent<MovementControlComponent> {
+    std::vector<InputControl> mAssignedControls;
 };
 
 // Mesh

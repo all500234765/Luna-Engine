@@ -1,5 +1,7 @@
 #pragma once
 
+#define _____LUNA___ENGINE___DISCARD____ 1
+
 #include "Engine/Window/Window.h"
 
 #include "Engine/Textures/CubemapTexture.h"

@@ -1,5 +1,6 @@
 #pragma once
 
+#define _____LUNA___ENGINE___DISCARD____ 1
 #include "HighLevel/DirectX/Utlities.h"
 
 #include "Engine/Extensions/Default.h"
@@ -15,17 +16,14 @@
 #include "Physics.h"
 
 // Global game instances
-extern _DirectX      *gDirectX      ;
-extern Window        *gWindow       ;
-extern Input         *gInput        ;
-extern Mouse         *gMouse        ;
-extern Keyboard      *gKeyboard     ;
-extern AudioDevice   *gAudioDevice  ;
-extern PhysicsEngine *gPhysicsEngine;
-
-#if USE_GAMEPADS
+extern _DirectX       *gDirectX      ;
+extern Window         *gWindow       ;
+extern Input          *gInput        ;
+extern Mouse          *gMouse        ;
+extern Keyboard       *gKeyboard     ;
+extern AudioDevice    *gAudioDevice  ;
+extern PhysicsEngine  *gPhysicsEngine;
 extern Gamepad* gGamepad[NUM_GAMEPAD];
-#endif
 
 #include "Models.h"
 #include "RenderBuffers.h"

@@ -116,9 +116,24 @@ void _DirectX::Load() {
     gMainScene = new Scene();
     gMainScene->SetAsActive(); // Bind current scene as active
 
+    // Create input controller for player camera
+
+    // 
+    float fSpeed = 20.f;
+    MovementControlComponent lMovementControlComp;
+    lMovementControlComp.mAssignedControls = {
+        InputControl(VK_A, GamepadButtonState::_StickL).SetValue(-fSpeed, 0.f).OrientationDependent(),
+        InputControl(VK_D, GamepadButtonState::_StickL).SetValue(+fSpeed, 0.f).OrientationDependent(),
+        InputControl(VK_W, GamepadButtonState::_StickL).SetValue(0.f, -fSpeed).OrientationDependent(),
+        InputControl(VK_S, GamepadButtonState::_StickL).SetValue(0.f, +fSpeed).OrientationDependent(),
+    };
+
     // Create cameras
     gMainScene->MakeCameraFOVH(0, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Player
     gMainScene->MakeCameraFOVH(1, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Light
+
+    // Add controls to main camera
+    gMainScene->AddComponent(gMainScene->GetActiveCameraHandle(), &lMovementControlComp);
 
     // Add model
     gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj", [](TransformComponent *transf) {
