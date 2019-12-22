@@ -143,6 +143,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\ScopedMapper.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utilities.inl" />
+    <None Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utilities.cpp" />
   </ItemGroup>
 </Project>

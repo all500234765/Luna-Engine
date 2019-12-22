@@ -3,7 +3,14 @@
 #include "Engine/Extensions/Safe.h"
 #include "Engine/Utility/Timer.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
-#include "Engine Includes/Core.h"
+#include "Engine/DirectX/DirectX.h"
+#include "Engine/DirectX/Shader.h"
+#include "Engine/DirectX/PolygonLayout.h"
+#include "Engine/DirectX/Buffer.h"
+#include "Engine/DirectX/IndexBuffer.h"
+#include "Engine/DirectX/VertexBuffer.h"
+#include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/Materials/Texture.h"
 
 //#include <random>

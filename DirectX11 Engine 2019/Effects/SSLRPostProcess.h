@@ -1,6 +1,17 @@
 #pragma once
 
-#include "Engine Includes/MainInclude.h"
+#include "Engine/RenderTarget/RenderTarget.h"
+#include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/DirectX/StructuredBuffer.h"
+#include "Engine/DirectX/Shader.h"
+#include "Engine/Materials/Texture.h"
+#include "Engine/Utility/Utils.h"
+#include "Engine/Profiler/ScopedRangeProfiler.h"
+#include "Engine Includes/Types.h"
+#include "Engine/States/BlendState.h"
+#include "Engine/States/DepthStencilState.h"
+#include "Engine/Materials/Sampler.h"
+#include "HighLevel/DirectX/Utlities.h"
 
 struct SSLRArgs {
     mfloat4x4 _mWorldView;

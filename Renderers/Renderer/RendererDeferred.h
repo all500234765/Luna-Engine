@@ -88,11 +88,11 @@ private:
     void Final();
 
 public:
-    virtual void Init() override;
-    virtual void Render() override;
-    virtual void Resize(float W, float H) override;
-    virtual void Release() override;
-    virtual void ImGui() override;
+    void Init()                   override;
+    void Render()                 override;
+    void Resize(float W, float H) override;
+    void Release()                override;
+    void ImGui()                  override;
 
-    virtual void ClearMainRT() override;
+    void ClearMainRT()            override;
 };

@@ -31,13 +31,13 @@
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 
 // Global game instances
-static _DirectX      *gDirectX       = 0;
-static Window        *gWindow        = 0;
-static Input         *gInput         = 0;
-static Mouse         *gMouse         = 0;
-static Keyboard      *gKeyboard      = 0;
-static AudioDevice   *gAudioDevice   = 0;
-static PhysicsEngine *gPhysicsEngine = 0;
+static _DirectX      *gDirectX      ; // = 0
+static Window        *gWindow       ; // = 0
+static Input         *gInput        ; // = 0
+static Mouse         *gMouse        ; // = 0
+static Keyboard      *gKeyboard     ; // = 0
+static AudioDevice   *gAudioDevice  ; // = 0
+static PhysicsEngine *gPhysicsEngine; // = 0
 
 #if USE_GAMEPADS
 static Gamepad* gGamepad[NUM_GAMEPAD] = {};

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Engine Includes/Types.h"
 
 // Fuck...
@@ -5,7 +7,7 @@
 #define ___SAFE_GUARD_TYPE_OPERATORS2___
 //////////////////////////////////////// float3 x float3
 #define OPERATOR(op) \
-float3 operator op(float3 lhs, float3 rhs) { \
+float3 __cdecl operator op(float3 lhs, float3 rhs) { \
     return { lhs.x op rhs.x, lhs.y op rhs.y, lhs.z op rhs.z}; \
 }
 
@@ -18,7 +20,7 @@ OPERATOR(/ )
 
 //////////////////////////////////////// float3 x float
 #define OPERATOR(op) \
-float3 operator op(float3 lhs, float rhs) { \
+float3 __cdecl operator op(float3 lhs, float rhs) { \
     return { lhs.x op rhs, lhs.y op rhs, lhs.z op rhs }; \
 }
 
