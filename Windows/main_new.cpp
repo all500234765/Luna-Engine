@@ -8,13 +8,14 @@
 #include "Engine/Input/Gamepad.h"
 
 #include "Engine Includes/MainInclude.h"
-
-#include "Renderer/RendererDeferred.h"
 #include "HighLevel/DirectX/HighLevel.h"
 
-using namespace LunaEngine;
+#include "Renderer/RendererDeferred.h"
 
 HighLevel gHighLevel;
+
+RendererBase *gRenderer;
+Scene *gMainScene;
 
 int main() {
     // Window config
@@ -75,14 +76,14 @@ bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
 
+    // 
+
+
     // Bind and clear RTV
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+    gRenderer->ClearMainRT();
 
-    float Clear[4] = { .2f, .2f, .2f, 1.f }; // RGBA
-    float Clear0[4] = { 0.f, 0.f, 0.f, 1.f }; // RGBA black
-    gContext->ClearRenderTargetView(gRTV, Clear0);
-    gContext->ClearDepthStencilView(gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
-
+    gRenderer->Render();
 
 
     // End of frame
@@ -100,10 +101,26 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::Load() {
+    gRenderer = new RendererDeferred();
+    gRenderer->Init();
+    
+    gMainScene = new Scene();
+    gMainScene->SetAsActive();
+
+    gMainScene->MakeCameraFOVH(0, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f);
+    gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj", [](TransformComponent *transf) {
+        transf->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
+        transf->vScale    = float3(.125, .125, .125);
+        transf->vPosition = float3(-50.f, 0.f, 50.f);
+    });
+
+
 
 }
 
 void _DirectX::Unload() {
+    SAFE_RELEASE(gRenderer);
+    SAFE_DELETE(gMainScene);
 
 }
 

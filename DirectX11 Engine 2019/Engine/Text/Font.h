@@ -12,7 +12,7 @@
 #include <vector>
 
 // 
-#include "Vendor/TinyDDSLoader/TinyDDSLoader.h"
+#include "TinyDDSLoader/TinyDDSLoader.h"
 
 class Font: public DirectXChild {
 private:

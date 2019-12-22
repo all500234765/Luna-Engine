@@ -175,7 +175,7 @@ public:
         sbLinkedLists.Release();
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
 
-        rtTransparent->Resize(Width, Height, 1);
+        //rtTransparent->Resize(Width, Height, 1);
         rwListHead.Resize(Width, Height);
         texTemp.Resize(Width, Height);
 
@@ -304,16 +304,16 @@ public:
         return rwListHead.GetSRV();
     }
 
-    inline ID3D11ShaderResourceView *GetColorSRV() const {
-        return rtTransparent->GetBufferSRV<0>();
-    }
-
-    inline ID3D11ShaderResourceView *GetNormalSRV() const {
-        return rtTransparent->GetBufferSRV<1>();
-    }
-
-    inline ID3D11ShaderResourceView *GetDepthSRV() const {
-        return rtTransparent->GetDepthBuffer<0>()->pSRV;
-    }
+    //inline ID3D11ShaderResourceView *GetColorSRV() const {
+    //    return rtTransparent->GetBufferSRV<0>();
+    //}
+    //
+    //inline ID3D11ShaderResourceView *GetNormalSRV() const {
+    //    return rtTransparent->GetBufferSRV<1>();
+    //}
+    //
+    //inline ID3D11ShaderResourceView *GetDepthSRV() const {
+    //    return rtTransparent->GetDepthBuffer<0>()->pSRV;
+    //}
 
 };

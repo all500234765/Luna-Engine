@@ -4,7 +4,7 @@
 #include <vector>
 
 #define STB_VORBIS_HEADER_ONLY
-#include "Vendor/STB/stb_vorbis.h"
+#include "STB/stb_vorbis.h"
 
 #pragma comment(lib, "xaudio2.lib")
 

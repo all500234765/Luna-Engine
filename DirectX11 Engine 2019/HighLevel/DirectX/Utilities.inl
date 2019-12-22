@@ -1,176 +1,9 @@
-//#include "Utilities.h"
-#pragma once
+//#pragma once
+#include "Utlities.h"
 
 namespace LunaEngine {
     // Discard items(SRV, UAV, CB) from shader slots
-#pragma region Compute Shader
-    template<UINT dim>
-    void CSDiscardUAV() {
-        ID3D11UnorderedAccessView *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->CSSetUnorderedAccessViews(0, dim, pEmpty, 0);
-    }
 
-    template<>
-    void CSDiscardUAV<1>() {
-        ID3D11UnorderedAccessView *pEmpty = nullptr;
-        gDirectX->gContext->CSSetUnorderedAccessViews(0, 1, &pEmpty, 0);
-    }
-
-    template<UINT dim>
-    void CSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->CSSetConstantBuffers(0, dim, pEmpty);
-    }
-
-    template<>
-    void CSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->CSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
-    template<UINT dim>
-    void CSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->CSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void CSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->CSSetShaderResources(0, 1, &pEmpty);
-    }
-#pragma endregion
-
-
-#pragma region Vertex Shader
-    template<UINT dim>
-    void VSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->VSSetConstantBuffers(0, dim, pEmpty);
-    }
-
-    template<>
-    void VSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->VSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
-    template<UINT dim>
-    void VSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->VSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void VSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->VSSetShaderResources(0, 1, &pEmpty);
-    }
-#pragma endregion
-
-#pragma region Pixel Shader
-    template<UINT dim>
-    void PSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->PSSetConstantBuffers(0, dim, pEmpty);
-    }
-
-    template<>
-    void PSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->PSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
-    template<UINT dim>
-    void PSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->PSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void PSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->PSSetShaderResources(0, 1, &pEmpty);
-    }
-#pragma endregion
-
-#pragma region Geometry Shader
-    template<UINT dim>
-    void GSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->GSSetConstantBuffers(0, dim, pEmpty);
-    }
-
-    template<>
-    void GSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->GSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
-    template<UINT dim>
-    void GSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->GSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void GSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->GSSetShaderResources(0, 1, &pEmpty);
-    }
-#pragma endregion
-
-#pragma region Hull Shader
-    template<UINT dim>
-    void HSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->HSSetConstantBuffers(0, dim, pEmpty);
-    }
-
-    template<>
-    void HSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->HSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
-    template<UINT dim>
-    void HSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->HSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void HSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->HSSetShaderResources(0, 1, &pEmpty);
-    }
-#pragma endregion
-
-#pragma region Domain Shader
-    template<UINT dim>
-    void DSDiscardCB() {
-        ID3D11Buffer *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->DSSetConstantBuffers(0, dim, pEmpty);
-    }
-
-    template<>
-    void DSDiscardCB<1>() {
-        ID3D11Buffer *pEmpty = nullptr;
-        gDirectX->gContext->DSSetConstantBuffers(0, 1, &pEmpty);
-    }
-
-    template<UINT dim>
-    void DSDiscardSRV() {
-        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
-        gDirectX->gContext->DSSetShaderResources(0, dim, pEmpty);
-    }
-
-    template<>
-    void DSDiscardSRV<1>() {
-        ID3D11ShaderResourceView *pEmpty = nullptr;
-        gDirectX->gContext->DSSetShaderResources(0, 1, &pEmpty);
-    }
-#pragma endregion
 
     namespace Random {
         /*float Gen01() {
@@ -185,15 +18,6 @@ namespace LunaEngine {
     }
 
     namespace Math {
-
-        template<typename T>
-        T sqr(T a) { return a * a; }
-
-        template<typename T>
-        T degtorad(T deg) { return deg * PI / 180.f; }
-
-        template<typename T>
-        T radtodeg(T rad) { return rad * 180.f / PI; }
 
         float point_distance(float2 from, float2 to) { return sqrtf(sqr(to.x - from.x) + sqr(to.y - from.y)); }
         float point_distance(float3 from, float3 to) { return sqrtf(sqr(to.x - from.x) + sqr(to.y - from.y) + sqr(to.z - from.z)); }
@@ -222,12 +46,6 @@ namespace LunaEngine {
         float dot(float3 a, float3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
         float dot(float4 a, float4 b) { return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w; }
 
-        template<typename T>
-        T mad(T a, T b, T c) { return a * b + c; }
-
-        template<typename T>
-        T lerp(T from, T to, float coef) { return from + (to - from) * coef; }
-
         float3 cross(float3 a, float3 b) {
             return {
                 a.y * b.z - a.z * b.y, 
@@ -235,10 +53,7 @@ namespace LunaEngine {
                 a.x * b.y - a.y * b.x
             };
         }
-
-        template<typename T>
-        float length(T v) { return point_distance(v); }
-
+        
         float4 normalize(float4 v) {
             if( v.x == 0.f && v.y == 0.f && v.z == 0.f && v.w == 0.f ) return { 0.f, 0.f, 1.f, 0.f };
 
@@ -253,18 +68,6 @@ namespace LunaEngine {
             return { v.x / l, v.y / l, v.z / l };
         }
 
-#ifndef min
-        template<typename T>
-        T min(T a, T b) { return (a < b) ? a : b; };
-#endif
-
-#ifndef max
-        template<typename T>
-        T max(T a, T b) { return (a > b) ? a : b; };
-#endif
-
-        template<typename T>
-        T clamp(T v, T left, T right) { return max(min(v, right), left); }
         float3 clamp(float3 v, float left, float right) { return { clamp(v.x, left, right), clamp(v.y, left, right), clamp(v.z, left, right) }; }
         float4 clamp(float4 v, float left, float right) { return { clamp(v.x, left, right), clamp(v.y, left, right), clamp(v.z, left, right), clamp(v.w, left, right) }; }
 
@@ -299,52 +102,6 @@ namespace LunaEngine {
 #pragma region Primitives
     namespace Draw {
 #include "Engine Includes/Types.h"
-
-        struct PrimitiveColorBuffer {
-            float4 _Color;
-        };
-
-        struct PrimitiveBuffer {
-            float2 _PositionStart;
-            float2 _PositionEnd;
-            union {
-                struct {
-                    union {
-                        struct { // Circle
-                            float2 _Alignment_d;
-                            float1 _Radius;
-                        };
-
-                        struct { // Ellipse
-                            float2 _Radius2;
-                            float1 _Alignment_c;
-                        };
-                    };
-
-                    UINT _Vertices;
-                };
-
-                struct { // Triangle
-                    float2 _Position3;
-                    float2 _Alignment_b;
-                };
-
-                float4 _Alignment_a;
-            };
-        };
-
-        struct MatrixBuffer {
-            mfloat4x4 mWorld;
-            mfloat4x4 mView;
-            mfloat4x4 mProj;
-            mfloat4 Params;
-        };
-
-        struct Config {
-            float fNear = .2f, fFar = 2.f;
-            float ViewW, ViewH;
-            bool MSAA = false;
-        };
 
         void SetView(mfloat4x4 mView) { gMatrixBufferInst->mView = mView; }
         void SetProj(mfloat4x4 mProj) { gMatrixBufferInst->mProj = mProj; }

@@ -20,10 +20,80 @@ void RendererDeferred::Init() {
     shVertexOnly->ReleaseBlobs();
 #pragma endregion
 
+#pragma region Render Targets
+    rtGBuffer = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "GBuffer");
+    rtGBuffer->Create(32);                                     // Depth
+    rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // Direct
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // Normals
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // Ambient
+                             DXGI_FORMAT_R16G16B16A16_FLOAT);  // Emission
+
+    rtDepth = new RenderTarget2DDepthMSAA(Width(), Height(), 1, "World light shadowmap");
+    rtDepth->Create(32);
+
     rtTransparency = new RenderTarget2DColor2DepthMSAA(Width(), Height(), 1, "Transparency");
     rtTransparency->Create(32);                                     // Depth
     rtTransparency->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM,       // Color
                                   DXGI_FORMAT_R16G16B16A16_FLOAT);  // Normals
+#pragma endregion
+
+#pragma region Default Textures
+    s_material.mCubemap = new CubemapTexture();
+    s_material.mCubemap->CreateFromDDS("../Textures/Cubemaps/environment.dds", false);
+    
+    s_material.tex.checkboard = new Texture();
+    s_material.tex.checkboard->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    s_material.tex.checkboard->SetName("Default texture");
+    
+    s_material.tex.bluenoise_rg_512 = new Texture();
+    s_material.tex.bluenoise_rg_512->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
+    s_material.tex.bluenoise_rg_512->SetName("Bluenoise RG");
+#pragma endregion
+
+#pragma region Samplers
+    {
+        D3D11_SAMPLER_DESC pDesc;
+        ZeroMemory(&pDesc, sizeof(D3D11_SAMPLER_DESC));
+        pDesc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+        pDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+        pDesc.MaxLOD = D3D11_FLOAT32_MAX;
+        pDesc.MinLOD = 0;
+        pDesc.MipLODBias = 0;
+        pDesc.MaxAnisotropy = 16;
+
+        // Point sampler
+        s_material.sampl.point = new Sampler();
+        s_material.sampl.point->Create(pDesc);
+
+        // Compare point sampler
+        pDesc.ComparisonFunc = D3D11_COMPARISON_GREATER;
+        s_material.sampl.point_comp = new Sampler();
+        s_material.sampl.point_comp->Create(pDesc);
+
+        // Linear sampler
+        pDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+        pDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        s_material.sampl.linear = new Sampler();
+        s_material.sampl.linear->Create(pDesc);
+
+        // Compare linear sampler
+        pDesc.ComparisonFunc = D3D11_COMPARISON_GREATER;
+        s_material.sampl.linear_comp = new Sampler();
+        s_material.sampl.linear_comp->Create(pDesc);
+    }
+#pragma endregion
+
+#pragma region Effects
+    gHDRPostProcess             = new HDRPostProcess;
+    gSSAOPostProcess            = new SSAOPostProcess;
+    gSSLRPostProcess            = new SSLRPostProcess;
+    gCascadeShadowMapping       = new CascadeShadowMapping;
+    //gCoverageBuffer             = new CoverageBuffer;
+    gOrderIndendentTransparency = new OrderIndendentTransparency;
+#pragma endregion
 
 
 }
@@ -47,34 +117,68 @@ void RendererDeferred::Render() {
     {
         ScopedRangeProfiler q(L"Screen-Space");
 
+        // Light calculation
         SSAO();
         SSLR();
         SSLF();
         FSSSSS();
+        Deferred();
 
+        // Combination pass
         Combine();
-
-        DOF();
     }
 
     {
         ScopedRangeProfiler q(L"Final post processing");
 
+        // Final post-processing
+        DOF();
         HDR();
         Final();
     }
+}
+
+void RendererDeferred::Resize(float W, float H) {
+
 }
 
 void RendererDeferred::Release() {
     // Shaders
     SAFE_RELEASE(shSurface);
     SAFE_RELEASE(shVertexOnly);
-    SAFE_RELEASE(rtTransparency);
 
+    // Render Targets
+    SAFE_RELEASE(rtTransparency);
+    SAFE_RELEASE(rtGBuffer);
+    SAFE_RELEASE(rtDepth);
+
+    // Textures
+    SAFE_RELEASE(s_material.tex.bluenoise_rg_512);
+    SAFE_RELEASE(s_material.tex.checkboard);
+    SAFE_RELEASE(s_material.mCubemap);
+
+    // Samplers
+    SAFE_RELEASE(s_material.sampl.point);
+    SAFE_RELEASE(s_material.sampl.point_comp);
+    SAFE_RELEASE(s_material.sampl.linear);
+    SAFE_RELEASE(s_material.sampl.linear_comp);
+
+    // Effects
+    SAFE_DELETE(gHDRPostProcess            );
+    SAFE_DELETE(gSSAOPostProcess           );
+    SAFE_DELETE(gSSLRPostProcess           );
+    SAFE_DELETE(gCascadeShadowMapping      );
+    //SAFE_DELETE(gCoverageBuffer            );
+    SAFE_DELETE(gOrderIndendentTransparency);
 }
 
 void RendererDeferred::ImGui() {
 
+}
+
+void RendererDeferred::ClearMainRT() {
+    gDirectX->gContext->ClearRenderTargetView(gDirectX->gRTV, s_clear.black_void2);
+    gDirectX->gContext->ClearDepthStencilView(gDirectX->gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
 }
 
 void RendererDeferred::Shadows() {
@@ -126,7 +230,7 @@ void RendererDeferred::GBuffer() {
     s_material.sampl.point->Bind(Shader::Pixel, 7);
 
     // Bind cubemap
-    mCubemap->Bind(Shader::Pixel, 8);
+    s_material.mCubemap->Bind(Shader::Pixel, 8);
     s_material.sampl.linear->Bind(Shader::Pixel, 8);
 
     // Bind CBs
@@ -172,6 +276,7 @@ void RendererDeferred::CoverageBuffer() {
 }
 
 void RendererDeferred::Deferred() {
+
 }
 
 void RendererDeferred::SSAO() {

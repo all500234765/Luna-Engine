@@ -7,7 +7,7 @@
 #include "Engine/Utility/Utils.h"                   // LunaEngine::
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine Includes/Types.h"                  // float1, float2, int4, etc...
-#include "Vendor/SIMD/avx_mathfun.h"                // SIMD
+#include "SIMD/avx_mathfun.h"                       // SIMD
 
 #include <iostream>
 

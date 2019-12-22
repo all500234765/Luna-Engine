@@ -39,6 +39,9 @@ struct DirectXConfig {
 
 class _DirectX {
 private:
+    friend class RendererBase;
+    friend class RendererDeferred;
+
     // HDR / WCG
     bool gUseHDR; // Is HDR Supported by user's windows version?
     DXGI_OUTPUT_DESC1 pDescHDR;

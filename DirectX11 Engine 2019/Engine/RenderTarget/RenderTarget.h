@@ -949,11 +949,6 @@ public:
     inline UINT   GetMaxSampleCount()    const { return mMSAAMaxLevel; };
 };
 
-// MSAA Resolve
-Shader*         RenderTargetMSAA::g_shMSAADepthResolve = 0;
-ConstantBuffer* RenderTargetMSAA::g_MSAAConstantBuffer = 0;
-//Texture* RenderTargetMSAA::g_MSAATextureUAV = 0;
-
 // RenderTarget[dim]D_[num buffers]_[depth]_[array size]_[MSAA support]
 using RenderTarget2D_1_0_1 = RenderTarget<2, 1, false, 1, false>;
 using RenderTarget2D_2_0_1 = RenderTarget<2, 2, false, 1, false>;

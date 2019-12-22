@@ -1,6 +1,14 @@
 #pragma once
 
-#include "Engine Includes/MainInclude.h"
+#include "Engine/Window/Window.h"
+
+#include "Effects/HDRPostProcess.h"
+#include "Effects/SSAOPostProcess.h"
+#include "Effects/SSLRPostProcess.h"
+#include "Effects/SSLFPostProcess.h"
+#include "Effects/CascadeShadowMapping.h"
+#include "Effects/OrderIndendentTransparency.h"
+//#include "Effects/CoverageBuffer.h"
 
 struct RendererConfig {
     float r_width = 1366.f;
@@ -23,10 +31,12 @@ private:
 
 
 public:
-    virtual void Init() = 0;
-    virtual void Render() = 0;
-    virtual void Release() = 0;
-    virtual void ImGui() = 0;
+    virtual void Init() {};
+    virtual void Render() {};
+    virtual void Release() {};
+    virtual void ImGui() {};
+    virtual void ClearMainRT() {};
+    virtual void Resize(float W, float H) {};
 
     inline uint32_t Width() const { return Window::Current()->GetCFG().CurrentWidth; }
     inline uint32_t Height() const { return Window::Current()->GetCFG().CurrentHeight2; }

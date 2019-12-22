@@ -16,92 +16,170 @@ namespace LunaEngine {
     // Discard items(SRV, UAV, CB) from shader slots
 #pragma region Compute Shader
     template<UINT dim>
-    void CSDiscardUAV();
+    void CSDiscardUAV() {
+        ID3D11UnorderedAccessView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->CSSetUnorderedAccessViews(0, dim, pEmpty, 0);
+    }
 
     template<>
-    void CSDiscardUAV<1>();
+    void CSDiscardUAV<1>() {
+        ID3D11UnorderedAccessView *pEmpty = nullptr;
+        gDirectX->gContext->CSSetUnorderedAccessViews(0, 1, &pEmpty, 0);
+    }
 
     template<UINT dim>
-    void CSDiscardCB();
+    void CSDiscardCB() {
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->CSSetConstantBuffers(0, dim, pEmpty);
+    }
 
     template<>
-    void CSDiscardCB<1>();
+    void CSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->CSSetConstantBuffers(0, 1, &pEmpty);
+    }
 
     template<UINT dim>
-    void CSDiscardSRV();
+    void CSDiscardSRV() {
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->CSSetShaderResources(0, dim, pEmpty);
+    }
 
     template<>
-    void CSDiscardSRV<1>();
+    void CSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->CSSetShaderResources(0, 1, &pEmpty);
+    }
 #pragma endregion
 
 #pragma region Vertex Shader
     template<UINT dim>
-    void VSDiscardCB();
+    void VSDiscardCB() {
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->VSSetConstantBuffers(0, dim, pEmpty);
+    }
 
     template<>
-    void VSDiscardCB<1>();
+    void VSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->VSSetConstantBuffers(0, 1, &pEmpty);
+    }
 
     template<UINT dim>
-    void VSDiscardSRV();
+    void VSDiscardSRV() {
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->VSSetShaderResources(0, dim, pEmpty);
+    }
 
     template<>
-    void VSDiscardSRV<1>();
+    void VSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->VSSetShaderResources(0, 1, &pEmpty);
+    }
 #pragma endregion
 
 #pragma region Pixel Shader
     template<UINT dim>
-    void PSDiscardCB();
+    void PSDiscardCB() {
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->PSSetConstantBuffers(0, dim, pEmpty);
+    }
 
     template<>
-    void PSDiscardCB<1>();
+    void PSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->PSSetConstantBuffers(0, 1, &pEmpty);
+    }
 
     template<UINT dim>
-    void PSDiscardSRV();
+    void PSDiscardSRV() {
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->PSSetShaderResources(0, dim, pEmpty);
+    }
 
     template<>
-    void PSDiscardSRV<1>();
+    void PSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->PSSetShaderResources(0, 1, &pEmpty);
+    }
 #pragma endregion
 
 #pragma region Geometry Shader
     template<UINT dim>
-    void GSDiscardCB();
+    void GSDiscardCB() {
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->GSSetConstantBuffers(0, dim, pEmpty);
+    }
 
     template<>
-    void GSDiscardCB<1>();
+    void GSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->GSSetConstantBuffers(0, 1, &pEmpty);
+    }
 
     template<UINT dim>
-    void GSDiscardSRV();
+    void GSDiscardSRV() {
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->GSSetShaderResources(0, dim, pEmpty);
+    }
 
     template<>
-    void GSDiscardSRV<1>();
+    void GSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->GSSetShaderResources(0, 1, &pEmpty);
+    }
 #pragma endregion
 
 #pragma region Hull Shader
     template<UINT dim>
-    void HSDiscardCB();
+    void HSDiscardCB() {
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->HSSetConstantBuffers(0, dim, pEmpty);
+    }
 
     template<>
-    void HSDiscardCB<1>();
+    void HSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->HSSetConstantBuffers(0, 1, &pEmpty);
+    }
 
     template<UINT dim>
-    void HSDiscardSRV();
+    void HSDiscardSRV() {
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->HSSetShaderResources(0, dim, pEmpty);
+    }
 
     template<>
-    void HSDiscardSRV<1>();
+    void HSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->HSSetShaderResources(0, 1, &pEmpty);
+    }
 #pragma endregion
 
 #pragma region Domain Shader
     template<UINT dim>
-    void DSDiscardCB();
+    void DSDiscardCB() {
+        ID3D11Buffer *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->DSSetConstantBuffers(0, dim, pEmpty);
+    }
 
     template<>
-    void DSDiscardCB<1>();
+    void DSDiscardCB<1>() {
+        ID3D11Buffer *pEmpty = nullptr;
+        gDirectX->gContext->DSSetConstantBuffers(0, 1, &pEmpty);
+    }
 
     template<UINT dim>
-    void DSDiscardSRV();
+    void DSDiscardSRV() {
+        ID3D11ShaderResourceView *pEmpty[dim] = { nullptr };
+        gDirectX->gContext->DSSetShaderResources(0, dim, pEmpty);
+    }
 
     template<>
-    void DSDiscardSRV<1>();
+    void DSDiscardSRV<1>() {
+        ID3D11ShaderResourceView *pEmpty = nullptr;
+        gDirectX->gContext->DSSetShaderResources(0, 1, &pEmpty);
+    }
 #pragma endregion
     
     namespace Random {
@@ -123,16 +201,14 @@ namespace LunaEngine {
         static const float TAU = 2.f * PI;
 #endif
 
-
+        template<typename T>
+        T sqr(T a) { return a * a; }
 
         template<typename T>
-        T sqr(T a);
+        T degtorad(T deg) { return deg * PI / 180.f; }
 
         template<typename T>
-        T degtorad(T deg);
-
-        template<typename T>
-        T radtodeg(T rad);
+        T radtodeg(T rad) { return rad * 180.f / PI; }
 
         float point_distance(float2 from, float2 to);
         float point_distance(float3 from, float3 to);
@@ -163,25 +239,28 @@ namespace LunaEngine {
         float dot(float4 a, float4 b);
 
         template<typename T>
-        T mad(T a, T b, T c);
+        T mad(T a, T b, T c) { return a * b + c; }
 
         template<typename T>
-        T lerp(T from, T to, float coef);
+        T lerp(T from, T to, float coef) { return from + (to - from) * coef; }
 
         float3 cross(float3 a, float3 b);
 
+        template<typename T>
+        float length(T v) { return point_distance(v); }
+
 #ifndef min
         template<typename T>
-        T min(T a, T b);
+        T min(T a, T b) { return (a < b) ? a : b; };
 #endif
 
 #ifndef max
         template<typename T>
-        T max(T a, T b);
+        T max(T a, T b) { return (a > b) ? a : b; };
 #endif
 
         template<typename T>
-        T clamp(T v, T left, T right);
+        T clamp(T v, T left, T right) { return max(min(v, right), left); }
         float3 clamp(float3 v, float left, float right);
         float4 clamp(float4 v, float left, float right);
 
@@ -211,27 +290,58 @@ namespace LunaEngine {
 
 #pragma region Primitives
     namespace Draw {
-        typedef float               float1;
-        typedef DirectX::XMFLOAT2   float2;
-        typedef DirectX::XMFLOAT3   float3;
-        typedef DirectX::XMFLOAT4   float4;
-        typedef DirectX::XMVECTOR   vfloat;
-        typedef DirectX::XMFLOAT4X4 float4x4;
-        typedef DirectX::XMMATRIX   mfloat4x4;
+#include "Engine Includes/Types.h"
 
         enum PrimitiveType {
             Noone, _Line, _Rectangle, _Circle, _Ellipse, _Triangle,
             _CircleOuter, _TriangleOuter, _RectangleOuter
         };
 
+        struct PrimitiveColorBuffer {
+            float4 _Color;
+        };
 
-        struct PrimitiveColorBuffer;
+        struct PrimitiveBuffer {
+            float2 _PositionStart;
+            float2 _PositionEnd;
+            union {
+                struct {
+                    union {
+                        struct { // Circle
+                            float2 _Alignment_d;
+                            float1 _Radius;
+                        };
 
-        struct PrimitiveBuffer;
+                        struct { // Ellipse
+                            float2 _Radius2;
+                            float1 _Alignment_c;
+                        };
+                    };
 
-        struct MatrixBuffer;
+                    UINT _Vertices;
+                };
 
-        struct Config;
+                struct { // Triangle
+                    float2 _Position3;
+                    float2 _Alignment_b;
+                };
+
+                float4 _Alignment_a;
+            };
+        };
+
+        struct MatrixBuffer {
+            mfloat4x4 mWorld;
+            mfloat4x4 mView;
+            mfloat4x4 mProj;
+            mfloat4 Params;
+        };
+
+        struct Config {
+            float fNear = .2f, fFar = 2.f;
+            float ViewW, ViewH;
+            bool MSAA = false;
+        };
 
         static Shader               *shLine;
         static Shader               *shCircle;
@@ -286,4 +396,4 @@ namespace LunaEngine {
 
 };
 
-#include "Utilities.inl"
+//#include "Utilities.inl"

@@ -8,9 +8,11 @@
         #define TEXSLOT(x)   : register(t[x]);
         #define SAMPLSLOT(x) : register(s[x]);
         
+        #define _Texture2D Texture2D
+
     #else                               // C++
         
-        #define Texture2D Texture* 
+        #define _Texture2D Texture* 
         #define SamplerState Sampler* 
         #define TEXSLOT(x) 
         #define SAMPLSLOT(x) = nullptr;

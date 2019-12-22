@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "Vendor/TinyDDSLoader/TinyDDSLoader.h"
-#include "Vendor/STB/stbi_image.h"
+#include "TinyDDSLoader/TinyDDSLoader.h"
+#include "STB/stbi_image.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/DirectXChild.h"
 

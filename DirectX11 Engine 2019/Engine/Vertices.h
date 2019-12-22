@@ -3,9 +3,9 @@
 #undef min
 #undef max
 
-#include "Vendor/Assimp/Importer.hpp"
-#include "Vendor/Assimp/scene.h"
-#include "Vendor/Assimp/postprocess.h"
+#include "Assimp/Importer.hpp"
+#include "Assimp/scene.h"
+#include "Assimp/postprocess.h"
 
 #include <DirectXMath.h>
 
