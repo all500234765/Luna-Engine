@@ -155,6 +155,8 @@ void Window::Loop() {
         // Reset states
         cfg.Resized = false;
 
+        gInput->GetMouse()->SetMouse(0, 0, true);
+
         // Handle the windows messages.
         while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
             TranslateMessage(&msg);
@@ -288,12 +290,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 
         case WM_SIZE:
             // Window was resized
-            if( ApplicationHandle == nullptr ) return 0;
-            ApplicationHandle->cfg.CurrentWidth   = LOWORD(lparam);
-            ApplicationHandle->cfg.CurrentHeight  = HIWORD(lparam);
-            ApplicationHandle->cfg.CurrentHeight2 = HIWORD(lparam) - 1;// +(ApplicationHandle->cfg.CurrentHeight2 - ApplicationHandle->cfg.CurrentHeight);
-            ApplicationHandle->cfg.Resized = true;
-            return 0;
+            {
+                if( ApplicationHandle == nullptr ) return 0;
+                ApplicationHandle->cfg.CurrentWidth   = LOWORD(lparam);
+                ApplicationHandle->cfg.CurrentHeight  = HIWORD(lparam);
+                ApplicationHandle->cfg.CurrentHeight2 = HIWORD(lparam) - 1;// +(ApplicationHandle->cfg.CurrentHeight2 - ApplicationHandle->cfg.CurrentHeight);
+                ApplicationHandle->cfg.Resized = true;
+
+                RECT mRect = { 0, 0, LOWORD(lparam), HIWORD(lparam) };
+                MapWindowPoints(hwnd, NULL, (LPPOINT)&mRect, 2);
+
+                ApplicationHandle->mRect = mRect;
+                return 0;
+            }
 
             // Mouse
         case WM_INPUT:
@@ -315,7 +324,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
                 POINT lp; GetCursorPos(&lp);
                 ScreenToClient(hwnd, &lp);
 
-                ApplicationHandle->gInput->GetMouse()->SetMouse(lp.x, lp.y);
+                ApplicationHandle->gInput->GetMouse()->SetMouse((float)lp.x, (float)lp.y);
                 
                 // Update buttons
                 if( raw->data.mouse.ulButtons > (ULONG)0 ) 

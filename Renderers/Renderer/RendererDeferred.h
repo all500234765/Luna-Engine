@@ -46,6 +46,7 @@ private:
         struct {
             // Depth test/write, no stencil
             DepthStencilState *normal;
+            DepthStencilState *norw;
         } depth;
 
         struct {
@@ -101,7 +102,6 @@ private:
     void SSLF();
     void FSSSSS();
     void Combine();
-    void DOF();
     void HDR();
 
     // Final Passes

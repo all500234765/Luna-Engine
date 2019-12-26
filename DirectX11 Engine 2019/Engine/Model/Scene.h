@@ -46,8 +46,8 @@ extern Gamepad  *gGamepad[NUM_GAMEPAD];
 float fsignf(float x);
 
 struct CameraData {
-    CameraComponent    *cCam;
-    TransformComponent *cTransf;
+    CameraComponent    *cCam{};
+    TransformComponent *cTransf{};
 
     inline void SetView(mfloat4x4 mView) {
         cCam->mView = mView;
@@ -368,9 +368,10 @@ public:
         cbTransform->CreateDefault(sizeof(TransformBuff));
         cbTransform->SetName("[Scene::MeshTransform]: Constant Buffer");
 
-        gVelocityIntegrationSystem = new VelocityIntegrationSystem;
-        gAnimatedMeshRenderSystem  = new AnimatedMeshRenderSystem;
-        gStaticMeshRenderSystem    = new StaticMeshRenderSystem;
+        gVelocityIntegrationSystem        = new VelocityIntegrationSystem;
+        gAnimatedMeshRenderSystem         = new AnimatedMeshRenderSystem;
+        gStaticMeshRenderSystem           = new StaticMeshRenderSystem;
+        gMovementControlIntegrationSystem = new MovementControlIntegrationSystem;
 
         // 
         ResetLists();
@@ -393,6 +394,7 @@ public:
         SAFE_DELETE(gVelocityIntegrationSystem);
         SAFE_DELETE(gAnimatedMeshRenderSystem );
         SAFE_DELETE(gStaticMeshRenderSystem   );
+        SAFE_DELETE(gMovementControlIntegrationSystem);
 
         // ECS
         for( uint32_t i = 0; i < SCENE_MAX_CAMERA_COUNT; i++ ) 
@@ -607,6 +609,7 @@ public:
         mRenderList.AddSystem(*gAnimatedMeshRenderSystem);
         mRenderList.AddSystem(*gStaticMeshRenderSystem);
 
+        mUpdateList.AddSystem(*gMovementControlIntegrationSystem);
         mUpdateList.AddSystem(*gVelocityIntegrationSystem);
     }
 

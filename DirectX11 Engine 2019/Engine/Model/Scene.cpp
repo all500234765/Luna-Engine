@@ -80,7 +80,8 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
 
         // Keyboard
         if( Control.bKeyboard ) {
-            if( gKeyboard->IsDown(Control.mKeyboardKey) ) fValue = { 1.f, 1.f, 1.f };
+            if( gKeyboard->IsDown(Control.mKeyboardKey) ) 
+                fValue = { 1.f, 1.f, 1.f };
         }
 
         // Gamepad
@@ -132,7 +133,19 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
 
         // Mouse
         if( Control.bMouse ) {
-            if( gMouse->IsDown(Control.mMouseButton) ) fValue = { 1.f, 1.f, 1.f };
+            if( Control.mMouseButton & MouseButton::AxisXY ) {
+                // Get dx, dy
+                static float lx = 683.f;
+                static float ly = 384.f;
+
+                fValue.x += (gMouse->GetY() - ly) * (Control.mMouseButton & MouseButton::AxisY);
+                fValue.y += (gMouse->GetX() - lx) * (Control.mMouseButton & MouseButton::AxisX);
+
+                lx = gMouse->GetX();
+                ly = gMouse->GetY();
+            }
+
+            if( gMouse->IsDown(Control.mMouseButton) & MouseButton::Mask ) fValue = { 1.f, 1.f, 1.f };
         }
 
         // 
@@ -145,11 +158,11 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
             }
 
             // Is camera
+            float3 p = fValue * Control.fValue * dt;
             if( Control.bOrientationDependent ) {
                 using namespace DirectX;
 
                 float3 r = Transform->vRotation;
-                float3 p = Transform->vPosition;
 
                 // Get angles in radians
                 float pr = XMConvertToRadians(r.x);
@@ -168,11 +181,17 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
                     (p.x * cosf(yr) - p.z * sinf(yr)) * cosf(pr)
                 );
 
-                p += q;
+                Transform->vPosition += q;
+            } else if( Control.bOrientationUpdate ) {
+
+                //fPitch = std::min(std::max(fPitch, -84.f), 84.f);
+
+                Transform->vRotation += p;
+                Transform->vRotation.x = Math::clamp(Transform->vRotation.x, -84.f, 84.f);
+
             } else {
-                float3 dv = fValue * Control.fValue * dt;
-                Transform->fVelocity += Math::length(dv);
-                Transform->vDirection += Math::normalize(dv);
+                Transform->fVelocity += Math::length(p);
+                Transform->vDirection += Math::normalize(p);
             }
         }
     }

@@ -19,7 +19,13 @@ typedef enum {
     X1,
     X2,
 
-    Count
+    Count,
+
+    Mask = 7, 
+
+    AxisX = 8, 
+    AxisY = 16, 
+    AxisXY = AxisX | AxisY
 } MouseButton;
 
 #include "ButtonStateEnum.h"
@@ -40,7 +46,8 @@ private:
     State mLastState;
 
     bool bIsFocused;
-    int x = 0, y = 0;
+    float x = 0.f, y = 0.f;
+    float dx = 0.f, dy = 0.f;
     HWND m_hwnd;
 
     struct {
@@ -71,13 +78,15 @@ public:
     void Refresh();
 
     // Set mouse position in class
-    void SetMouse(int X, int Y, bool rel=false);
+    void SetMouse(float X, float Y, bool rel=false);
 
     // Set mouse position in window
-    void SetAt(int X, int Y);
+    void SetAt(float X, float Y);
 
-    int GetX() const { return x; }
-    int GetY() const { return y; }
+    float GetDX() const { return dx; }
+    float GetDY() const { return dy; }
+    float GetX() const { return x; }
+    float GetY() const { return y; }
     float2 GetXY() const { return float2((float)x, (float)y); }
 
     bool IsPressed(MouseButton mkey);

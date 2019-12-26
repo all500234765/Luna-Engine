@@ -35,6 +35,8 @@ private:
     _DirectX *gDirectX;
     Input *gInput;
 
+    RECT mRect;
+
     HICON hIcon;
 
 public:
@@ -47,6 +49,7 @@ public:
     HWND GetHWND();
     const WindowConfig& GetCFG();
     Input *GetInputDevice();
+    inline RECT GetRect() const { return mRect; };
 
     friend static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
     friend static LRESULT CALLBACK InputWndProc(HWND, UINT, WPARAM, LPARAM);

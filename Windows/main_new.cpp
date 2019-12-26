@@ -29,8 +29,8 @@ int main() {
     winCFG.Borderless = false;
     winCFG.Windowed = true;
     winCFG.ShowConsole = true;
-    winCFG.Width = 1024;
-    winCFG.Height = 540;
+    winCFG.Width = 1366;
+    winCFG.Height = 768;
     winCFG.Title = L"Scene example - Luna Engine";
     winCFG.Icon = L"Engine/Assets/Engine.ico";
 
@@ -115,7 +115,10 @@ bool _DirectX::FrameFunction() {
 void _DirectX::Tick(float fDeltaTime) {
     gMainScene->Update(fDeltaTime);
 
-
+    RECT rect = gWindow->GetRect();
+    if( gMouse->GetX() > rect.right ) {
+        //gMouse->SetMouse(, 0.f, true);
+    }
 }
 
 void _DirectX::Resize() {
@@ -132,29 +135,37 @@ void _DirectX::Load() {
     // Create input controller for player camera
 
     // 
-    float fSpeed = 20.f;
+    float fSpeed = 50.f;
     MovementControlComponent lMovementControlComp;
     lMovementControlComp.mAssignedControls = {
-        InputControl(VK_A, GamepadButtonState::_StickL).SetValue(-fSpeed, 0.f).OrientationDependent(),
-        InputControl(VK_D, GamepadButtonState::_StickL).SetValue(+fSpeed, 0.f).OrientationDependent(),
-        InputControl(VK_W, GamepadButtonState::_StickL).SetValue(0.f, -fSpeed).OrientationDependent(),
-        InputControl(VK_S, GamepadButtonState::_StickL).SetValue(0.f, +fSpeed).OrientationDependent(),
+        InputControl(VK_A, GamepadButtonState::_StickL).SetValue(0.f, 0.f, -fSpeed).OrientationDependent(),
+        InputControl(VK_D, GamepadButtonState::_StickL).SetValue(0.f, 0.f, +fSpeed).OrientationDependent(),
+        InputControl(VK_W, GamepadButtonState::_StickL).SetValue(+fSpeed).OrientationDependent(),
+        InputControl(VK_S, GamepadButtonState::_StickL).SetValue(-fSpeed).OrientationDependent(),
+        InputControl(MouseButton::AxisXY).SetValue(1.f, 1.f).OrientationUpdate()
     };
 
     // Create cameras
     gMainScene->MakeCameraFOVH(0, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Player
     gMainScene->MakeCameraFOVH(1, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Light
+    gMainScene->SetActiveCamera(0);
+    gMainScene->UpdateMadeCameras();
+    gMainScene->GetCamera(0)->cTransf->vPosition = float3(0.f, 10.f, 0.f);
 
     // Add controls to main camera
     gMainScene->AddComponent(gMainScene->GetActiveCameraHandle(), &lMovementControlComp);
 
     // Add model
-    auto q = gMainScene->GetComponent<TransformComponent>(gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj", [](TransformComponent *transf) {
+    gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj", [](TransformComponent *transf) {
         transf->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
         transf->vScale    = float3(.125, .125, .125);
         transf->vPosition = float3(-50.f, 0.f, 50.f);
+        transf->fAcceleration = 0.f;
+        transf->fVelocity     = 0.f;
+        transf->vDirection    = float3(0.f, 0.f, 0.f);
+
         transf->Build();
-    })[0]);
+    });
 
     // TODO: Try DefaultTexture.png
 

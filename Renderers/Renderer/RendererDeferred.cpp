@@ -133,7 +133,7 @@ void RendererDeferred::Init() {
         pDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
         pDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
         pDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-        pDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+        pDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
         pDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
         pDesc.AlphaToCoverageEnable = false;
@@ -149,6 +149,7 @@ void RendererDeferred::Init() {
 
 #pragma region Depth stencil states
     s_states.depth.normal = new DepthStencilState;
+    s_states.depth.norw = new DepthStencilState;
 
     {
         D3D11_DEPTH_STENCIL_DESC pDesc;
@@ -173,6 +174,10 @@ void RendererDeferred::Init() {
         pDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
         
         s_states.depth.normal->Create(pDesc, 0);
+
+        pDesc.DepthEnable = false;
+        pDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        s_states.depth.norw->Create(pDesc, 0);
     }
 #pragma endregion
 
@@ -234,8 +239,16 @@ void RendererDeferred::Render() {
         return;
     }
 
+    // Update player camera
+    mScene->UpdateCameraData(0);
+    mScene->GetCamera(0)->BuildView();
+    //mScene->UpdateCameraData(0);
+    //mScene->UpdateCameraData(1);
+
     {
         ScopedRangeProfiler q(L"Geometry rendering");
+        s_states.blend.normal->Bind();
+        s_states.depth.normal->Bind();
 
         Shadows();
         GBuffer();
@@ -253,6 +266,7 @@ void RendererDeferred::Render() {
         Deferred();
 
         // Combination pass
+        s_states.depth.norw->Bind();
         Combine();
     }
 
@@ -260,7 +274,6 @@ void RendererDeferred::Render() {
         ScopedRangeProfiler q(L"Final post processing");
 
         // Final post-processing
-        DOF();
         HDR();
         Final();
     }
@@ -337,6 +350,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(s_states.raster.normal_scissors);
     SAFE_RELEASE(s_states.raster.wire_scissors  );
     SAFE_RELEASE(s_states.depth.normal );
+    SAFE_RELEASE(s_states.depth.norw   );
 
     // Buffers
     SAFE_RELEASE(cbTransform);
@@ -453,6 +467,16 @@ void RendererDeferred::Deferred() {
 }
 
 void RendererDeferred::SSAO() {
+
+    gSSAOArgs._Blur = true;
+    gSSAOArgs._CameraFar = mScene->GetCamera(0)->cCam->fFar;
+    gSSAOArgs._CameraNear = mScene->GetCamera(0)->cCam->fNear;
+    gSSAOArgs._mProj = mScene->GetCamera(0)->cCam->mProj;
+    gSSAOArgs._mView = mScene->GetCamera(0)->cCam->mView;
+    gSSAOArgs._OffsetRad = 1.f;
+    gSSAOArgs._Power = 2.f;
+    gSSAOArgs._Radius = 1.5f;
+
     // Opaque
     gSSAOPostProcess->Begin(rtGBuffer, gSSAOArgs);
 
@@ -506,12 +530,66 @@ void RendererDeferred::Combine() {
 
 }
 
-void RendererDeferred::DOF() {
-
-}
-
 void RendererDeferred::HDR() {
+    CameraComponent* cam = mScene->GetCamera(0)->cCam;
+    float fNear = cam->fNear;
+    float fFar  = cam->fFar;
+    float fQ    = fFar / (fNear - fFar);
+    
+    float White             = 21.53f;
+    float MidGray           = 20.863f;
+    float gAdaptation       = 5.f;
+    float gBloomScale       = 4.f;
+    float gBloomThres       = 10.f;
+    float gFarStart         = 0.f;
+    float gFarRange         = 60.f;
+    float gBokehThreshold   = 0.f;
+    float gBokehColorScale  = 0.f;
+    float gBokehRadiusScale = 0.f;
 
+    const float gFarScale = 100.f;
+    
+    uint1 _RenderFlags = 0;
+    bool gRenderSSLR          = true;
+    bool gRenderSSAO          = true;
+    bool gRenderEyeAdaptation = true;
+    bool gRenderDepthOfField  = true;
+    bool gRenderBloom         = true;
+    bool gRenderBokeh         = true;
+    bool gRenderDiffuse       = true;
+    bool gRenderLight         = true;
+
+    // Update flags
+    //                        0            1            2
+    std::array<bool, 8> _val{ gRenderSSLR, gRenderSSAO, gRenderEyeAdaptation,
+    //  3                    4             5             6               7
+        gRenderDepthOfField, gRenderBloom, gRenderBokeh, gRenderDiffuse, gRenderLight };
+
+    for( size_t i = 0; i < _val.size(); i++ ) if( _val[i] ) _RenderFlags |= 1 << i;
+
+    // Update constant buffers
+    FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
+        __q->_LumWhiteSqr     = White * White * MidGray * MidGray;
+        __q->_MiddleGrey      = MidGray;
+        __q->_BloomScale      = gBloomScale;
+        __q->_ProjectedValues = { fNear * fQ, fQ };
+        __q->_DoFFarValues    = { gFarStart * gFarScale, 1.f / (gFarRange * gFarScale) };
+        __q->_BokehThreshold  = gBokehThreshold;
+        __q->_ColorScale      = gBokehColorScale;
+        __q->_RadiusScale     = gBokehRadiusScale;
+        __q->_RenderFlags     = _RenderFlags;
+    gHDRPostProcess->UnmapFinalPass();
+
+    const WindowConfig& cfg = Window::Current()->GetCFG();
+    DownScaleInst* __c = gHDRPostProcess->MapDownScale();
+        __c->_Res            = { static_cast<uint32_t>(cfg.CurrentWidth / 4), static_cast<uint32_t>(cfg.CurrentHeight / 4) };
+        __c->_Domain         = __c->_Res.x * __c->_Res.y;
+        __c->_GroupSize      = __c->_Domain / 1024;
+        __c->_Adaptation     = gAdaptation / (float)gDirectX->GetConfig().RefreshRate;
+        __c->_BloomThreshold = gBloomThres;
+    gHDRPostProcess->UnmapDownScale();
+
+    gHDRPostProcess->Begin(rtGBuffer);
 }
 
 void RendererDeferred::Final() {
@@ -520,7 +598,6 @@ void RendererDeferred::Final() {
     BindOrtho();
 
     shPostProcess->Bind();
-
 
     // HDR Post Processing; Eye Adaptation; Bloom; Depth of Field
     gHDRPostProcess->BindFinalPass(Shader::Pixel, 0);

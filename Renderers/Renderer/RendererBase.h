@@ -51,6 +51,6 @@ public:
     virtual void FinalScreen() { return; };
 
     inline uint32_t Width() const { return Window::Current()->GetCFG().CurrentWidth; }
-    inline uint32_t Height() const { return Window::Current()->GetCFG().CurrentHeight2; }
+    inline uint32_t Height() const { return Window::Current()->GetCFG().CurrentHeight; }
 };
 

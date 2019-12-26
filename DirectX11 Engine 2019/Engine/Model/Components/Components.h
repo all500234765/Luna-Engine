@@ -152,6 +152,7 @@ struct InputControl {
 
     // Is camera controller
     bool bOrientationDependent = false;
+    bool bOrientationUpdate = false;
 
     // Keyboard only
     InputControl(uint32 key): bKeyboard(true), mKeyboardKey(key) {};
@@ -184,20 +185,21 @@ struct InputControl {
 
     // 
     float3 fValue = { 0.f, 0.f, 0.f };
-    inline InputControl SetValue(float a = 0.f, float b = 0.f, float c = 0.f) { fValue = { a, b, c }; return *this; }
+    inline InputControl& SetValue(float a = 0.f, float b = 0.f, float c = 0.f) { fValue = { a, b, c }; return *this; }
 
     bool bDirectional = false;
-    inline InputControl SetDirectional(bool b) { bDirectional = b; return *this; }
+    inline InputControl& SetDirectional(bool b) { bDirectional = b; return *this; }
 
     bool bCallback = false;
     void(*mCallback)(TransformComponent* T, float dt);
-    inline InputControl SetCallback(void(*callback)(TransformComponent* T, float dt)) {
+    inline InputControl& SetCallback(void(*callback)(TransformComponent* T, float dt)) {
         mCallback = callback;
         bCallback = true;
         return *this;
     }
 
-    inline InputControl OrientationDependent() { bOrientationDependent ^= true; return *this; }
+    inline InputControl& OrientationDependent() { bOrientationDependent ^= true; return *this; }
+    inline InputControl& OrientationUpdate() { bOrientationUpdate ^= true; return *this; }
 };
 
 struct MovementControlComponent: public ECSComponent<MovementControlComponent> {

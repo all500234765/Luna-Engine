@@ -116,6 +116,7 @@
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(ProjectDir)..\Vendor\Vendor\;$(ProjectDir)..\Shaders\;$(ProjectDir)..\DirectX11 Engine 2019\;$(ProjectDir)..\ECS\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -139,6 +140,7 @@
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(ProjectDir)..\Vendor\Vendor\;$(ProjectDir)..\Shaders\;$(ProjectDir)..\DirectX11 Engine 2019\;$(ProjectDir)..\ECS\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -164,6 +166,7 @@
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(ProjectDir)..\Vendor\Vendor\;$(ProjectDir)..\Shaders\;$(ProjectDir)..\DirectX11 Engine 2019\;$(ProjectDir)..\ECS\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -190,6 +193,7 @@
       <PrecompiledHeaderFile />
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(ProjectDir)..\Vendor\Vendor\;$(ProjectDir)..\Shaders\;$(ProjectDir)..\DirectX11 Engine 2019\;$(ProjectDir)..\ECS\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

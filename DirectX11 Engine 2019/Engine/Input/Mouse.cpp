@@ -39,17 +39,26 @@ void Mouse::Refresh() {
     mLastState = mState;
 }
 
-void Mouse::SetMouse(int X, int Y, bool rel) {
+void Mouse::SetMouse(float X, float Y, bool rel) {
+    
     if( rel ) {
-        this->x += X;
-        this->y += Y;
+        x += X;
+        y += Y;
+
+        dx = X;
+        dy = Y;
     } else {
-        this->x = X;
-        this->y = Y;
+        float ox = x, oy = y;
+
+        x = X;
+        y = Y;
+
+        dx = x - ox;
+        dy = y - oy;
     }
 }
 
-void Mouse::SetAt(int X, int Y) {
+void Mouse::SetAt(float X, float Y) {
     // If window isn't focused, then do nothing
     if( GetFocus() != m_hwnd ) { return; }
 
@@ -57,8 +66,12 @@ void Mouse::SetAt(int X, int Y) {
     POINT pt = {X, Y};
 
     // Store new mouse pos
-    this->x = X;
-    this->y = Y;
+    x = X;
+    y = Y;
+
+    // TODO: 
+    dx = 0;
+    dy = 0;
 
     // Map point to the screen
     ClientToScreen(m_hwnd, &pt);
