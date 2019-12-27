@@ -56,25 +56,38 @@ void Mouse::SetMouse(float X, float Y, bool rel) {
         dx = x - ox;
         dy = y - oy;
     }
+
+    /*if( mark_count > 0 && (abs(dx) > 0.f || abs(dy) > 0.f) ) {
+        mark_count--;
+        dx = 0;
+        dy = 0; printf_s("%u\n", mark_count);
+    }*/
 }
 
-void Mouse::SetAt(float X, float Y) {
+void Mouse::SetAt(float X, float Y, bool abs) {
     // If window isn't focused, then do nothing
     if( GetFocus() != m_hwnd ) { return; }
 
     // Create vector
-    POINT pt = {X, Y};
+    POINT pt = { X, Y };
 
     // Store new mouse pos
-    x = X;
-    y = Y;
+    if( !abs ) {
+        x = X;
+        y = Y;
+    } else {
+        POINT pt2 = { 0, 0 };
+        ClientToScreen(m_hwnd, &pt2);
+        x = X - pt2.x;
+        y = Y - pt2.y;
+    }
 
     // TODO: 
     dx = 0;
     dy = 0;
 
     // Map point to the screen
-    ClientToScreen(m_hwnd, &pt);
+    if( !abs ) ClientToScreen(m_hwnd, &pt);
     SetCursorPos(pt.x, pt.y);
 }
 

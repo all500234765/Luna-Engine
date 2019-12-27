@@ -91,7 +91,7 @@ void Window::Create(const WindowConfig& config) {
     // Adjust window size and position
     cfg.CurrentHeight2 = cfg.CurrentHeight;// -1;
 
-    RECT rect = {posX, posY, posX + cfg.CurrentWidth, posY + cfg.CurrentHeight};
+    RECT rect = { posX, posY, posX + cfg.CurrentWidth, posY + cfg.CurrentHeight };
     AdjustWindowRectEx(&rect, flags, false, WS_EX_APPWINDOW);
     
     posX = rect.left;
@@ -294,7 +294,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
                 if( ApplicationHandle == nullptr ) return 0;
                 ApplicationHandle->cfg.CurrentWidth   = LOWORD(lparam);
                 ApplicationHandle->cfg.CurrentHeight  = HIWORD(lparam);
-                ApplicationHandle->cfg.CurrentHeight2 = HIWORD(lparam) - 1;// +(ApplicationHandle->cfg.CurrentHeight2 - ApplicationHandle->cfg.CurrentHeight);
+                ApplicationHandle->cfg.CurrentHeight2 = HIWORD(lparam) - 1;
                 ApplicationHandle->cfg.Resized = true;
 
                 RECT mRect = { 0, 0, LOWORD(lparam), HIWORD(lparam) };
@@ -338,45 +338,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 
             return DefWindowProc(hwnd, umessage, wparam, lparam);
         }
-            
-        /*case WM_LBUTTONDOWN:
-            //ApplicationHandle->gInput->GetMouse()->SetState(MK_LBUTTON, true);
-            //ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
-
-        case WM_LBUTTONUP:
-            //ApplicationHandle->gInput->GetMouse()->SetState(MK_LBUTTON, false);
-            //ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
-
-        case WM_RBUTTONDOWN:
-            ApplicationHandle->gInput->GetMouse()->SetState(MK_RBUTTON, true);
-            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
-
-        case WM_RBUTTONUP:
-            ApplicationHandle->gInput->GetMouse()->SetState(MK_RBUTTON, false);
-            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
-
-        case WM_MBUTTONDOWN:
-            ApplicationHandle->gInput->GetMouse()->SetState(MK_MBUTTON, true);
-            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
-
-        case WM_MBUTTONUP:
-            ApplicationHandle->gInput->GetMouse()->SetState(MK_MBUTTON, false);
-            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;
-
-        case WM_MOUSEMOVE:
-            ApplicationHandle->gInput->GetMouse()->SetMouse(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-            return 0;*/
-
+        
         // All other messages pass to the message handler in the system class.
         default:
         {
-            return /*ApplicationHandle->MessageHandler*/DefWindowProc(hwnd, umessage, wparam, lparam);
+            return DefWindowProc(hwnd, umessage, wparam, lparam);
         }
     }
 }

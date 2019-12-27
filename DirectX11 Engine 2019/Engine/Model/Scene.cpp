@@ -135,14 +135,17 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
         if( Control.bMouse ) {
             if( Control.mMouseButton & MouseButton::AxisXY ) {
                 // Get dx, dy
-                static float lx = 683.f;
-                static float ly = 384.f;
+                WindowConfig wcfg = gWindow->GetCFG();
+                float ww = wcfg.CurrentWidth * .5f;
+                float wh = wcfg.CurrentHeight * .5f;
 
-                fValue.x += (gMouse->GetY() - ly) * (Control.mMouseButton & MouseButton::AxisY);
-                fValue.y += (gMouse->GetX() - lx) * (Control.mMouseButton & MouseButton::AxisX);
+                float dx = gMouse->GetX() - ww;
+                float dy = gMouse->GetY() - wh;
 
-                lx = gMouse->GetX();
-                ly = gMouse->GetY();
+                //if( fabsf(dx) > 0.f || fabsf(dy) > 0.f ) printf_s("%f %f \n", dx, dy);
+
+                fValue.x += dy * (Control.mMouseButton & MouseButton::AxisY);
+                fValue.y += dx * (Control.mMouseButton & MouseButton::AxisX);
             }
 
             if( gMouse->IsDown(Control.mMouseButton) & MouseButton::Mask ) fValue = { 1.f, 1.f, 1.f };
@@ -187,7 +190,7 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
                 //fPitch = std::min(std::max(fPitch, -84.f), 84.f);
 
                 Transform->vRotation += p;
-                Transform->vRotation.x = Math::clamp(Transform->vRotation.x, -84.f, 84.f);
+                //Transform->vRotation.x = Math::clamp(Transform->vRotation.x, -84.f, 84.f);
 
             } else {
                 Transform->fVelocity += Math::length(p);

@@ -70,6 +70,8 @@ private:
         }
     } _mStates;
 
+    uint32_t mark_count = 0;
+
 public:
     Mouse();
     Mouse(HWND q);
@@ -81,7 +83,9 @@ public:
     void SetMouse(float X, float Y, bool rel=false);
 
     // Set mouse position in window
-    void SetAt(float X, float Y);
+    void SetAt(float X, float Y, bool abs=false);
+
+    void SetMark(uint32_t count) { mark_count += count; }
 
     float GetDX() const { return dx; }
     float GetDY() const { return dy; }

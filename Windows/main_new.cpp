@@ -4,7 +4,6 @@
 #include "Other/FloatTypeMath.h"
 
 #include <array>
-//#include <algorithm>
 
 // Extensions
 #include "Engine/Extensions/Default.h"
@@ -15,12 +14,18 @@
 
 #include "Renderer/RendererDeferred.h"
 
+#include "Engine/Window/SplashScreen.h"
+
 HighLevel gHighLevel;
 
 RendererBase *gRenderer;
 Scene *gMainScene;
 
 int main() {
+    // Show splashscreen
+    SplashScreen::Launch(L"Engine/Splash.bmp", 5 * 1000);
+
+    // Print CPU info
     CPUID cpu;
     cpu.PrintBasicInfo();
 
@@ -116,9 +121,20 @@ void _DirectX::Tick(float fDeltaTime) {
     gMainScene->Update(fDeltaTime);
 
     RECT rect = gWindow->GetRect();
-    if( gMouse->GetX() > rect.right ) {
-        //gMouse->SetMouse(, 0.f, true);
-    }
+    float mx = gMouse->GetX();
+    float my = gMouse->GetY(); // Mouse isn't in screen coords
+    POINT mpoint = { mx, my };
+    MapWindowPoints(gWindow->GetHWND(), NULL, (LPPOINT)&mpoint, 1);
+
+    // Clamp camera pitch
+    TransformComponent *Transform = gMainScene->GetCamera(0)->cTransf;
+    Transform->vRotation.x = LunaEngine::Math::clamp(Transform->vRotation.x, -84.f, 84.f);
+
+    WindowConfig wcfg = gWindow->GetCFG();
+    float ww = wcfg.CurrentWidth;
+    float wh = wcfg.CurrentHeight;
+
+    gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
 }
 
 void _DirectX::Resize() {

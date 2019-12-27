@@ -18,7 +18,7 @@
 #include "ECS/ECSSystem.hpp"
 #include "ECS/ECS.hpp"
 
-// Other
+// Engine stuff
 #include "Engine/Utility/Utils.h"
 #include "Engine/RendererFlags.h"
 #include "Engine/ScopedMapper.h"
@@ -32,12 +32,14 @@
 #include "Engine/Extensions/Safe.h"
 #include "HighLevel/DirectX/Utlities.h"
 #include "Other/DrawCall.h"
+#include "Engine/Window/Window.h"
 
 // Components
 #include "Components/Components.h"
 
 #include "Defines.h"
 
+extern Window   *gWindow;
 extern _DirectX *gDirectX;
 extern Mouse    *gMouse;
 extern Keyboard *gKeyboard;
@@ -561,7 +563,7 @@ public:
         }
 
         // Other file types
-        printf_s("[Scene::LoadModel]: Unsupported model format %s", ext);
+        printf_s("[Scene::LoadModel]: Unsupported model format %s", ext.data());
         return {};
     }
 

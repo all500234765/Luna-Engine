@@ -34,6 +34,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Default.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Safe.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\SplashScreen.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Input\Gamepad.h">
       <DeploymentContent>true</DeploymentContent>
     </ClInclude>
@@ -138,6 +139,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\TimerLog.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Vertices.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\SplashScreen.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\CPUID.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\DrawCall.cpp" />
