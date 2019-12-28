@@ -1,29 +1,23 @@
 #include "Input.h"
 
 Input::Input() {
-#if USE_GAMEPADS
     for( int i = 0; i < NUM_GAMEPAD; i++ ) {
         iGamepads[i] = new Gamepad(i);
     }
-#endif
 }
 
 Input::Input(HWND q) {
-#if USE_GAMEPADS
     for( int i = 0; i < NUM_GAMEPAD; i++ ) {
         iGamepads[i] = new Gamepad(i);
     }
-#endif
 
     iMouse = q;
     iKeyboard = q;
 }
 
-#if USE_GAMEPADS
 Gamepad* Input::GetGamepad(int i) {
     return iGamepads[i];
 }
-#endif
 
 Keyboard* Input::GetKeyboard() {
     return &iKeyboard;

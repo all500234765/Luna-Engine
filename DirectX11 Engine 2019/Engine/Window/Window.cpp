@@ -172,9 +172,7 @@ void Window::Loop() {
         gInput->GetMouse()->Refresh();
         gInput->GetKeyboard()->Refresh();
 
-#if USE_GAMEPADS
         for( int i = 0; i < NUM_GAMEPAD; i++ ) gInput->GetGamepad(i)->Update();
-#endif
 
         // Calculate dt and fps
         tp2 = Clock.now();
@@ -188,9 +186,7 @@ void Window::Loop() {
         // Collisions, AI, Input etc...
         gDirectX->Tick(fDeltaTime);
 
-#if USE_GAMEPADS
         for( int i = 0; i < NUM_GAMEPAD; i++ ) gInput->GetGamepad(i)->Refresh();
-#endif
 
         // Otherwise do the frame processing.
         if( gDirectX->FrameFunction() ) { break; }

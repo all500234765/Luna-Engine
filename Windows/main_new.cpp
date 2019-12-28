@@ -23,7 +23,7 @@ Scene *gMainScene;
 
 int main() {
     // Show splashscreen
-    SplashScreen::Launch(L"Engine/Splash.bmp", 5 * 1000);
+    SplashScreen::Launch(L"Engine/SplashEditor.bmp", 5 * 1000);
 
     // Print CPU info
     CPUID cpu;
@@ -47,9 +47,7 @@ int main() {
     gKeyboard = gInput->GetKeyboard();
     gMouse = gInput->GetMouse();
 
-#if USE_GAMEPADS
     for( int i = 0; i < NUM_GAMEPAD; i++ ) gGamepad[i] = gInput->GetGamepad(i);
-#endif
 
     // Audio device config
     AudioDeviceConfig adCFG = { 0 };
