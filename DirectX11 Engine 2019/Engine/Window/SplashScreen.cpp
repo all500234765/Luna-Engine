@@ -3,6 +3,7 @@
 HBITMAP SplashScreen::image = 0;
 HINSTANCE SplashScreen::hinstance = 0;
 UINT SplashScreen::timer_time = 10000; // Default is 10s
+HWND SplashScreen::m_hwnd = 0;
 
 LRESULT CALLBACK SplashScreenWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
     PAINTSTRUCT ps;
@@ -20,6 +21,7 @@ LRESULT CALLBACK SplashScreenWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LP
         case WM_DESTROY:
         case WM_CLOSE:
         case WM_TIMER:
+            ShowWindow(SplashScreen::GetHWND(), SW_HIDE);
             DeleteObject(SplashScreen::GetImage());
             PostQuitMessage(0);
             KillTimer(hwnd, wparam);
@@ -99,8 +101,8 @@ void SplashScreen::Launch(const wchar_t* fname, UINT time) {
     Height = rect.bottom - rect.top;
 
     // Create the window with the screen settings and get the handle to it.
-    HWND m_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, L"Luna Engine - Splash Screen",
-                                 flags, x, y, Width, Height, NULL, NULL, hinstance, NULL);
+    m_hwnd = CreateWindowEx(WS_EX_APPWINDOW, wc.lpszClassName, L"Luna Engine - Splash Screen",
+                            flags, x, y, Width, Height, NULL, NULL, hinstance, NULL);
 
     // Show as foreground
     ShowWindow(m_hwnd, SW_SHOW);
