@@ -3,6 +3,6 @@
         BackgroundColor="#666666"
         ShowNameOnSquare150x150Logo="on"
         ForegroundText="light"
-        Square150x150Logo="Engine\Assets\Luna150.png"
-        Square70x70Logo="Engine\Assets\Luna70.png"/>
+        Square150x150Logo="Engine\Luna150.png"
+        Square70x70Logo="Engine\Luna70.png"/>
 </Application>

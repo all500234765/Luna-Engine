@@ -22,6 +22,9 @@ RendererBase *gRenderer;
 Scene *gMainScene;
 
 int main() {
+    // Hide console
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
+
     // Show splashscreen
     SplashScreen::Launch(L"Engine/SplashEditor.bmp", 5 * 1000);
 
@@ -37,7 +40,7 @@ int main() {
     winCFG.Width = 1366;
     winCFG.Height = 768;
     winCFG.Title = L"Scene example - Luna Engine";
-    winCFG.Icon = L"Engine/Assets/Engine.ico";
+    winCFG.Icon = L"Engine/Engine.ico";
 
     // Create window
     gWindow = gHighLevel.InitWindow(winCFG);
