@@ -451,11 +451,32 @@ void RendererDeferred::OIT() {
     rtGBuffer->MSAAResolve();
 
     // 
+    UINT dc = gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount;
+
+    // 
     mScene->BindCamera(0, Shader::Vertex, 1); // Main camera
     mScene->Render(RendererFlags::OpacityPass, Shader::Vertex);
 
+    // 
+    UINT ddc = (gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount) - dc;
+
     // Done
-    gOrderIndendentTransparency->End(rtTransparency, gOITSettings);
+    if( ddc > 0 ) {
+        gOrderIndendentTransparency->End(rtTransparency, gOITSettings);
+    } else {
+        // Unbind
+        ID3D11UnorderedAccessView *pEmptyUAV[2] = { nullptr, nullptr };
+        ID3D11RenderTargetView *pEmptyRTV[2] = { nullptr, nullptr };
+        gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(2, pEmptyRTV, nullptr, 2, 2, pEmptyUAV, 0);
+
+        //TopologyState::Pop();
+        DepthStencilState::Pop();
+        RasterState::Pop();
+        BlendState::Pop();
+
+        // L"Order Independent Transparency"
+        RangeProfiler::End();
+    }
 }
 
 void RendererDeferred::CoverageBuffer() {

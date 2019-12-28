@@ -21,12 +21,15 @@ HighLevel gHighLevel;
 RendererBase *gRenderer;
 Scene *gMainScene;
 
-int main() {
+int WINAPI WINMAIN(HINSTANCE hInstance,
+                   HINSTANCE hPrevInstance,
+                   LPCMDLINE lpCmdLine,
+                   int       nShowCmd) {
     // Hide console
     ShowWindow(GetConsoleWindow(), SW_HIDE);
 
     // Show splashscreen
-    SplashScreen::Launch(L"Engine/SplashEditor.bmp", 5 * 1000);
+    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 5 * 1000);
 
     // Print CPU info
     CPUID cpu;
