@@ -115,13 +115,13 @@ public:
         printf_s("[~RendererDeferred]\n");
     };
 
-    virtual void Init()                   override;
-    virtual void Resize(float W, float H) override;
-    virtual void Render()                 override;
-    virtual void FinalScreen()            override;
-    virtual void Release()                override;
-    virtual void ImGui()                  override;
-    virtual void ClearMainRT()            override;
+    virtual void Init()        override;
+    virtual void Resize()      override;
+    virtual void Render()      override;
+    virtual void FinalScreen() override;
+    virtual void Release()     override;
+    virtual void ImGui()       override;
+    virtual void ClearMainRT() override;
 
 
 };

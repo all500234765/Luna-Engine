@@ -21,13 +21,11 @@ HighLevel gHighLevel;
 RendererBase *gRenderer;
 Scene *gMainScene;
 
-int WINAPI WINMAIN(HINSTANCE hInstance,
-                   HINSTANCE hPrevInstance,
-                   LPCMDLINE lpCmdLine,
-                   int       nShowCmd) {
+int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                   LPCMDLINE lpCmdLine, int       snShowCmd) {
     // Hide console
     ShowWindow(GetConsoleWindow(), SW_HIDE);
-
+    
     // Show splashscreen
     SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 5 * 1000);
 
@@ -98,7 +96,6 @@ bool _DirectX::FrameFunction() {
     // Resize event
     Resize();
 
-
     // Bind and clear RTV
     gRenderer->ClearMainRT();
 
@@ -109,7 +106,7 @@ bool _DirectX::FrameFunction() {
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
     gRenderer->FinalScreen();
 
-    // Debug statistics
+    // Debug frame statistics
     if( (gRenderFrame % 120) == 0 ) {
         printf_s("Frame=%u; Drawcalls=%u; Instances=%u; Dispatches=%u\n", 
                  gRenderFrame, gDrawCallCount, gDrawCallInstanceCount, gDispatchCallCount);
@@ -124,16 +121,13 @@ bool _DirectX::FrameFunction() {
 void _DirectX::Tick(float fDeltaTime) {
     gMainScene->Update(fDeltaTime);
 
-    RECT rect = gWindow->GetRect();
-    float mx = gMouse->GetX();
-    float my = gMouse->GetY(); // Mouse isn't in screen coords
-    POINT mpoint = { mx, my };
-    MapWindowPoints(gWindow->GetHWND(), NULL, (LPPOINT)&mpoint, 1);
 
     // Clamp camera pitch
     TransformComponent *Transform = gMainScene->GetCamera(0)->cTransf;
     Transform->vRotation.x = LunaEngine::Math::clamp(Transform->vRotation.x, -84.f, 84.f);
 
+    // Set mouse at center of the screen
+    RECT rect = gWindow->GetRect();
     WindowConfig wcfg = gWindow->GetCFG();
     float ww = wcfg.CurrentWidth;
     float wh = wcfg.CurrentHeight;
@@ -142,7 +136,24 @@ void _DirectX::Tick(float fDeltaTime) {
 }
 
 void _DirectX::Resize() {
+    WindowConfig wcfg = gHighLevel.DefaultResize();
+    if( !wcfg.Resized ) return;
 
+    // Resize renderer
+    gRenderer->Resize();
+
+    // Resize camera
+    CameraComponent *cam = gMainScene->GetCamera(0)->cCam;
+    cam->fWidth = wcfg.CurrentWidth;
+    cam->fHeight = wcfg.CurrentHeight;
+    cam->fAspect = wcfg.CurrentWidth / wcfg.CurrentHeight;
+
+    // Set mouse at center of the screen
+    RECT rect = gWindow->GetRect();
+    float ww = wcfg.CurrentWidth;
+    float wh = wcfg.CurrentHeight;
+
+    gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
 }
 
 void _DirectX::Load() {
@@ -153,8 +164,6 @@ void _DirectX::Load() {
     gMainScene->SetAsActive(); // Bind current scene as active
 
     // Create input controller for player camera
-
-    // 
     float fSpeed = 50.f;
     MovementControlComponent lMovementControlComp;
     lMovementControlComp.mAssignedControls = {

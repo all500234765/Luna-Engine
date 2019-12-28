@@ -47,7 +47,7 @@ public:
     virtual void Release() { return; };
     virtual void ImGui() { return; };
     virtual void ClearMainRT() { return; };
-    virtual void Resize(float W, float H) { return; };
+    virtual void Resize() { return; };
     virtual void FinalScreen() { return; };
 
     inline uint32_t Width() const { return Window::Current()->GetCFG().CurrentWidth; }

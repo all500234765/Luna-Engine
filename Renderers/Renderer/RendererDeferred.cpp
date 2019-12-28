@@ -304,8 +304,17 @@ void RendererDeferred::FinalScreen() {
     DXDraw(6, 0);
 }
 
-void RendererDeferred::Resize(float W, float H) {
-    // TODO: 
+void RendererDeferred::Resize() {
+    // Resize RTs
+    rtCombinedGBuffer->Resize(Width(), Height(), 1);
+    rtTransparency->Resize(Width(), Height(), 1);
+    rtFinalPass->Resize(Width(), Height(), 1);
+    rtGBuffer->Resize(Width(), Height(), 1);
+
+    gHDRPostProcess->Resize(Width(), Height());
+    gSSAOPostProcess->Resize(Width(), Height());
+    gSSLRPostProcess->Resize(Width(), Height());
+    gOrderIndendentTransparency->Resize(Width(), Height());
 }
 
 void RendererDeferred::Release() {

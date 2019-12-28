@@ -43,8 +43,6 @@ private:
     RasterState *rsNoCulling;
     TopologyState *tState;
 
-    Texture texTemp;
-
     mfloat4x4 mViewTmp, mProjTmp;
 
 public:
@@ -75,8 +73,6 @@ public:
 
         rwListHead = Texture(Width, Height, DXGI_FORMAT_R32_UINT, true);
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
-
-        texTemp = Texture(Width, Height, DXGI_FORMAT_R16G16B16A16_FLOAT, false);
 
         // Topology state
         tState = new TopologyState();
@@ -137,7 +133,6 @@ public:
     }
 
     ~OrderIndendentTransparency() {
-        texTemp.Release();
         rwListHead.Release();
         sbLinkedLists.Release();
 
@@ -158,9 +153,7 @@ public:
         sbLinkedLists.Release();
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
 
-        //rtTransparent->Resize(Width, Height, 1);
         rwListHead.Resize(Width, Height);
-        texTemp.Resize(Width, Height);
     }
     
     // Must have:
