@@ -1,5 +1,7 @@
 # Luna-Engine
- ![Icon](Misc/Luna150_Wide.png) 
+<p align="center">
+    <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/Luna150.png?raw=true">
+</p>
  
  Luna Engine is DirectX 11 based engine that i develop. Main reason why is that i want to learn more and try it all by myself
 
@@ -8,11 +10,21 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
 
 # Version 
 # 0.1.
-# 140
+# 160
 * Order Independent Transparency
 # Screenshot here
 * Screen-Door Transparency
 # Screenshot here
+* Splash screen before launching main engine!
+    * Some examples are @ Compiled/Windows_Build/Bin/Engine
+    * Pretty simple to use!
+    ```cpp
+    // Show splashscreen
+    SplashScreen::Launch(L"Engine/SplashEditor.bmp", 5 * 1000);
+    ```
+    This line of code will create splash screen for 5 seconds from specifed image.
+    ![Splash Example](Misc/SplashExample.png)
+    
 * More 2D drawing functions
     * Triangle
     * CircleOuter
@@ -41,7 +53,10 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
     * New Scene's Mesh component separates all vertex buffers into several (Position, Texcoord, Normal, etc...)
     * All other shaders will remain unaffected by this change
     
-* Old camera system will be deprecated soon!
+* Old camera system will be deprecated soon
+* I work on new camera control system
+    * New component based control system
+    # Add more here
 * New utils
     * File System (WIP)
         * File Mapping
