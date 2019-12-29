@@ -117,7 +117,7 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(ProjectDir);$(ProjectDir)..\ECS\;$(SolutionDir)DirectX11 Engine 2019\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
-      <PrecompiledHeaderOutputFile>$(SolutionDir)Compiled\Target_Windows_Build\Intermediate\Target_Windows_$(PlatformShortName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -142,7 +142,7 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(ProjectDir);$(ProjectDir)..\ECS\;$(SolutionDir)DirectX11 Engine 2019\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
-      <PrecompiledHeaderOutputFile>$(SolutionDir)Compiled\Target_Windows_Build\Intermediate\Target_Windows_$(PlatformShortName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -169,7 +169,7 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(ProjectDir);$(ProjectDir)..\ECS\;$(SolutionDir)DirectX11 Engine 2019\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
-      <PrecompiledHeaderOutputFile>$(SolutionDir)Compiled\Target_Windows_Build\Intermediate\Target_Windows_$(PlatformShortName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -197,7 +197,7 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory);$(SolutionDir)Vendor\Vendor\;$(ProjectDir);$(ProjectDir)..\ECS\;$(SolutionDir)DirectX11 Engine 2019\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
-      <PrecompiledHeaderOutputFile>$(SolutionDir)Compiled\Target_Windows_Build\Intermediate\Target_Windows_$(PlatformShortName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

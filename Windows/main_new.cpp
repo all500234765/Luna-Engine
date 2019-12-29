@@ -20,7 +20,7 @@ Scene *gMainScene;
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
     // Hide console
-    ShowWindow(GetConsoleWindow(), SW_HIDE);
+    //ShowWindow(GetConsoleWindow(), SW_HIDE);
     
     // Show splashscreen
     SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 2 * 1000);

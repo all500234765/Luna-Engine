@@ -148,7 +148,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\FloatTypeMath.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)pc.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
-      <PrecompiledHeaderOutputFile>$(SolutionDir)Compiled\Target_Windows_Build\Intermediate\Target_Windows_$(PlatformShortName).pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -11,6 +11,7 @@
     float3 __cdecl operator op(float3 lhs, float3 rhs) { \
         return { lhs.x op rhs.x, lhs.y op rhs.y, lhs.z op rhs.z}; \
     }
+#pragma message("LOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKK ATTTT MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
 #else 
     #define OPERATOR(op) \
     float3 __cdecl operator op(float3 lhs, float3 rhs);
