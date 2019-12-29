@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Music.h"
 
 Music::Music(std::string fname) {

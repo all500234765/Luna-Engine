@@ -1,9 +1,6 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
-#include "STB/stbi_image.h"
+#include "pc.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/DirectXChild.h"
 

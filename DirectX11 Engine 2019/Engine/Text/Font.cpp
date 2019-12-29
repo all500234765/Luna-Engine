@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Font.h"
 
 Font::Font(const char* fontFile, Sampler* s, bool SDF): sFont(s), bSDF(SDF) {

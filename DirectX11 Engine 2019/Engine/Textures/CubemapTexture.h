@@ -1,9 +1,7 @@
 #pragma once
 
-#include <string>
+#include "pc.h"
 
-#include "TinyDDSLoader/TinyDDSLoader.h"
-#include "STB/stbi_image.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/DirectXChild.h"
 

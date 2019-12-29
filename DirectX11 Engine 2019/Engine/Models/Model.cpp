@@ -1,12 +1,5 @@
+#include "pc.h"
 #include "Model.h"
-
-#include "Engine/DirectX/Buffer.h"
-#include "Engine/DirectX/VertexBuffer.h"
-#include "Engine/DirectX/IndexBuffer.h"
-
-#include <string>
-#include <iostream>
-#include <vector>
 
 Model::Model(const char* name, int SizeOfVertex) {
     sName = name;

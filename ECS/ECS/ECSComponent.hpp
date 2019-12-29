@@ -1,7 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <tuple>
+#include "pc.h"
 
 struct BaseECSComponent;
 

@@ -1,9 +1,5 @@
+#include "pc.h"
 #include "Other/CPUID.h"
-
-#undef _____________TYPE_FLOAT_OPERATORS22____3333
-#include "Other/FloatTypeMath.h"
-
-#include <array>
 
 // Extensions
 #include "Engine/Extensions/Default.h"
@@ -27,7 +23,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     ShowWindow(GetConsoleWindow(), SW_HIDE);
     
     // Show splashscreen
-    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 5 * 1000);
+    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 2 * 1000);
 
     // Print CPU info
     CPUID cpu;
@@ -121,6 +117,17 @@ bool _DirectX::FrameFunction() {
 void _DirectX::Tick(float fDeltaTime) {
     gMainScene->Update(fDeltaTime);
 
+    // Set world light position & direction
+    if( gKeyboard->IsPressed(VK_SPACE) ) {
+        gMainScene->UpdateCameraData(1);
+
+        TransformComponent *td = gMainScene->GetCamera(1)->cTransf;
+        TransformComponent *ts = gMainScene->GetCamera(0)->cTransf;
+        td->vPosition = ts->vPosition;
+        td->vRotation = ts->vRotation;
+
+        gMainScene->GetCamera(1)->BuildView();
+    }
 
     // Clamp camera pitch
     TransformComponent *Transform = gMainScene->GetCamera(0)->cTransf;

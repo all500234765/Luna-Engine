@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "Engine/DirectX/DirectX.h"
 
 extern _DirectX *gDirectX;

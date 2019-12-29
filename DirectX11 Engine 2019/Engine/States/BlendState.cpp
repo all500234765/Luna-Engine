@@ -1,6 +1,5 @@
+#include "pc.h"
 #include "BlendState.h"
-
-#include <iostream>
 
 void BlendState::Create(D3D11_BLEND_DESC pDesc, DirectX::XMFLOAT4 f, UINT SampleMask) {
     auto res = gDirectX->gDevice->CreateBlendState(&pDesc, &pState);

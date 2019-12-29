@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "FileSystem.h"
 
 bool FileSystem::FileAccess::open(uint32_t flags, FileNameString fname) {

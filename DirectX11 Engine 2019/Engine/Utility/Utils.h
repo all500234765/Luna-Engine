@@ -1,10 +1,6 @@
 #pragma once
 
-#include <d3d11.h>
-#include <stdint.h>
-#include <locale>
-#include <string>
-#include <sstream>
+#include "pc.h"
 
 size_t Format2BPP(DXGI_FORMAT format);
 size_t Format2Ch(DXGI_FORMAT format);

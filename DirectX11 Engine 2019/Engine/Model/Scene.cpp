@@ -1,7 +1,5 @@
+#include "pc.h"
 #include "Scene.h"
-
-#undef _____________TYPE_FLOAT_OPERATORS22____3333
-#include "Other/FloatTypeMath.h"
 
 float fsignf(float x) { return (x < 0.f ? -1.f : 1.f); }
 
@@ -46,7 +44,7 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
 
     // If material can't cast shadows and currently we are rendering shadow map
     //      Then skip
-    if( !material->_ShadowCaster && (flags & RendererFlags::ShadowPass) ) return;
+    if( (flags & RendererFlags::ShadowPass) && !material->_ShadowCaster ) return;
 
     // Target shader types
     Shader::ShaderType type = Shader::ShaderType(flags >> 25);

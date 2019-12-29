@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "Engine/DirectX/DirectXChild.h"
 
 class RangeProfiler: public DirectXChild {

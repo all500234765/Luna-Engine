@@ -1,7 +1,7 @@
 #pragma once
 
+#include "pc.h"
 #include "DirectX.h"
-#include <stdio.h>
 
 class DirectXChild {
 

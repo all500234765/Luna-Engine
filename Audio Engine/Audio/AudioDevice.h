@@ -1,12 +1,6 @@
 #pragma once
 
-#include <xaudio2.h>
-#include <vector>
-
-#define STB_VORBIS_HEADER_ONLY
-#include "STB/stb_vorbis.h"
-
-#pragma comment(lib, "xaudio2.lib")
+#include "pc.h"
 
 #ifdef _XBOX
 // Big-Endian

@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "ECSComponent.hpp"
 
 std::vector<std::tuple< ECSComponentCreateFunc, ECSComponentFreeFunc, size_t >>* BaseECSComponent::ComponentTypes(0);

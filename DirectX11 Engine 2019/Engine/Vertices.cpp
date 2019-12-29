@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Vertices.h"
 
 Vertex::Vertex(aiMesh* inMesh, size_t i) {

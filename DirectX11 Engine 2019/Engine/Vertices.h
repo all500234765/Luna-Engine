@@ -1,13 +1,6 @@
 #pragma once
 
-#undef min
-#undef max
-
-#include "Assimp/Importer.hpp"
-#include "Assimp/scene.h"
-#include "Assimp/postprocess.h"
-
-#include <DirectXMath.h>
+#include "pc.h"
 
 // Don't use this struct as Vertex type
 // Use Vertex_P instead

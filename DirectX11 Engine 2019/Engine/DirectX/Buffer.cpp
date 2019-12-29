@@ -1,6 +1,5 @@
+#include "pc.h"
 #include "Buffer.h"
-
-#include <iostream>
 
 /*void Buffer::Create(D3D11_BUFFER_DESC desc, D3D11_SUBRESOURCE_DATA data, UINT stride, UINT offset) {
     pDesc = desc;

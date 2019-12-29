@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "DepthStencilState.h"
 
 void DepthStencilState::Create(D3D11_DEPTH_STENCIL_DESC pDesc, UINT SRef) {

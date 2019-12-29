@@ -1,6 +1,5 @@
+#include "pc.h"
 #include "DataBuffer.h"
-
-#include <memory>
 
 DataBuffer::DataBuffer() {
     data = new char();

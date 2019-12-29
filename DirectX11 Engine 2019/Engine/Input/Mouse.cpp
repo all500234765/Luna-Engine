@@ -1,6 +1,5 @@
+#include "pc.h"
 #include "Mouse.h"
-
-#include <iostream>
 
 Mouse::Mouse() {
     Reset();

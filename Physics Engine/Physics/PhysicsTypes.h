@@ -1,11 +1,6 @@
 #pragma once
 
-#include <algorithm>
-
-#ifdef _LUNA_ENGINE_DX11_
-#include <DirectXMath.h>
-#include "Engine Includes/Types.h"
-#endif
+#include "pc.h"
 
 #ifndef _PhysicsShapeType_
 #define _PhysicsShapeType_

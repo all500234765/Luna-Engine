@@ -1,6 +1,6 @@
 #pragma once
 
-#include <chrono>
+#include "pc.h"
 #include "TimerLog.h"
 
 class Timer: public TimerLog {

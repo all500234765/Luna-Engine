@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "ECS.hpp"
 
 void ECS::DeleteComponent(uint32 compID, uint32 index) {

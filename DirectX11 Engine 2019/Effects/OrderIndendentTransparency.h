@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "EffectBase.h"
 #include "Engine/RenderTarget/RenderTarget.h"
 #include "Engine/DirectX/ConstantBuffer.h"
@@ -12,8 +13,6 @@
 #include "Engine/Materials/Sampler.h"
 #include "Engine/Model/Scene.h"
 #include "Engine/ScopedMapper.h"
-#include <iostream>
-#include <vector>
 
 struct OITSettings {
     mfloat4x4 mInvViewProj;

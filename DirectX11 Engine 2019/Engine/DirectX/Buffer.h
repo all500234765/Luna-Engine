@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "DirectXChild.h"
 
 class Buffer: public DirectXChild {

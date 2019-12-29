@@ -1,12 +1,6 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#include <vector>
-
-#include <DirectXMath.h>
-#include "Engine Includes/Types.h"
+#include "pc.h"
 
 static const std::vector<int> MouseButtons = {
     1, 2, 10, 20, 40

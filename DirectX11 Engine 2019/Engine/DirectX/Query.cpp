@@ -1,6 +1,5 @@
+#include "pc.h"
 #include "Query.h"
-
-#include <iostream>
 
 void Query::Create(D3D11_QUERY type, D3D11_QUERY_MISC_FLAG misc) {
     D3D11_QUERY_DESC pDesc;

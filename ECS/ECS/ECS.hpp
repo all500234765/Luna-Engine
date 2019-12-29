@@ -1,11 +1,8 @@
 #pragma once
 
+#include "pc.h"
 #include "ECSComponent.hpp"
 #include "ECSSystem.hpp"
-#include <map>
-#include <vector>
-#include <memory>
-#include <algorithm>
 
 class ECS {
 private:

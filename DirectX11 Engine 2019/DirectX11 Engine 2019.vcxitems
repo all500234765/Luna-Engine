@@ -84,7 +84,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Utility\Utils.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Vertices.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\Window.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Enums.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\HighLevel.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utlities.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\Console.h" />
@@ -95,6 +94,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedSemaphore.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedThreadSync.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\StaticReference.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)pc.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Effects\EffectBase.cpp" />
@@ -146,6 +146,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\FileSystem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\ScopedMapper.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\FloatTypeMath.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)pc.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeaderOutputFile>$(SolutionDir)Compiled\Target_Windows_Build\Intermediate\Target_Windows_$(PlatformShortName).pch</PrecompiledHeaderOutputFile>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utilities.cpp">

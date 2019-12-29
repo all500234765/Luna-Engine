@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/DirectXChild.h"
 

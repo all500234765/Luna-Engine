@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "Engine/DirectX/DirectXChild.h"
 
 // 
@@ -13,9 +14,6 @@
 
 // 
 #include "Engine/Vertices.h"
-
-// 
-#include <DirectXMath.h>
 
 enum TextFlags {
     TextAlignment_V_Top    = 1,

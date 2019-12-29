@@ -1,8 +1,5 @@
+#include "pc.h"
 #include "AudioDevice.h"
-
-#include <shlwapi.h>
-#include <iostream>
-#include <string>
 
 AudioDeviceCreation AudioDevice::Create(const AudioDeviceConfig& config, XAUDIO2_PROCESSOR processor) {
     cfg = config; // Store config for further use

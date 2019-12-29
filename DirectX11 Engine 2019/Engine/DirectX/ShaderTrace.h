@@ -1,7 +1,6 @@
 #pragma once
 
-#include <d3d11shadertracing.h>
-
+#include "pc.h"
 #include "Shader.h"
 
 class ShaderTrace: public Shader {

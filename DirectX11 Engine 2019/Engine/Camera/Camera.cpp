@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Camera.h"
 
 Camera::Camera(): pPos(DirectX::XMFLOAT3({0, 0, 0})), pRot(DirectX::XMFLOAT3({0, 0, 0})) {

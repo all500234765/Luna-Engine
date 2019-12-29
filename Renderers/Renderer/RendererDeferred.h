@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "RendererBase.h"
 
 class RendererDeferred: public RendererBase {

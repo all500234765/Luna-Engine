@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "TextFactory.h"
 
 TextFactory::TextFactory(Shader* shader) {

@@ -1,9 +1,6 @@
 #pragma once
 
-#include <string>
-#include <stdint.h>
-#include <limits.h>
-#include <intrin.h>
+#include "pc.h"
 
 // https://en.wikipedia.org/wiki/CPUID#EAX=0:_Highest_Function_Parameter_and_Manufacturer_ID
 

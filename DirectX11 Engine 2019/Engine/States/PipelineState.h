@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pc.h"
+
 template<typename T>
 class PipelineState {
 protected:

@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "SoundEffect.h"
 
 SoundEffect::SoundEffect(std::string fname) {

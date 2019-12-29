@@ -1,7 +1,6 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include "pc.h"
 
 #pragma region Keys
 #define VK_0 0x30
@@ -41,7 +40,6 @@
 #define VK_Y 0x59
 #define VK_Z 0x5A
 #pragma endregion
-
 
 #include "ButtonStateEnum.h"
 

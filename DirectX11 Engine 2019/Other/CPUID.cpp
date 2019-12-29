@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "CPUID.h"
 
 CPUVendor CPUID::gCPUVendor = CPU_Unknown;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pc.h"
+
 #include "Engine/Extensions/Safe.h"
 #include "Engine/Utility/Timer.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
@@ -10,9 +12,6 @@
 #include "Engine/Materials/Texture.h"
 #include "Other/DrawCall.h"
 
-//#include <random>
-#undef min
-#undef max
 
 extern _DirectX *gDirectX;
 

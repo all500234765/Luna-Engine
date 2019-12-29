@@ -1,13 +1,9 @@
 //#pragma once
 
-
 // Fuck...
 //#pragma once
 #ifndef ___SAFE_GUARD_TYPE_OPERATORS2___3333
 #define ___SAFE_GUARD_TYPE_OPERATORS2___3333
-
-#include <DirectXMath.h>
-#include "Engine Includes/Types.h"
 
 //////////////////////////////////////// float3 x float3
 #ifdef _____________TYPE_FLOAT_OPERATORS22____3333

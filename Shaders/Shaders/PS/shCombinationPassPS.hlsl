@@ -24,7 +24,7 @@ LBuffer main(PS In) {
     float3 Direct  = _DirectLightTex.Sample(_Sampler, In.Texcoord).rgb;
     
     // Light formula
-    Light = Ambient * SSAO + Direct;
+    Light = Ambient * SSAO * Direct;
     
     // 
     LBuffer Out;

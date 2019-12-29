@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "MainInclude.h"
 
 _DirectX      *gDirectX        = 0;

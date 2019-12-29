@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "Engine/DirectX/DirectXChild.h"
 
 #include "Engine Includes/EngineDirectories.h"
@@ -8,11 +9,6 @@
 #include "Engine/Materials/Texture.h"
 #include "Engine/Materials/Sampler.h"
 
-#include <fstream>
-#include <vector>
-
-// 
-#include "TinyDDSLoader/TinyDDSLoader.h"
 
 class Font: public DirectXChild {
 private:

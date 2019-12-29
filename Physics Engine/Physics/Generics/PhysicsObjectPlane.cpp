@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "PhysicsObjectPlane.h"
 
 PhysicsObjectPlane::PhysicsObjectPlane(PhysicsCollider* col) {

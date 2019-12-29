@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pc.h"
+
 #include "Engine/DirectX/DirectXChild.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/DirectX/ConstantBuffer.h"
@@ -7,10 +9,6 @@
 #include "Engine/DirectX/Shader.h"
 #include "Engine/States/PipelineState.h"
 #include "HighLevel/DirectX/Utlities.h"
-
-#include <variant>
-#include <algorithm>
-#include <array>
 
 // TODO: 
 //   TextureCube

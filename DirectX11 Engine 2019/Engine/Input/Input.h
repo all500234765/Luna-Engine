@@ -1,11 +1,7 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include "pc.h"
 
-#include "Defines.h"
-
-#pragma comment(lib, "Xinput.lib")
 
 #include "Gamepad.h"
 

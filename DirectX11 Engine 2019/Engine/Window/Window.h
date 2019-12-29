@@ -1,7 +1,6 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include "pc.h"
 
 #include "Engine/Input/Input.h"
 #include "Engine/DirectX/DirectX.h"
@@ -49,7 +48,12 @@ public:
     HWND GetHWND();
     const WindowConfig& GetCFG();
     Input *GetInputDevice();
-    inline RECT GetRect() const { return mRect; };
+    inline RECT GetRect() {
+        mRect = { 0, 0, cfg.CurrentWidth, cfg.CurrentHeight };
+        MapWindowPoints(m_hwnd, NULL, (LPPOINT)&mRect, 2);
+        
+        return mRect;
+    };
 
     friend static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
     friend static LRESULT CALLBACK InputWndProc(HWND, UINT, WPARAM, LPARAM);

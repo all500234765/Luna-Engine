@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "TextController.h"
 
 Text* TextController::Build(const char* text, float maxWidth) {

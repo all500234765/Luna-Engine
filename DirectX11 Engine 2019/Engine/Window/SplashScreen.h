@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Windows.h>
-#include <algorithm>
+#include "pc.h"
 
 static LRESULT CALLBACK SplashScreenWndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam);
 

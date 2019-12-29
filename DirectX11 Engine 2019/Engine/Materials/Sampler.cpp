@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Sampler.h"
 
 void Sampler::Create(D3D11_SAMPLER_DESC pDesc) {

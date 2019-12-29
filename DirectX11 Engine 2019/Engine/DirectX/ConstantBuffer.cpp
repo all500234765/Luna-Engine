@@ -1,5 +1,5 @@
+#include "pc.h"
 #include "ConstantBuffer.h"
-#include <iostream>
 
 void ConstantBuffer::CreateDefault(UINT size) {
     pDesc.Usage = D3D11_USAGE_DYNAMIC;

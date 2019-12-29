@@ -1,7 +1,7 @@
 #pragma once
 
 #define _____LUNA___ENGINE___DISCARD____ 1
-
+#include "pc.h"
 #include "Engine/Window/Window.h"
 
 #include "Engine/Textures/CubemapTexture.h"
@@ -31,12 +31,18 @@ struct RendererConfig {
     float hud_scale_x = 1.f;
     float hud_scale_y = 1.f;
 
+    bool msaa = false;
+    uint32_t msaa_levels = 8; // 1-16
+
+
+
     // TODO: Add more settings; Add config file; Add console; Add console variables
 };
 
 class RendererBase {
 private:
-
+    uint32_t mMSAALevel; // 1-16
+    bool mMSAA;
 
 public:
     //RendererBase() {};
@@ -49,6 +55,16 @@ public:
     virtual void ClearMainRT() { return; };
     virtual void Resize() { return; };
     virtual void FinalScreen() { return; };
+
+    // Setters
+    inline void SetMSAA(bool msaa) { mMSAA = msaa; }
+    inline void SetMSAALevel(uint32_t level) { mMSAALevel = level; }
+
+
+
+    // Getters
+    inline bool GetMSAA() const { return mMSAA; }
+    inline bool GetMSAALevel() const { return mMSAALevel; }
 
     inline uint32_t Width() const { return Window::Current()->GetCFG().CurrentWidth; }
     inline uint32_t Height() const { return Window::Current()->GetCFG().CurrentHeight; }

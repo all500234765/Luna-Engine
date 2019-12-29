@@ -1,8 +1,7 @@
 #pragma once
 
+#include "pc.h"
 #include "Engine/DirectX/DirectXChild.h"
-
-#include <vector>
 
 struct AtlasRect {
     int x, y, w, h;

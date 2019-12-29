@@ -1,8 +1,7 @@
 #pragma once
 
 // Might be very dungerous!
-
-#include <vector>
+#include "pc.h"
 #include "Engine/Extensions/Safe.h"
 
 template<typename T>

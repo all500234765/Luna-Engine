@@ -1,23 +1,12 @@
 #pragma once
 
-#define _CRT_SECURE_NO_WARNINGS
-
-#include <D3Dcompiler.h>
-#include <string>
-#include <vector>
-#include <fstream>
-#include <iostream>
-#include <stdint.h>
-#include <initializer_list>
+#include "pc.h"
 
 #include "DirectXChild.h"
 #include "Engine/States/PipelineState.h"
 #include "Other/DrawCall.h"
 
 class PolygonLayout;
-
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "dxguid.lib")
 
 static const char* gcShaderName[] = {
         "Vertex", "Pixel", "Geometry",

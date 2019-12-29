@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Sound.h"
 
 Sound::Sound() {

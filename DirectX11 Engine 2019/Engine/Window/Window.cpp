@@ -1,7 +1,4 @@
-#include <Windowsx.h>
-#include <iostream>
-#include <chrono>
-
+#include "pc.h"
 #include "Window.h"
 
 void Window::Create(const WindowConfig& config) {
@@ -58,8 +55,8 @@ void Window::Create(const WindowConfig& config) {
         if( !config.Height ) cfg.CurrentHeight = screenHeight; else cfg.CurrentHeight = config.Height;
 
         // Place the window in the middle of the screen.
-        posX = max((screenWidth  - cfg.CurrentWidth ) / 2, 0);
-        posY = max((screenHeight - cfg.CurrentHeight) / 2, 0);
+        posX = std::max((screenWidth  - cfg.CurrentWidth ) / 2, 0);
+        posY = std::max((screenHeight - cfg.CurrentHeight) / 2, 0);
     } else {
         // If full screen set the screen to maximum size of the users desktop and 32bit.
         memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
@@ -292,11 +289,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
                 ApplicationHandle->cfg.CurrentHeight  = HIWORD(lparam);
                 ApplicationHandle->cfg.CurrentHeight2 = HIWORD(lparam) - 1;
                 ApplicationHandle->cfg.Resized = true;
-
-                RECT mRect = { 0, 0, LOWORD(lparam), HIWORD(lparam) };
-                MapWindowPoints(hwnd, NULL, (LPPOINT)&mRect, 2);
-
-                ApplicationHandle->mRect = mRect;
                 return 0;
             }
 

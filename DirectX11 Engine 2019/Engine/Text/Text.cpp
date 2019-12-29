@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Text.h"
 
 void Text::Clear() {

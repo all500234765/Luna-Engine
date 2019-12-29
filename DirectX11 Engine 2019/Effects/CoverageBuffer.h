@@ -1,15 +1,15 @@
 #pragma once
 
+#include "pc.h"
 #include "Engine/RenderTarget/RenderTarget.h"
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/Materials/Texture.h"
 #include "Engine/Utility/Utils.h"                   // LunaEngine::
 #include "Engine/Profiler/ScopedRangeProfiler.h"
-#include "Engine Includes/Types.h"                  // float1, float2, int4, etc...
-#include "SIMD/avx_mathfun.h"                       // SIMD
 
-#include <iostream>
+// SIMD
+#include "SIMD/avx_mathfun.h"
 
 extern _DirectX *gDirectX;
 

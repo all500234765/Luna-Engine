@@ -1,6 +1,5 @@
+#include "pc.h"
 #include "RasterState.h"
-
-#include <iostream>
 
 void RasterState::Create(D3D11_RASTERIZER_DESC pDesc) {
     auto res = gDirectX->gDevice->CreateRasterizerState(&pDesc, &pState);

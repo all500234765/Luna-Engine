@@ -1,5 +1,7 @@
 #pragma once
 
+#include "pc.h"
+
 #include "Engine/DirectX/DirectXChild.h"
 
 #include "Engine/DirectX/Buffer.h"

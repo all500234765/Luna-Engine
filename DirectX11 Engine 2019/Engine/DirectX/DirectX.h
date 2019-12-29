@@ -1,20 +1,7 @@
 #pragma once
 
 // 3D Rendering (primarely)
-#include <d3d11_4.h>
-#include <dxgi1_6.h>
-#include <d3dcommon.h>
-#include <DirectXMath.h>
-
-//#include "HighLevel/DirectX/HighLevel.h"
-
-#pragma comment(lib, "dxgi.lib")
-
-#ifndef _BUILD_DX12_
-#pragma comment(lib, "d3d11.lib")
-#else
-#pragma comment(lib, "d3d12.lib")
-#endif
+#include "pc.h"
 
 #ifndef ConvertPointSizeToDIP
 #define ConvertPointSizeToDIP(x) ((x) * 1.3333333333333333333333333333333f)

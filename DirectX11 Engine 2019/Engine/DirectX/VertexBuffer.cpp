@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "VertexBuffer.h"
 
 void VertexBuffer::CreateDefault(UINT Num, UINT _Stride, void* vertices) {

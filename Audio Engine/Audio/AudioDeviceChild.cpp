@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "AudioDeviceChild.h"
 
 void AudioDeviceChild::SetAudioDevice(AudioDevice* dev) {

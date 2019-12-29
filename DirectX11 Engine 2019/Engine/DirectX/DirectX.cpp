@@ -1,6 +1,5 @@
+#include "pc.h"
 #include "DirectX.h"
-#include <iostream>
-#include <string>
 
 #include "Engine/Extensions/Default.h"
 

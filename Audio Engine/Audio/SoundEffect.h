@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "Sound.h"
 
 class SoundEffect: public Sound {

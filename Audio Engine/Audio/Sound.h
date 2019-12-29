@@ -1,7 +1,6 @@
 #pragma once
 
-#include <thread>
-
+#include "pc.h"
 #include "AudioDeviceChild.h"
 
 class Sound: public AudioDeviceChild {

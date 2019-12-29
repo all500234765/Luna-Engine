@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "RendererDeferred.h"
 
 void RendererDeferred::Init() {
@@ -393,8 +394,8 @@ void RendererDeferred::Shadows() {
     mScene->SetActiveCamera(1);
     
     {
-        mScene->BindCamera(1, Shader::Vertex, 0); // Light camera
-        mScene->RenderOpaque(RendererFlags::ShadowPass, Shader::Vertex);
+        mScene->BindCamera(1, Shader::Vertex, 1); // Light camera
+        mScene->Render(RendererFlags::ShadowPass | RendererFlags::OpaquePass, Shader::Vertex);
     }
 
     mScene->SetActiveCamera(old);

@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Atlas.h"
 
 size_t Atlas::Add(int w, int h) {

@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "CubemapTexture.h"
 
 void CubemapTexture::CreateFromFiles(std::string folder, bool bDepth, DXGI_FORMAT format) {

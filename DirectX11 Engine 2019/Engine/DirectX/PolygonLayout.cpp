@@ -1,6 +1,6 @@
+#include "pc.h"
 #include "PolygonLayout.h"
 
-#include <vector>
 
 ID3D11InputLayout* PolygonLayout::GetLayout() {
     return il;

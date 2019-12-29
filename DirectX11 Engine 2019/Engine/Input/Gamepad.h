@@ -1,7 +1,6 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <Xinput.h>
+
+#include "pc.h"
 
 // XInput Button values
 static const WORD XINPUT_GamepadButtons[] = {

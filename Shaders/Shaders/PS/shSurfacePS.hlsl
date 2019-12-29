@@ -19,6 +19,7 @@ SamplerState _NoiseSampler      : register(s7);
 
 TextureCube<float3> _CubemapTexture : register(t8);
 SamplerState        _CubemapSampler : register(s8);
+
 struct PS {
     float4   Position : SV_Position;
     float3x3 WorldTBN : TEXCOORD0;

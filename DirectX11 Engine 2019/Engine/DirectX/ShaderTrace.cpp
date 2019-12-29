@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "ShaderTrace.h"
 
 void ShaderTrace::SetFactory(ID3D11ShaderTraceFactory* pFactory) {

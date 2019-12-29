@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "Texture2DArray.h"
 
 void Texture2DResource::CreateFromFiles(std::vector<std::string> files, bool bDepth, DXGI_FORMAT format) {

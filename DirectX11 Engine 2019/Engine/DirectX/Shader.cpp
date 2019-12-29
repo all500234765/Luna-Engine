@@ -1,13 +1,9 @@
+#include "pc.h"
 #include "Shader.h"
 #include "PolygonLayout.h"
 
 #include "Engine Includes/EngineDirectories.h"
 
-#include <D3Dcompiler.h>
-#include <string>
-#include <vector>
-#include <fstream>
-#include <iostream>
 
 Shader::Shader() {
     pl = new PolygonLayout();

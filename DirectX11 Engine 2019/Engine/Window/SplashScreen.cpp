@@ -1,3 +1,4 @@
+#include "pc.h"
 #include "SplashScreen.h"
 
 HBITMAP SplashScreen::image = 0;

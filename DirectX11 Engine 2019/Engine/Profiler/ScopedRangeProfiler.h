@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pc.h"
 #include "RangeProfiler.h"
 
 class ScopedRangeProfiler {

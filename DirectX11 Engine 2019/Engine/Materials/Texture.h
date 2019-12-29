@@ -1,13 +1,9 @@
 #pragma once
 
-#include "STB/stbi_image.h"
-#include "TinyDDSLoader/TinyDDSLoader.h"
-#include "DirectXTex/DDSTextureLoader.h"
+#include "pc.h"
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/DirectXChild.h"
 #include "Engine/Utility/Utils.h"
-
-#include <string>
 
 //template<bool UAV=false>
 class Texture: public DirectXChild {

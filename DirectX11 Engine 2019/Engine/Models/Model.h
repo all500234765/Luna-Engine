@@ -2,14 +2,8 @@
 
 #undef min
 #undef max
-#include "Assimp/Importer.hpp"
-#include "Assimp/scene.h"
-#include "Assimp/postprocess.h"
 
-#include <iostream>
-#include <string>
-#include <vector>
-
+#include "pc.h"
 #include "Engine/Materials/Texture.h"
 #include "Engine/DirectX/Buffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"

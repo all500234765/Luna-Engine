@@ -1,6 +1,5 @@
+#include "pc.h"
 #include "Keyboard.h"
-
-#include <iostream>
 
 Keyboard::Keyboard() {
     memset(&mState, 0, sizeof(State));

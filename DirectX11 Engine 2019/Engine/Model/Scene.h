@@ -1,14 +1,6 @@
 #pragma once
 
-#include <array>
-#include <vector>
-
-#include <DirectXMath.h>
-
-// Assimp
-#include "Assimp/Importer.hpp"
-#include "Assimp/scene.h"
-#include "Assimp/postprocess.h"
+#include "pc.h"
 
 // Types
 #include "Engine Includes/Types.h"
@@ -20,7 +12,6 @@
 
 // Engine stuff
 #include "Engine/Utility/Utils.h"
-#include "Engine/RendererFlags.h"
 #include "Engine/ScopedMapper.h"
 #include "Other/FileSystem.h"
 #include "Engine/States/PipelineState.h"
@@ -36,8 +27,6 @@
 
 // Components
 #include "Components/Components.h"
-
-#include "Defines.h"
 
 extern Window   *gWindow;
 extern _DirectX *gDirectX;
@@ -213,13 +202,16 @@ private:
         mat._UseVertexColor = false;
         mat._FlipNormals    = false;
         mat._IsTransparent  = false;   
-        mat._Alpha = 1.f;
-        mat._AlbedoMul = 1.f;
-        mat._NormalMul = 1.f;
-        mat._MetallnessMul = 1.f;
-        mat._RoughnessMul = 1.f;
+        mat._ShadowCaster   = true;
+        mat._ShadowReceiver = true;
+
+        mat._Alpha               = 1.f;
+        mat._AlbedoMul           = 1.f;
+        mat._NormalMul           = 1.f;
+        mat._MetallnessMul       = 1.f;
+        mat._RoughnessMul        = 1.f;
         mat._AmbientOcclusionMul = 1.f;
-        mat._EmissionMul = 1.f;
+        mat._EmissionMul         = 1.f;
 
         TransformComponent transform;
         transform.mWorld = DirectX::XMMatrixIdentity();
@@ -785,6 +777,7 @@ public:
             }
         }
     }
+
     inline void SetLayersState(uint32_t NewState) { mMaterialLayerStates = NewState; }
 
     void Render(uint32_t flags=0, Shader::ShaderType type_transf=Shader::Vertex, Shader::ShaderType type_tex=Shader::Pixel) {
