@@ -19,11 +19,15 @@ Scene *gMainScene;
 
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
-    // Hide console
-    //ShowWindow(GetConsoleWindow(), SW_HIDE);
-    
+    // Create, redirect IO to, and hide console
+    if( !GetConsoleWindow() ) {
+        AllocConsole();
+        freopen("CONOUT$", "wt", stdout);
+        ShowWindow(GetConsoleWindow(), SW_HIDE);
+    }
+
     // Show splashscreen
-    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 2 * 1000);
+    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1500);
 
     // Print CPU info
     CPUID cpu;
@@ -37,7 +41,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     winCFG.Width = 1366;
     winCFG.Height = 768;
     winCFG.Title = L"Scene example - Luna Engine";
-    winCFG.Icon = L"Engine/Engine.ico";
+    winCFG.Icon = L"Engine/Luna150.ico";
 
     // Create window
     gWindow = gHighLevel.InitWindow(winCFG);

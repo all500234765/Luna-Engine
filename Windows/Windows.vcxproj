@@ -226,6 +226,12 @@
       <Project>{8c8330e0-ed2f-4bad-b341-029b957a55af}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RC.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="RC.APS" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -32,7 +32,10 @@ void Window::Create(const WindowConfig& config) {
     wc.cbSize = sizeof(WNDCLASSEX);
 
     // Load icon
-    hIcon = (HICON)LoadImage(NULL, config.Icon, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE | LR_SHARED);
+    int ix = GetSystemMetrics(SM_CXICON); // 32
+    int iy = GetSystemMetrics(SM_CYICON); // 32
+
+    hIcon = (HICON)LoadImage(NULL, config.Icon, IMAGE_ICON, ix, iy, LR_DEFAULTSIZE | LR_LOADFROMFILE);
     if( hIcon ) {
         wc.hIconSm = hIcon;
         wc.hIcon   = hIcon;
@@ -101,6 +104,9 @@ void Window::Create(const WindowConfig& config) {
                             posX, posY, cfg.CurrentWidth, cfg.CurrentHeight,
                             NULL, NULL, m_hinstance, NULL);
 
+    // Show / Hide console
+    ShowWindow(GetConsoleWindow(), config.ShowConsole ? SW_SHOW : SW_HIDE);
+
     // Bring the window up on the screen and set it as main focus.
     ShowWindow(m_hwnd, SW_SHOW);
     SetForegroundWindow(m_hwnd);
@@ -125,9 +131,6 @@ void Window::Create(const WindowConfig& config) {
 
     // Hide the mouse cursor.
     //ShowCursor(false);
-
-    // Show / Hide console
-    ShowWindow(GetConsoleWindow(), config.ShowConsole ? SW_SHOW : SW_HIDE);
 }
 
 void Window::Loop() {
@@ -266,11 +269,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
     MINMAXINFO* info = (MINMAXINFO*)(lparam);
 
     switch( umessage ) {
+        case WM_CREATE:
+        {
+
+            return 0;
+        }
+
         // Check if the window is being destroyed.
         case WM_DESTROY:
         case WM_CLOSE:
+        {
             PostQuitMessage(0);
             return 0;
+        }
 
         case WM_ERASEBKGND:
             return 0;
