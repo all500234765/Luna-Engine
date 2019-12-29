@@ -144,31 +144,78 @@
     <None Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMesh.inl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshAdjacency.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshClean.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshGSAdjacency.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshNormals.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshOptimize.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshOptimizeLRU.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshOptimizeTVC.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshRemap.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshTangentFrame.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshUtil.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshValidate.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshVBReader.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshVBWriter.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshWeldVertices.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXTex\DDSTextureLoader.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_draw.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_dx11.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_win32.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_widgets.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\misc\cpp\imgui_stdlib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshAdjacency.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshClean.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshGSAdjacency.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshNormals.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshOptimize.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshOptimizeLRU.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshOptimizeTVC.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshRemap.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshTangentFrame.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshUtil.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshValidate.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshVBReader.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshVBWriter.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXMesh\DirectXMeshWeldVertices.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\DirectXTex\DDSTextureLoader.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_draw.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_dx11.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_impl_win32.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\imgui_widgets.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\ImGUI\misc\cpp\imgui_stdlib.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stbi_image.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\STB\stb_vorbis.h">
       <FileType>CppCode</FileType>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\TinyDDSLoader\TinyDDSLoader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Vendor\TinyDDSLoader\TinyDDSLoader.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
 </Project>
