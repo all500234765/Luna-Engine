@@ -213,7 +213,7 @@ public:
             q.data->_MinFadeDist2 = params.fMinFadeDist * params.fMinFadeDist;
             q.data->_MaxFadeDist2 = params.fMaxFadeDist * params.fMaxFadeDist;
         }
-
+        
         // Re-bind RTV and UAV slots
         ID3D11UnorderedAccessView *uav[2] = { nullptr, nullptr };
         ID3D11RenderTargetView *rtv[2] = { rtTransparent->GetBufferRTV<0, false>(), rtTransparent->GetBufferRTV<1, false>() };

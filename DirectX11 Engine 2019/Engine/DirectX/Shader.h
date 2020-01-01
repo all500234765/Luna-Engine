@@ -84,6 +84,7 @@ public:
     void AttachShader(Shader *origin, ShaderType type);
 
     void Bind();
+    static void Bind(ID3D11ShaderResourceView* pSRV, ShaderType type, UINT slot);
     void Dispatch(UINT x=1, UINT y=1, UINT z=1);
 
     // TODO: Make something like that

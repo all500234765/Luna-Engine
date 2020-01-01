@@ -1,10 +1,3 @@
-cbuffer MatrixBuffer : register(b0) {
-    float4x4 mWorld;
-    float4x4 mView;
-    float4x4 mProj;
-    float4   vPosition;
-};
-
 struct PS {
     float4 Position : SV_Position;
     float2 Texcoord : TEXCOORD0;

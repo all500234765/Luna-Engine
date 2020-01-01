@@ -26,12 +26,16 @@ void RendererDeferred::Init() {
     shCombinationPass->AttachShader(shPostProcess, Shader::Vertex);
     shCombinationPass->LoadFile("shCombinationPassPS.cso", Shader::Pixel);
 
+    shSimpleGUI = new Shader();
+    shSimpleGUI->LoadFile("shTexturedQuadAutoVS.cso", Shader::Vertex);
+    shSimpleGUI->AttachShader(shGUI, Shader::Pixel);
 
     // Release blobs
     shSurface->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
     shPostProcess->ReleaseBlobs();
     shCombinationPass->ReleaseBlobs();
+    shSimpleGUI->ReleaseBlobs();
     shGUI->ReleaseBlobs();
 #pragma endregion
 
@@ -50,7 +54,7 @@ void RendererDeferred::Init() {
                                      DXGI_FORMAT_R16G16B16A16_FLOAT,   // 
                                      DXGI_FORMAT_R16G16B16A16_FLOAT);  // 
 
-    rtDepth = new RenderTarget2DDepthMSAA(Width(), Height(), 1, "World light shadowmap");
+    rtDepth = new RenderTarget2DDepthMSAA(2048, 2048, 1, "World light shadowmap");
     rtDepth->Create(32);
 
     rtFinalPass = new RenderTarget2DColor1(Width(), Height(), 1, "Final Pass");
@@ -73,6 +77,14 @@ void RendererDeferred::Init() {
     s_material.tex.bluenoise_rg_512 = new Texture();
     s_material.tex.bluenoise_rg_512->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
     s_material.tex.bluenoise_rg_512->SetName("Bluenoise RG");
+
+    s_material.tex.black = new Texture();
+    s_material.tex.black->Load("../Textures/Black.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    s_material.tex.black->SetName("Black");
+
+    s_material.tex.white = new Texture();
+    s_material.tex.white->Load("../Textures/White.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    s_material.tex.white->SetName("White");
 #pragma endregion
 
 #pragma region Samplers
@@ -218,6 +230,16 @@ void RendererDeferred::Init() {
         s_states.raster.wire->Create(pDesc);
     }
 #pragma endregion
+    
+    gCSMArgs._Antiflicker = true;
+    gCSMArgs._CascadeNum = 3;
+    gCSMArgs._Resolution = 2048;
+    gCSMArgs._MSAA = false;
+    gCSMArgs._MSAALevel = 8;
+    gCSMArgs._CascadeRange[0] = .1f;
+    gCSMArgs._CascadeRange[1] = 10.f;
+    gCSMArgs._CascadeRange[2] = 25.f;
+    gCSMArgs._CascadeRange[3] = 100.f;
 
     cbTransform = new ConstantBuffer();
     cbTransform->CreateDefault(sizeof(TransformBuff));
@@ -325,6 +347,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(shPostProcess);
     SAFE_RELEASE(shCombinationPass);
     SAFE_RELEASE(shGUI);
+    SAFE_RELEASE(shSimpleGUI);
 
     // Render Targets
     SAFE_RELEASE(rtTransparency);
@@ -336,6 +359,8 @@ void RendererDeferred::Release() {
     // Textures
     SAFE_RELEASE(s_material.tex.bluenoise_rg_512);
     SAFE_RELEASE(s_material.tex.checkboard);
+    SAFE_RELEASE(s_material.tex.black);
+    SAFE_RELEASE(s_material.tex.white);
     SAFE_RELEASE(s_material.mCubemap);
 
     // Samplers
@@ -370,12 +395,294 @@ void RendererDeferred::Release() {
 }
 
 void RendererDeferred::ImGui() {
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
 
+    ImGui::NewFrame();
+
+    // Create debug window
+    ImGui::Begin("Debug");
+
+    // GPU Memory usage
+    DXGI_QUERY_VIDEO_MEMORY_INFO MemoryUsage = gDirectX->GPUUsage();
+
+    ImGui::Text("Memory usage:\n\tGPU:\n\t\tCurrent: %u\n\t\tAvaliable: %u\n\t\tBudget: %u\n\t\tReservation: %u",
+                MemoryUsage.CurrentUsage, MemoryUsage.AvailableForReservation, MemoryUsage.Budget, MemoryUsage.CurrentReservation);
+
+    // CPU Memory usage
+    MemoryUsage = gDirectX->CPUUsage();
+    ImGui::Text("\tCPU:\n\t\tCurrent: %u\n\t\tAvaliable: %u\n\t\tBudget: %u\n\t\tReservation: %u",
+                MemoryUsage.CurrentUsage, MemoryUsage.AvailableForReservation, MemoryUsage.Budget, MemoryUsage.CurrentReservation);
+
+    // 
+    bIsWireframe ^= ImGui::Button("Wireframe");
+    bDebugHUD ^= ImGui::Button("Debug buffers");
+
+    // Test
+    //ImGui::SliderFloat("Camera speed", &fSpeed, 0.f, 2000.f);
+    //ImGui::SliderFloat("Light radius", &LightPos.w, 0.f, 200.f);
+
+    // Rendering flags
+    uint1 _RenderFlags = 0;
+    static bool gRenderSSLR = true;
+    static bool gRenderSSAO = true;
+    static bool gRenderEyeAdaptation = true;
+    static bool gRenderDepthOfField = true;
+    static bool gRenderBloom = true;
+    static bool gRenderBokeh = true;
+    static bool gRenderDiffuse = true;
+    static bool gRenderLight = true;
+
+    // HDR; Eye Adaptation; Bloom; Bokeh; DoF
+    static float White = 21.53f;
+    static float MidGray = 20.863f;
+    static float gAdaptation = 5.f;
+    static float gBloomScale = 4.f;
+    static float gBloomThres = 10.f;
+    static float gFarStart = 0.f;
+    static float gFarRange = 60.f;
+    static float gBokehThreshold = 0.f;
+    static float gBokehColorScale = 0.f;
+    static float gBokehRadiusScale = 0.f;
+
+    // SSAO
+    static float gSSAOOffsetRad = 10.f;
+    static float gSSAORadius = 13.f;
+    static float gSSAOPower = 5.f;
+    static bool  gSSAOBlur = true;
+
+    // SSLR
+    static float gViewAngleThreshold = .2f;
+    static float gEdgeDistThreshold = .45f;
+    static float gReflScale = 1.f;
+    static float gDepthBias = .5f;
+
+    // MSAA
+    static int gMSAAMaxLevel = 3;
+    static bool gMSAACheckbox = false;
+    if( gMSAACheckbox != rtGBuffer->IsMSAAEnabled() )
+        gMSAACheckbox = rtGBuffer->IsMSAAEnabled();
+
+    if( ImGui::Checkbox("MSAA GBuffer", &gMSAACheckbox) ) {
+        size_t w = rtGBuffer->GetWidth();
+        size_t h = rtGBuffer->GetHeight();
+
+        if( gMSAACheckbox ) rtGBuffer->EnableMSAA();
+        else                rtGBuffer->DisableMSAA();
+
+        rtGBuffer->Resize((UINT)w, (UINT)h);
+    }
+
+    // Choose number of samples
+    if( gMSAACheckbox ) {
+        if( ImGui::SliderInt("MSAA Max Samples", &gMSAAMaxLevel, 1, 5) ) {
+            // Re-create RT
+            size_t w = rtGBuffer->GetWidth();
+            size_t h = rtGBuffer->GetHeight();
+
+            rtGBuffer->SetMSAAMaxLevel(1u << (UINT)gMSAAMaxLevel);
+            rtGBuffer->Resize((UINT)w, (UINT)h);
+        }
+    }
+
+    // OIT
+    static float gMinFadeDist = 30.f;
+    static float gMaxFadeDist = 30.f;
+
+    ImGui::Text("Order Independent Transparency Settings");
+    //ImGui::PlotLines("ms", &PValGetter, gOITPlot->mPlot.data(), (int)gOITPlot->mPlot.size());
+    ImGui::SliderFloat("Min fade distance", &gMinFadeDist, 0.f, 50.f);
+    ImGui::SliderFloat("Max fade distance", &gMaxFadeDist, 0.f, 50.f);
+
+    // C-Buffer
+    static int gCBuffScale = 2;
+
+    ImGui::Text("Coverage Buffer Settings");
+    ImGui::SliderInt("rcp Scaling", &gCBuffScale, 0, 3);
+
+    // CSM
+    gCSMArgs._Antiflicker = true;
+    gCSMArgs._CascadeNum = 3;
+    gCSMArgs._Resolution = 2048;
+    gCSMArgs._MSAA = false;
+    gCSMArgs._MSAALevel = 8;
+
+    ImGui::Text("CSM Settings");
+    ImGui::SliderFloat3("Range", gCSMArgs._CascadeRange, 0.f, 100.f);
+
+    ImGui::Text("Render Flags");
+    ImGui::Checkbox("Render Diffuse", &gRenderDiffuse);
+    ImGui::Checkbox("Render Light", &gRenderLight);
+    ImGui::Checkbox("Render Eye Adaptation", &gRenderEyeAdaptation);
+    ImGui::Checkbox("Render Bloom", &gRenderBloom);
+    ImGui::Checkbox("Render Depth Of Field", &gRenderDepthOfField);
+    ImGui::Checkbox("Render Bokeh", &gRenderBokeh);
+    ImGui::Checkbox("Render SSLR", &gRenderSSLR);
+    ImGui::Checkbox("Blur", &gSSAOBlur);
+    ImGui::Checkbox("Render SSAO", &gRenderSSAO);
+
+    ImGui::Text("SSLR Settings");
+    ImGui::SliderFloat("View angle Threshold", &gViewAngleThreshold, -.25f, 1.f);
+    ImGui::SliderFloat("Edge distance Threshold", &gEdgeDistThreshold, 0.f, .999f);
+    ImGui::SliderFloat("Reflect scale", &gReflScale, 0.f, 1.f);
+    ImGui::SliderFloat("Depth bias", &gDepthBias, 0.f, 1.5f);
+
+    ImGui::Text("SSAO Settings");
+    //ImGui::PlotLines("ms", &PValGetter, gSSAOPlot->mPlot.data(), (int)gSSAOPlot->mPlot.size());
+    //ImGui::Text("Min: %f\nMax: %f", gSSAOPlot->mMinMax.x, gSSAOPlot->mMinMax.y);
+
+    ImGui::SliderFloat("Offset radius", &gSSAOOffsetRad, 0.f, 20.f);
+    ImGui::SliderFloat("Radius", &gSSAORadius, 0.f, 50.f);
+    ImGui::SliderFloat("Power", &gSSAOPower, .1f, 5.f);
+
+    ImGui::Text("HDR Settings");
+    //ImGui::PlotLines("ms", &PValGetter, gHDRPlot->mPlot.data(), (int)gHDRPlot->mPlot.size());
+    //ImGui::Text("Min: %f\nMax: %f", gHDRPlot->mMinMax.x, gHDRPlot->mMinMax.y);
+    ImGui::SliderFloat("White", &White, 0.f, 60.f);
+    ImGui::SliderFloat("Middle Gray", &MidGray, 0.f, 60.f);
+    ImGui::SliderFloat("Adaptation rate", &gAdaptation, 0.f, 10.f);
+    ImGui::SliderFloat("Bloom Scale", &gBloomScale, 0.f, 4.f);
+    ImGui::SliderFloat("Bloom Threshold", &gBloomThres, 0.f, 10.f);
+    ImGui::SliderFloat("Far start", &gFarStart, 0.f, 400.f);
+    ImGui::SliderFloat("Far range", &gFarRange, 1.f, 150.f);
+    ImGui::SliderFloat("Bokeh Threshold", &gBokehThreshold, 0.f, 25.f);
+    ImGui::SliderFloat("Bokeh Color Scale", &gBokehColorScale, 0.f, 1.f);
+    ImGui::SliderFloat("Bokeh Radius Scale", &gBokehRadiusScale, 0.f, 1.f);
+
+    // Update flags
+    //                        0            1            2
+    std::array<bool, 8> _val{ gRenderSSLR, gRenderSSAO, gRenderEyeAdaptation,
+        //  3                    4             5             6               7
+            gRenderDepthOfField, gRenderBloom, gRenderBokeh, gRenderDiffuse, gRenderLight };
+
+    for( size_t i = 0; i < _val.size(); i++ ) if( _val[i] ) _RenderFlags |= 1 << i;
+
+    // 
+    const float gFarScale = 100.f;
+
+    // 
+    CameraComponent* cam = mScene->GetCamera(0)->cCam;
+    float fNear = cam->fNear;
+    float fFar = cam->fFar;
+    float fQ = fFar / (fNear - fFar);
+
+    // Update constant buffers
+    FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
+    __q->_LumWhiteSqr = White * White * MidGray * MidGray;
+    __q->_MiddleGrey = MidGray;
+    __q->_BloomScale = gBloomScale;
+    __q->_ProjectedValues = { fNear * fQ, fQ };
+    __q->_DoFFarValues = { gFarStart * gFarScale, 1.f / (gFarRange * gFarScale) };
+    __q->_BokehThreshold = gBokehThreshold;
+    __q->_ColorScale = gBokehColorScale;
+    __q->_RadiusScale = gBokehRadiusScale;
+    __q->_RenderFlags = _RenderFlags;
+    gHDRPostProcess->UnmapFinalPass();
+
+    const WindowConfig& cfg = gWindow->GetCFG();
+    DownScaleInst* __c = gHDRPostProcess->MapDownScale();
+        __c->_Res = { static_cast<uint32_t>(cfg.CurrentWidth / 4), static_cast<uint32_t>(cfg.CurrentHeight / 4) };
+        __c->_Domain = __c->_Res.x * __c->_Res.y;
+        __c->_GroupSize = __c->_Domain / 1024;
+        __c->_Adaptation = gAdaptation / (float)gDirectX->GetConfig().RefreshRate;
+        __c->_BloomThreshold = gBloomThres;
+    gHDRPostProcess->UnmapDownScale();
+
+    // Update settings
+    gSSAOArgs._CameraFar = fFar;
+    gSSAOArgs._CameraNear = fNear;
+    gSSAOArgs._mView = cam->mView;
+    gSSAOArgs._mProj = cam->mProj;
+    gSSAOArgs._OffsetRad = gSSAOOffsetRad;
+    gSSAOArgs._Radius = gSSAORadius;
+    gSSAOArgs._Power = gSSAOPower;
+    gSSAOArgs._Blur = gSSAOBlur;
+
+    gSSLRArgs._mProj = cam->mProj;
+    gSSLRArgs._CameraFar = fFar;
+    gSSLRArgs._CameraNear = fNear;
+    gSSLRArgs._ViewAngleThreshold = gViewAngleThreshold;
+    gSSLRArgs._EdgeDistThreshold = gEdgeDistThreshold;
+    gSSLRArgs._ReflScale = gReflScale;
+    gSSLRArgs._DepthBias = gDepthBias;
+
+    /*gCBuffArgs.Scaling = gCBuffScale;
+    gCBuffArgs._CameraFar = fFar;
+    gCBuffArgs._CameraNear = fNear;*/
+
+    //     World View Proj
+    //           View Proj
+    // Inv       View Proj
+
+    mfloat4x4 mInvViewProj = cam->mView * cam->mProj;
+    mInvViewProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(mInvViewProj), mInvViewProj);
+
+    gOITSettings.mInvViewProj = mInvViewProj;
+    gOITSettings.fMaxFadeDist = gMaxFadeDist;
+    gOITSettings.fMinFadeDist = gMinFadeDist;
+
+    // 
+    ImGui::End();
+    ImGui::Render();
+
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
 void RendererDeferred::ClearMainRT() {
     gDirectX->gContext->ClearRenderTargetView(gDirectX->gRTV, s_clear.black_void2);
     gDirectX->gContext->ClearDepthStencilView(gDirectX->gDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 0);
+}
+
+void RendererDeferred::DebugHUD() {
+    if( !bDebugHUD ) return;
+    std::vector<ID3D11ShaderResourceView*> surfaces = {
+        rtGBuffer->GetBufferSRV<0>(),
+        rtGBuffer->GetBufferSRV<1>(),
+        rtGBuffer->GetBufferSRV<2>(),
+        rtGBuffer->GetBufferSRV<3>()
+
+    };
+
+    TransformComponent transf{};
+
+    float w = Width() / surfaces.size() * .5f;
+    float h = w * .5f;
+
+    // Bind "persistant" states
+    shSimpleGUI->Bind();
+    BindOrtho();
+    s_states.blend.normal->Bind();
+    s_material.sampl.point->Bind(Shader::Pixel);
+
+    // Draw black rectangle to black everything before
+    transf.vScale = { Width() * .5f, h, 1.f };
+    transf.vPosition = { Width() * .5f, h, 0.f };
+    s_material.tex.black->Bind(Shader::Pixel);
+
+    transf.Build();
+    transf.Bind(cbTransform, Shader::Vertex, 0);
+
+    // Draw call
+    DXDraw(6, 0);
+
+    // Draw HUD
+    transf.vScale = { w, -h, 1.f };
+
+    for( uint i = 0; i < surfaces.size(); i++ ) {
+        // Bind resource
+        Shader::Bind(surfaces[i], Shader::Pixel, 0);
+
+        // Transform
+        transf.vPosition = { w * (2 * i + 1), h, 0.f };
+        transf.Build();
+        transf.Bind(cbTransform, Shader::Vertex, 0);
+
+        // Draw call
+        DXDraw(6, 0);
+    }
+
+    // Discard SRV
+    LunaEngine::PSDiscardSRV<1>();
 }
 
 void RendererDeferred::Shadows() {
@@ -398,6 +705,12 @@ void RendererDeferred::Shadows() {
         mScene->Render(RendererFlags::ShadowPass | RendererFlags::OpaquePass, Shader::Vertex);
     }
 
+    // CSM
+    {
+        gCascadeShadowMapping->Begin(gCSMArgs);
+        mScene->Render(RendererFlags::ShadowPass | RendererFlags::OpaquePass, Shader::Vertex);
+    }
+
     mScene->SetActiveCamera(old);
 }
 
@@ -417,6 +730,9 @@ void RendererDeferred::GBuffer() {
         s_material.tex.checkboard->Bind(Shader::Pixel, i);
         s_material.sampl.linear->Bind(Shader::Pixel, i);
     }
+
+    // Bind ambient light
+    mScene->BindAmbientLight(Shader::Pixel, 1);
 
     // Bind depth buffer
     rtDepth->Bind(0u, Shader::Pixel, 6);
@@ -471,7 +787,7 @@ void RendererDeferred::OIT() {
     UINT ddc = (gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount) - dc;
 
     // Done
-    if( ddc > 0 ) {
+    if( ddc ) {
         gOrderIndendentTransparency->End(rtTransparency, gOITSettings);
     } else {
         // Unbind
@@ -498,15 +814,7 @@ void RendererDeferred::Deferred() {
 }
 
 void RendererDeferred::SSAO() {
-
-    gSSAOArgs._Blur = true;
-    gSSAOArgs._CameraFar = mScene->GetCamera(0)->cCam->fFar;
-    gSSAOArgs._CameraNear = mScene->GetCamera(0)->cCam->fNear;
-    gSSAOArgs._mProj = mScene->GetCamera(0)->cCam->mProj;
-    gSSAOArgs._mView = mScene->GetCamera(0)->cCam->mView;
-    gSSAOArgs._OffsetRad = 1.f;
-    gSSAOArgs._Power = 2.f;
-    gSSAOArgs._Radius = 1.5f;
+    CameraComponent *cam = mScene->GetCamera(0)->cCam;
 
     // Opaque
     gSSAOPostProcess->Begin(rtGBuffer, gSSAOArgs);
@@ -562,12 +870,12 @@ void RendererDeferred::Combine() {
 }
 
 void RendererDeferred::HDR() {
-    CameraComponent* cam = mScene->GetCamera(0)->cCam;
+    /*CameraComponent* cam = mScene->GetCamera(0)->cCam;
     float fNear = cam->fNear;
     float fFar  = cam->fFar;
     float fQ    = fFar / (fNear - fFar);
     
-    float White             = 21.53f;
+    /*float White             = 21.53f;
     float MidGray           = 20.863f;
     float gAdaptation       = 5.f;
     float gBloomScale       = 4.f;
@@ -619,7 +927,7 @@ void RendererDeferred::HDR() {
         __c->_Adaptation     = gAdaptation / (float)gDirectX->GetConfig().RefreshRate;
         __c->_BloomThreshold = gBloomThres;
     gHDRPostProcess->UnmapDownScale();
-
+    */
     gHDRPostProcess->Begin(rtGBuffer);
 }
 

@@ -1,12 +1,16 @@
 cbuffer cbMaterial : register(b0) {
-    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Material.h"
+    #include "Material.h"
 };
 
 cbuffer cbAmbientLight : register(b1) {
-    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/AmbientLight.h"
+    #include "AmbientLight.h"
 };
 
-#include "../../../DirectX11 Engine 2019/Engine/Model/Components/MaterialTextures.h"
+cbuffer cbBasicFog : register(b2) {
+    #include "BasicFog.h"    
+}
+
+#include "MaterialTextures.h"
 
 Texture2D<float1> _DepthTexture       : register(t6);
 SamplerComparisonState  _DepthSampler : register(s6) {
@@ -42,8 +46,8 @@ float SampleShadow(float4 lpos) {
     // Apply bias
     projCoords.z -= bias;
 
-    // If out of bounds - no shadows should be applied
-    [flatten] if( saturate(projCoords.x) != projCoords.x || saturate(projCoords.y) != projCoords.y ) return 0.;
+    // If out of bounds - no shadow mapping should be applied
+    [flatten] if( saturate(projCoords.x) != projCoords.x || saturate(projCoords.y) != projCoords.y ) return 1.f;
 
     // Calculate dx and dy based on Noise
     float2 fNoise = _NoiseTexture.Sample(_NoiseSampler, projCoords.xy * 20.f) * 2. - 1.; // * .00625;
@@ -155,7 +159,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     float NdotL = dot(N, L);
 
     // PBR
-    float3 F0 = lerp(.04f, Albedo.rgb, Metallic);
+    float3 F0 = lerp((.04f).xxx, Albedo.rgb, Metallic);
     
     float Dist = length(In.Position - In.LightPos);
     float invD = 1.f / (Dist * Dist); // TODO: Use inverse sqrt (rsqrt)
@@ -185,7 +189,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     float3 Diffuse    = Irradiance * Albedo.rgb;
     float3 AmbientIBL = KD / Diffuse;
     
-    Ambient = AmbientIBL;
+    Ambient *= AmbientIBL;
     Direct = Diffuse;
     
     // Shadow mapping

@@ -13,7 +13,7 @@
 #include "Engine/States/RasterState.h"
 #include "Engine/States/TopologyState.h"
 #include "Engine/Materials/Sampler.h"
-#include "Engine/Camera/Camera.h"
+#include "Engine/Model/Scene.h"
 
 struct CSMArgs {
     // 2u < _CascadeNum <= CascadeMaxNum
@@ -216,7 +216,10 @@ public:
         return rtCSM->GetBufferSRV<0, true>();
     }
 
-    void Begin(const Camera* light, const CSMArgs& args) {
+    void Begin(const CSMArgs& args) {
+        Scene *mScene = Scene::Current();
+        CameraData *cam = mScene->GetCamera(1);
+        
         using namespace DirectX;
 
         // Total range for cascades
@@ -234,13 +237,12 @@ public:
         CSM* inst = (CSM*)cbCSM->Map();
 
         // Calculate ViewProj matrices for each cascade
-        CameraConfig ccfg = light->GetParams();
-        float1 fFar       = ccfg.fFar;
-        float1 fNear      = ccfg.fNear;
-        float3 p          = light->GetPosition();
+        float1 fFar       = cam->cCam->fFar;
+        float1 fNear      = cam->cCam->fNear;
+        float3 p          = cam->cTransf->vPosition;
 
-        mfloat4x4 mLightView  = light->GetViewMatrix();
-        mfloat4x4 mLightProj  = light->GetProjMatrix();
+        mfloat4x4 mLightView  = cam->cCam->mView;
+        mfloat4x4 mLightProj  = cam->cCam->mProj;
         mfloat4x4 mLightWorld = XMMatrixInverse(&XMMatrixDeterminant(mLightView), mLightView);
 
         XMStoreFloat4x4(&LightWorld, mLightWorld);
@@ -256,7 +258,7 @@ public:
         mfloat3 ed = { LightWorld._31, LightWorld._32, LightWorld._33 }; //reinterpret_cast<const float3*>(&LightWorld._31);
         mfloat3 WorldCenter = ep - 0*ed * mfloat3({ q, q, q }) + 0*ed * fFar;
         mfloat3 Pos         = WorldCenter + ed * mShadowBoundRadius;
-        mfloat3 LookAt      = WorldCenter;
+        mfloat3 LookAt      = -WorldCenter;
         mfloat3 Right       = { -LightWorld._11, -LightWorld._12, -LightWorld._13 }; //{ 1.f, 0.f, 0.f };
         
         mfloat3 Up = { LightWorld._21, LightWorld._22, LightWorld._23 }; // 
@@ -305,7 +307,7 @@ public:
                                                -CenterShadowSpace.m128_f32[1] };
 
                 // 
-                mfloat3 forw = { mCascadeOffset[CascadeIdx].x, mCascadeOffset[CascadeIdx].y, 0.f };
+                mfloat3 forw = { mCascadeOffset[CascadeIdx].x*0, mCascadeOffset[CascadeIdx].y, 0.f };
                 // { 0.f, 0.f, args._CascadeRange[CascadeIdx] };
 
                 mCascadeTrans = XMMatrixTranslation(forw.m128_f32[0], forw.m128_f32[1], forw.m128_f32[2]);

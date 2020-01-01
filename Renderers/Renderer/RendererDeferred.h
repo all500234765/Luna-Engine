@@ -24,6 +24,8 @@ private:
         struct {
             Texture *checkboard{};
             Texture *bluenoise_rg_512{};
+            Texture *black{};
+            Texture *white{};
         } tex{};
 
         struct {
@@ -80,6 +82,7 @@ private:
     RenderTarget2DColor1          *rtFinalPass{};
 
     Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
+    Shader *shSimpleGUI{};
 
     // Local
     Scene *mScene{};
@@ -123,6 +126,6 @@ public:
     virtual void Release()     override;
     virtual void ImGui()       override;
     virtual void ClearMainRT() override;
-
+    virtual void DebugHUD()    override;
 
 };

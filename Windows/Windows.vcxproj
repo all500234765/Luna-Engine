@@ -128,6 +128,7 @@
       <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
       <AdditionalOptions>/Gfp %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Model\Components\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -153,6 +154,7 @@
       <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
       <AdditionalOptions>/Gfp %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Model\Components\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -181,6 +183,7 @@
     <FxCompile>
       <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Model\Components\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -209,6 +212,7 @@
     <FxCompile>
       <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Model\Components\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

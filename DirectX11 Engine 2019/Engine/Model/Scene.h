@@ -187,6 +187,7 @@ private:
     std::array<ConstantBuffer*, SCENE_MAX_CAMERA_COUNT> cbCameraData{};
     ConstantBuffer* cbTransform = nullptr;
     ConstantBuffer* cbMaterial = nullptr;
+    ConstantBuffer* cbAmbientLight = nullptr;
 
     EntityHandle mAmbientLight{};
     EntityHandle mWorldLight{};
@@ -384,13 +385,17 @@ public:
             mCameraData[i] = new CameraData();
         }
 
+        cbAmbientLight = new ConstantBuffer();
+        cbAmbientLight->CreateDefault(sizeof(AmbientLightBuff));
+        cbAmbientLight->SetName("[Scene::AmbientLight]: ConstantBuffer");
+
         cbMaterial = new ConstantBuffer();
         cbMaterial->CreateDefault(sizeof(MaterialBuff));
         cbMaterial->SetName("[Scene::Material]: ConstantBuffer");
 
         cbTransform = new ConstantBuffer();
         cbTransform->CreateDefault(sizeof(TransformBuff));
-        cbTransform->SetName("[Scene::MeshTransform]: Constant Buffer");
+        cbTransform->SetName("[Scene::MeshTransform]: ConstantBuffer");
 
         gVelocityIntegrationSystem        = new VelocityIntegrationSystem;
         gAnimatedMeshRenderSystem         = new AnimatedMeshRenderSystem;
@@ -413,6 +418,8 @@ public:
 
         //SAFE_RELEASE_N(cbCameraData, SCENE_MAX_CAMERA_COUNT);
         SAFE_RELEASE(cbTransform);
+        SAFE_RELEASE(cbMaterial);
+        SAFE_RELEASE(cbAmbientLight);
 
         //SAFE_DELETE_N(mCameraData, SCENE_MAX_CAMERA_COUNT);
         SAFE_DELETE(gVelocityIntegrationSystem);
@@ -545,6 +552,15 @@ public:
         AmbientLightComponent* comp = GetComponent<AmbientLightComponent>(mAmbientLight);
         comp->_AmbientLightColor = color;
         comp->_AmbientLightStrengh = strengh;
+    }
+
+    void BindAmbientLight(Shader::ShaderType type, UINT slot=1) {
+        AmbientLightComponent* comp = GetComponent<AmbientLightComponent>(mAmbientLight);
+        {
+            ScopeMapConstantBufferCopy<AmbientLightBuff> q(cbAmbientLight, &comp->_AmbientLightColor);
+        }
+        
+        cbAmbientLight->Bind(type, slot);
     }
 
     // TODO: 

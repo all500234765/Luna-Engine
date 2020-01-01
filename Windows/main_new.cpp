@@ -17,6 +17,8 @@ HighLevel gHighLevel;
 RendererBase *gRenderer;
 Scene *gMainScene;
 
+bool g_bMouseHUD{};
+
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
     // Create, redirect IO to, and hide console
@@ -27,7 +29,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Show splashscreen
-    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1500);
+    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1000);
 
     // Print CPU info
     CPUID cpu;
@@ -106,6 +108,10 @@ bool _DirectX::FrameFunction() {
     gContext->OMSetRenderTargets(1, &gRTV, gDSV);
     gRenderer->FinalScreen();
 
+    // Debug
+    gRenderer->DebugHUD();
+    gRenderer->ImGui();
+
     // Debug frame statistics
     if( (gRenderFrame % 120) == 0 ) {
         printf_s("Frame=%u; Drawcalls=%u; Instances=%u; Dispatches=%u\n", 
@@ -121,6 +127,14 @@ bool _DirectX::FrameFunction() {
 void _DirectX::Tick(float fDeltaTime) {
     gMainScene->Update(fDeltaTime);
 
+    if( gKeyboard->IsPressed(VK_F2) ) {
+        g_bMouseHUD ^= true;
+        MovementControlComponent *comp = gMainScene->GetComponent<MovementControlComponent>(gMainScene->GetActiveCameraHandle());
+        for( InputControl& c : comp->mAssignedControls ) {
+            c.bDisabled ^= true;
+        }
+    }
+
     // Set world light position & direction
     if( gKeyboard->IsPressed(VK_SPACE) ) {
         gMainScene->UpdateCameraData(1);
@@ -133,17 +147,19 @@ void _DirectX::Tick(float fDeltaTime) {
         gMainScene->GetCamera(1)->BuildView();
     }
 
-    // Clamp camera pitch
-    TransformComponent *Transform = gMainScene->GetCamera(0)->cTransf;
-    Transform->vRotation.x = LunaEngine::Math::clamp(Transform->vRotation.x, -84.f, 84.f);
+    if( !g_bMouseHUD ) {
+        // Clamp camera pitch
+        TransformComponent *Transform = gMainScene->GetCamera(0)->cTransf;
+        Transform->vRotation.x = LunaEngine::Math::clamp(Transform->vRotation.x, -84.f, 84.f);
 
-    // Set mouse at center of the screen
-    RECT rect = gWindow->GetRect();
-    WindowConfig wcfg = gWindow->GetCFG();
-    float ww = wcfg.CurrentWidth;
-    float wh = wcfg.CurrentHeight;
+        // Set mouse at center of the screen
+        RECT rect = gWindow->GetRect();
+        WindowConfig wcfg = gWindow->GetCFG();
+        float ww = wcfg.CurrentWidth;
+        float wh = wcfg.CurrentHeight;
 
-    gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
+        gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
+    }
 }
 
 void _DirectX::Resize() {

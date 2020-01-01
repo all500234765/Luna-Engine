@@ -24,6 +24,10 @@ struct AmbientLightBuff {
     #include "AmbientLight.h"
 };
 
+struct BasicFogBuff {
+    #include "BasicFog.h"
+};
+
 #include "Engine/Input/Mouse.h"
 #include "Engine/Input/Gamepad.h"
 #include "Engine/Input/Keyboard.h"
@@ -155,6 +159,8 @@ struct InputControl {
     // Is camera controller
     bool bOrientationDependent = false;
     bool bOrientationUpdate = false;
+
+    bool bDisabled = false;
 
     // Keyboard only
     InputControl(uint32 key): bKeyboard(true), mKeyboardKey(key) {};

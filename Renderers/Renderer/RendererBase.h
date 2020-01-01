@@ -18,6 +18,10 @@
 
 #include "Other/DrawCall.h"
 
+#include "ImGUI/imgui.h"
+#include "ImGUI/imgui_impl_win32.h"
+#include "ImGUI/imgui_impl_dx11.h"
+
 struct RendererConfig {
     float r_width = 1366.f;
     float r_height = 768.f;
@@ -40,9 +44,12 @@ struct RendererConfig {
 };
 
 class RendererBase {
-private:
+protected:
     uint32_t mMSAALevel; // 1-16
     bool mMSAA;
+
+    bool bIsWireframe{};
+    bool bDebugHUD{};
 
 public:
     //RendererBase() {};
@@ -55,6 +62,7 @@ public:
     virtual void ClearMainRT() { return; };
     virtual void Resize() { return; };
     virtual void FinalScreen() { return; };
+    virtual void DebugHUD() { return; }
 
     // Setters
     inline void SetMSAA(bool msaa) { mMSAA = msaa; }

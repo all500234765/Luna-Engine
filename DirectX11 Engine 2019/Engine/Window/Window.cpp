@@ -337,11 +337,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 
             return DefWindowProc(hwnd, umessage, wparam, lparam);
         }
-        
-        // All other messages pass to the message handler in the system class.
-        default:
-        {
-            return DefWindowProc(hwnd, umessage, wparam, lparam);
-        }
     }
+
+    // All other messages
+    return DefWindowProc(hwnd, umessage, wparam, lparam);
 }

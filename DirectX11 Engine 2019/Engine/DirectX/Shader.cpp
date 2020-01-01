@@ -199,6 +199,17 @@ void Shader::Bind() {
 //  if( __Has(Compute ) ) { gDirectX->gContext->CSSetShader(sCompute , NULL, 0); } else if( (DTouch & Compute) == 0 ) { gDirectX->gContext->CSSetShader(nullptr, NULL, 0); }
 }
 
+void Shader::Bind(ID3D11ShaderResourceView* pSRV, ShaderType type, UINT slot) {
+    switch( type ) {
+        case Shader::Vertex  : gDirectX->gContext->VSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Pixel   : gDirectX->gContext->PSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Geometry: gDirectX->gContext->GSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Hull    : gDirectX->gContext->HSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Domain  : gDirectX->gContext->DSSetShaderResources(slot, 1, &pSRV); break;
+        case Shader::Compute : gDirectX->gContext->CSSetShaderResources(slot, 1, &pSRV); break;
+    }
+}
+
 void Shader::Dispatch(UINT x, UINT y, UINT z) {
     if( __Has(Compute) ) {
         gDirectX->gContext->CSSetShader(sCompute, NULL, 0);

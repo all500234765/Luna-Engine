@@ -1,13 +1,13 @@
 cbuffer MeshBuffer : register(b0) {
-    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Transform.h"
+    #include "Transform.h"
 }
 
 cbuffer MatrixBuffer : register(b1) {
-    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Camera.h"
+    #include "Camera.h"
 };
 
 cbuffer LightMatrixBuffer : register(b2) {
-    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Camera.h"
+    #include "Camera.h"
 };
 
 struct VS {

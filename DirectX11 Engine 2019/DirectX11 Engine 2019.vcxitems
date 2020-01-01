@@ -34,6 +34,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\DirectX\VertexBuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Default.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Safe.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Model\Components\BasicFog.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\SplashScreen.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Input\Gamepad.h">
       <DeploymentContent>true</DeploymentContent>

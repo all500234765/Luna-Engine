@@ -74,6 +74,7 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
 
     int index = 0;
     for( auto Control : Movement->mAssignedControls ) {
+        if( Control.bDisabled ) continue; // Skip all disabled controls
         float3 fValue = { 0.f, 0.f, 0.f };
 
         // Keyboard
