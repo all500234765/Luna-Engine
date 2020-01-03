@@ -13,7 +13,7 @@
 #include "Engine/Window/SplashScreen.h"
 
 HighLevel gHighLevel;
-
+Texture2 *g_Texture;
 RendererBase *gRenderer;
 Scene *gMainScene;
 
@@ -88,7 +88,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     SAFE_RELEASE(gAudioDevice);
 }
 
-bool _DirectX::FrameFunction() {
+bool _DirectX::Render() {
     static uint gRenderFrame = 0;
 
     // Reset counters
@@ -126,8 +126,10 @@ bool _DirectX::FrameFunction() {
         g_fAvgMS = 0.f;
     }
 
+    // Handle present event
+    Present(1, 0);
+
     // End of frame
-    gSwapchain->Present(1, 0);
     gRenderFrame++;
     return false;
 }
@@ -200,9 +202,47 @@ void _DirectX::Resize() {
     gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
 }
 
-void _DirectX::Load() {
-    gRenderer = new RendererDeferred();
+void _DirectX::PostCreateResources(bool Recreated) {};
+
+void _DirectX::CreateResources() {
+    // Create renderer's resources
     gRenderer->Init();
+
+    g_Texture = new Texture2("../Textures/Cubemap default.dds");
+    //g_Texture->Release();
+
+    // Add models
+    gMainScene->SetSkybox("../Textures/Cubemap default.dds");
+    /*gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj",
+                                      [](TransformComponent *transf, MaterialComponent *mat) {
+        mat->_Alb = true;
+        mat->_AlbedoTex = new Texture("../Textures/environment.dds");
+
+    });*/
+
+    gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
+                                      [](TransformComponent *transf, MaterialComponent *mat) {
+        //transf->vScale = float3(5.f, 5.f, 5.f);
+        transf->vScale = float3(3.f, 3.f, 3.f);
+
+        //transf->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
+        //transf->vScale    = float3(.125, .125, .125);
+        //transf->vPosition = float3(-50.f, 0.f, 50.f);
+        transf->fAcceleration = 0.f;
+        transf->fVelocity = 0.f;
+        transf->vDirection = float3(0.f, 0.f, 0.f);
+
+        transf->Build();
+
+        mat->_Norm = 1.f;
+    });
+
+    // TODO: Try DefaultTexture.png
+
+}
+
+void _DirectX::InitGameData() {
+    gRenderer = new RendererDeferred();
     
     gMainScene = new Scene();
     gMainScene->SetAsActive(); // Bind current scene as active
@@ -227,35 +267,13 @@ void _DirectX::Load() {
 
     // Add controls to main camera
     gMainScene->AddComponent(gMainScene->GetActiveCameraHandle(), &lMovementControlComp);
+}
 
-    // Add models
-    gMainScene->SetSkybox("../Textures/Cubemap default.dds");
-    /*gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj", 
-                                      [](TransformComponent *transf, MaterialComponent *mat) {
-        mat->_Alb = true;
-        mat->_AlbedoTex = new Texture("../Textures/environment.dds");
-        
-    });*/
-
-    gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
-                                      [](TransformComponent *transf, MaterialComponent *mat) {
-        //transf->vScale = float3(5.f, 5.f, 5.f);
-        transf->vScale = float3(3.f, 3.f, 3.f);
-
-        //transf->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
-        //transf->vScale    = float3(.125, .125, .125);
-        //transf->vPosition = float3(-50.f, 0.f, 50.f);
-        transf->fAcceleration = 0.f;
-        transf->fVelocity     = 0.f;
-        transf->vDirection    = float3(0.f, 0.f, 0.f);
-
-        transf->Build();
-
-        mat->_Norm = 1.f;
-    });
-
-    // TODO: Try DefaultTexture.png
-
+void _DirectX::FreeResources() {
+    gRenderer->Release();
+    g_Texture->Release();
+    // TODO: Must!
+    //gMainScene->ReleaseResources();
 }
 
 void _DirectX::Unload() {

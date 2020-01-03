@@ -189,7 +189,7 @@ void Window::Loop() {
         for( int i = 0; i < NUM_GAMEPAD; i++ ) gInput->GetGamepad(i)->Refresh();
 
         // Otherwise do the frame processing.
-        if( gDirectX->FrameFunction() ) { break; }
+        if( gDirectX->Render() ) { break; }
     }
 }
 

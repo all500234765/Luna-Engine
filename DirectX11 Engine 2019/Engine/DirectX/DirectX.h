@@ -120,13 +120,49 @@ public:
     UINT64 CPUUsageBudget()      const { return CPUUsage().Budget; }
     UINT64 CPUUsageReservation() const { return CPUUsage().CurrentReservation; }
 
-    // 
-    bool FrameFunction();
+    void Load() {
+        InitGameData();
+        CreateResources();
+        PostCreateResources(false);
+    }
+
+    // Game tick function
     void Tick(float fDeltaTime);
+    
+    // Render frame
+    bool Render();
+    
+    // Render UI; maybe soon deprecated
     void ComposeUI();
+
+    // Handle resize event
     void Resize();
-    void Load();
+    
+    // Game initialization
+    void InitGameData();
+    void CreateResources();
+    void PostCreateResources(bool Recreated=false);
+
+    // Game unloading
+    void FreeResources();
     void Unload();
+
+    void Present(UINT SyncInterval, UINT Flags) {
+        // If the device was removed either by a disconnect or a driver upgrade, we 
+        // must recreate all device resources.
+        if( gSwapchain->Present(SyncInterval, Flags) == DXGI_ERROR_DEVICE_REMOVED ) {
+            printf_s("[DirectX]: Device was removed or drivers were updated.\n");
+            printf_s("[DirectX]: Re-creating all device resources.\n");
+
+            // Re-create resources
+            FreeResources();
+            CreateResources();
+            PostCreateResources(true);
+
+            // 
+            printf_s("[DirectX]: Done\n");
+        }
+    }
 
     void AnselEnable(DirectX::XMMATRIX view);
     void AnselSession();

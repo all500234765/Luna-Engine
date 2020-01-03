@@ -48,7 +48,7 @@ public:
 
         // Set frame function
         bool(_DirectX::*gFrameFunction)(void);
-        gFrameFunction = &_DirectX::FrameFunction;
+        gFrameFunction = &_DirectX::Render;
 
         gWindow->SetFrameFunction(gFrameFunction); // Ref to function
         gWindow->SetDirectX(gDirectX);             // Ref to global object
