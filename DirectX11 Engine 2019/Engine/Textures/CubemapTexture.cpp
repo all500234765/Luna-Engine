@@ -171,17 +171,17 @@ void CubemapTexture::CreateFromDDS(std::string fname, bool bDepth) {
         // Load textures
         ID3D11Texture2D *pTex[6];
         D3D11_TEXTURE2D_DESC desc2;
-        desc2.Format = (DXGI_FORMAT)dds.GetFormat();
-        desc2.ArraySize = 1;
-        desc2.MipLevels = dds.GetMipCount();
-        desc2.BindFlags = flags;
-        desc2.Usage = usage; // GPU Read only?
-        desc2.MiscFlags = 0;
-        desc2.CPUAccessFlags = 0;
-        desc2.SampleDesc.Count = 1;
+        desc2.Format             = (DXGI_FORMAT)dds.GetFormat();
+        desc2.ArraySize          = 1;
+        desc2.MipLevels          = dds.GetMipCount();
+        desc2.BindFlags          = flags;
+        desc2.Usage              = usage; // GPU Read only?
+        desc2.MiscFlags          = 0;
+        desc2.CPUAccessFlags     = 0;
+        desc2.SampleDesc.Count   = 1;
         desc2.SampleDesc.Quality = 0;
-        desc2.Width = Width;
-        desc2.Height = Height;
+        desc2.Width              = Width;
+        desc2.Height             = Height;
 
         // Create texture
         for( UINT i = 0; i < 6; i++ ) {
@@ -210,6 +210,8 @@ void CubemapTexture::CreateFromDDS(std::string fname, bool bDepth) {
                 gDirectX->gContext->CopySubresourceRegion(pTexture, D3D11CalcSubresource(mip, i, mips), 
                                                           0, 0, 0, pTex[i], mip, &src);
             }
+
+            pTex[i]->Release();
         }
     }
 

@@ -3,6 +3,7 @@
 #include "Engine/DirectX/DirectXChild.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "HighLevel/DirectX/Utlities.h"
+#include "Engine/Utility/Utils.h"
 
 enum ResizeFlag {
     // Keep at top-left corner
@@ -18,18 +19,21 @@ enum ResizeFlag {
 
 enum TextureFlags {
     // Texture dimension
-    dim_1 = 1, dim_2 = 2, dim_3 = 4, 
+    tf_dim_1 = 1, tf_dim_2 = 2, tf_dim_3 = 4,
 
     // Misc
-    _Depth = 8, _Array = 16, _UAV = 32, 
-    _MSAA = 64, _Cube = 128, _MipMaps = 256,
-    _NoClampMip = 2048,
+    tf_Depth = 8, tf_Array = 16, tf_UAV = 32,
+    tf_MSAA = 64, tf_Cube = 128, tf_MipMaps = 256,
+    tf_ClampMip = 2048, tf_Immutable = 16384,
+    tf_IsTilePool = 32768, tf_IsTiled = 65536, 
+
 
     // CPU Access
-    _NoCPURead = 512, _NoCPUWrite = 1024, 
+    tf_CPURead = 512, tf_CPUWrite = 1024,
 
     // Restricted content
-    _RestrictedContent = 4096, _HWRestrictedContent = 8192
+    tf_RestrictedContent = 4096, tf_HWRestrictedContent = 8192,
+
 };
 
 struct implTexture {
@@ -49,12 +53,15 @@ struct implTexture {
             uint32_t HasUAV     : 1;
             uint32_t MSAA       : 1; // ?
             uint32_t IsCube     : 1;
-            uint32_t MipMaps    : 1;
-            uint32_t NoCPURead  : 1;
-            uint32_t NoCPUWrite : 1;
-            uint32_t NoClampMip : 1;
+            uint32_t HasMipMaps : 1;
+            uint32_t CPURead    : 1;
+            uint32_t CPUWrite   : 1;
+            uint32_t ClampMip   : 1;
             uint32_t RContent   : 1;
             uint32_t HWRContent : 1;
+            uint32_t Immutable  : 1;
+            uint32_t IsTilePool : 1;
+            uint32_t IsTiled    : 1;
         };
     };
 
@@ -62,14 +69,14 @@ struct implTexture {
     ID3D11UnorderedAccessView *pUAV;
     ID3D11ShaderResourceView  *pSRV;
 
-    inline ID3D11Resource* GetTexture1() const; // { return std::get<ID3D11Texture1D*>(pTexture); }
-    inline ID3D11Resource* GetTexture2() const; // { return std::get<ID3D11Texture2D*>(pTexture); }
-    inline ID3D11Resource* GetTexture3() const; // { return std::get<ID3D11Texture3D*>(pTexture); }
+    inline ID3D11Resource* GetTexture1() const { return std::get<ID3D11Texture1D*>(pTexture); }
+    inline ID3D11Resource* GetTexture2() const { return std::get<ID3D11Texture2D*>(pTexture); }
+    inline ID3D11Resource* GetTexture3() const { return std::get<ID3D11Texture3D*>(pTexture); }
 
     void Release();
 };
 
-class Texture: public DirectXChild {
+class Texture2: public DirectXChild {
 protected:
     static uint32_t mMaxMipMapLevels;
 
@@ -83,12 +90,15 @@ private:
             uint32_t HasUAV     : 1;
             uint32_t MSAA       : 1; // ?
             uint32_t IsCube     : 1;
-            uint32_t MipMaps    : 1;
-            uint32_t NoCPURead  : 1;
-            uint32_t NoCPUWrite : 1;
-            uint32_t NoClampMip : 1;
+            uint32_t HasMipMaps : 1;
+            uint32_t CPURead    : 1;
+            uint32_t CPUWrite   : 1;
+            uint32_t ClampMip   : 1;
             uint32_t RContent   : 1;
             uint32_t HWRContent : 1;
+            uint32_t Immutable  : 1;
+            uint32_t IsTilePool : 1;
+            uint32_t IsTiled    : 1;
         };
     };
 
@@ -96,10 +106,11 @@ private:
     uint32_t mWidth, mHeight, mDepth;
 
     // 
+    uint32_t mMinLod = 0u, mMipMaps = 0u;
     implTexture* mTextureUnit;
 
     // Name
-    const char* mName;
+    std::string_view mName;
 
     // Choose texture
     ID3D11Resource* Choose(ID3D11Texture1D* _1D, ID3D11Texture2D* _2D, ID3D11Texture3D* _3D) const {
@@ -120,148 +131,45 @@ private:
         return std::get<ID3D11Texture3D*>(pTexture);
     }
 
-    implTexture* CreateTexture(std::variant<DXGI_FORMAT, UINT> format, void* data=nullptr, UINT ArraySize=1) {
-        union {
-            ID3D11DepthStencilView* _DSV;
-            ID3D11RenderTargetView* _RTV;
-        } pView{};
-
-        union {
-            ID3D11Texture1D* _1D;
-            ID3D11Texture2D* _2D;
-            ID3D11Texture3D* _3D;
-        } pTexture{};
-
-        ID3D11ShaderResourceView  *pSRV = 0;
-        ID3D11UnorderedAccessView *pUAV = 0;
-
-        // Cheese the texture format
-        DXGI_FORMAT formatTex, formatDSV, formatSRV;
-        if( IsDepth ) {
-            switch( std::get<UINT>(format) ) {
-                case 32:
-                    formatTex = DXGI_FORMAT_R32_TYPELESS;
-                    formatDSV = DXGI_FORMAT_D32_FLOAT;
-                    formatSRV = DXGI_FORMAT_R32_FLOAT;
-                    break;
-
-                case 24:
-                    formatTex = DXGI_FORMAT_R24G8_TYPELESS;
-                    formatDSV = DXGI_FORMAT_D24_UNORM_S8_UINT;
-                    formatSRV = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-                    break;
-
-                case 16:
-                    formatTex = DXGI_FORMAT_R16_TYPELESS;
-                    formatDSV = DXGI_FORMAT_D16_UNORM;
-                    formatSRV = DXGI_FORMAT_R16_UNORM;
-                    break;
-            }
-        } else {
-            formatTex = std::get<DXGI_FORMAT>(format);
-            formatSRV = formatTex;
-        }
-
-        // MSAA
-        uint32_t Quality = 0;
-        uint32_t SampleCount = 1;
-
-
-
-        // Create sub-resource data
-        D3D11_SUBRESOURCE_DATA *SubResource = new D3D11_SUBRESOURCE_DATA[ArraySize * (5u * IsCube + 1u)];
-
-
-
-        // Display warning
-        if( HasUAV && IsDepth ) {
-            // TODO: Test
-            static const char* name[] = { "R16_TYPELESS", "R24G8_TYPELESS", "R32_TYPELESS" };
-            
-            printf_s("[Texture::CreateTexture]: Warning: can't create DSV for texture with UAV! Creating %s type texture with UAV\n", 
-                     name[(formatTex == DXGI_FORMAT_R32_TYPELESS) * 2 + (formatTex == DXGI_FORMAT_R24G8_TYPELESS)]);
-        }
-
-        // 
-        UINT BindFlags = D3D11_BIND_SHADER_RESOURCE
-                       | (HasUAV ? D3D11_BIND_UNORDERED_ACCESS : 0)
-                       | (IsDepth ? (HasUAV ? 0 : D3D11_BIND_DEPTH_STENCIL) : D3D11_BIND_RENDER_TARGET);
-        HRESULT res = S_FALSE;
-        if( dim == 1 ) {
-            // Create Texture 1D
-            D3D11_TEXTURE1D_DESC pTexDesc = {};
-            pTexDesc.ArraySize          = ArraySize;
-            pTexDesc.MipLevels          = 1;
-            pTexDesc.BindFlags          = BindFlags;
-            pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
-            pTexDesc.CPUAccessFlags     = 0;
-            pTexDesc.MiscFlags          = 0;
-            pTexDesc.Format             = formatTex;
-            pTexDesc.Width              = mWidth;
-
-            res = gDirectX->gDevice->CreateTexture1D(&pTexDesc, SubResource, &pTexture._1D);
-        } else if( dim == 2 ) {
-            // Create Texture 2D
-            D3D11_TEXTURE2D_DESC pTexDesc = {};
-            pTexDesc.ArraySize          = ArraySize;
-            pTexDesc.MipLevels          = 1;
-            pTexDesc.BindFlags          = BindFlags;
-            pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
-            pTexDesc.CPUAccessFlags     = 0;
-            pTexDesc.MiscFlags          = 0;
-            pTexDesc.Format             = formatTex;
-            pTexDesc.Width              = mWidth;
-            pTexDesc.Height             = mHeight;
-            pTexDesc.SampleDesc.Count   = SampleCount;
-            pTexDesc.SampleDesc.Quality = (UINT)std::max((int)Quality - 1, 0);
-
-            res = gDirectX->gDevice->CreateTexture2D(&pTexDesc, SubResource, &pTexture._2D);
-        } else if( dim == 3 ) {
-            // Create Texture 3D
-            D3D11_TEXTURE3D_DESC pTexDesc = {};
-            pTexDesc.MipLevels          = 1;
-            pTexDesc.BindFlags          = BindFlags;
-            pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
-            pTexDesc.CPUAccessFlags     = 0;
-            pTexDesc.MiscFlags          = 0;
-            pTexDesc.Format             = formatTex;
-            pTexDesc.Width              = mWidth;
-            pTexDesc.Height             = mHeight;
-            pTexDesc.Depth              = mDepth;
-
-            res = gDirectX->gDevice->CreateTexture3D(&pTexDesc, SubResource, &pTexture._3D);
-        }
-
-        if( FAILED(res) ) {
-            std::cout << "[RT]: Failed to create " << dim << "D texture" << std::endl;
-        }
-
-        // Free memory
-        delete[] SubResource;
-
-
-
-    }
+    implTexture* CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D11_SUBRESOURCE_DATA *SubResource, 
+                               uint32_t ArraySize=1, implTexture* Out=nullptr) ;
 
 public:
     // Deleted call
-    Texture() = delete;
+    Texture2() = delete;
 
     // Create empty texture
-    Texture(UINT flags, std::variant<DXGI_FORMAT, UINT> format,
-            uint32_t w, uint32_t h, uint32_t d=1u, const char* name="UnnamedEmptyTexture");
+    Texture2(UINT flags, std::variant<DXGI_FORMAT, UINT> format, uint32_t w, uint32_t h, uint32_t d=1u, 
+             uint32_t ArraySize=1u, std::string_view name="UnnamedEmptyTexture");
 
     // Auto loading from file
-    Texture(const char* fname, UINT flags=0u, const char* name="UnnamedTexture");
+    Texture2(std::string_view fname, UINT flags=0u, std::string_view name="UnnamedTexture", uint32_t ArraySize=1u);
+
+    void Load(std::string_view fname, UINT flags=0u, uint32_t ArraySize=1u);
 
     // Setters
-    void SetMinLOD(uint32_t min_lod);
+    inline void SetMinLOD(uint32_t min_lod) {
+        mMinLod = min_lod;
+        if( mTextureUnit ) gDirectX->gContext->SetResourceMinLOD(mTextureUnit->GetTexture3(), min_lod);
+    }
 
-
-    // Getters
+    inline void SetName(std::string_view name) {
+        mName = name;
+        if( mTextureUnit ) _SetName(mTextureUnit->GetTexture3(), name.data());
+    }
     
+    // Getters
+    inline ID3D11ShaderResourceView*  GetSRV()      const { return mTextureUnit->pSRV;          }
+    inline ID3D11UnorderedAccessView* GetUAV()      const { return mTextureUnit->pUAV;          }
+    inline ID3D11Resource*            GetResource() const { return mTextureUnit->GetTexture3(); }
+    inline uint32_t                   GetFlags()    const { return mFlags;                      }
+    inline implTexture*               GetTexture()  const { return mTextureUnit;                }
+    inline std::string_view           GetName()     const { return mName;                       }
 
     // 
+    void SetSubresource(const D3D11_SUBRESOURCE_DATA* resource, UINT mip=0, UINT array=0);
+    void Copy(ID3D11Resource* src);
     void Resize(uint32_t w, uint32_t h, uint32_t d=1u, ResizeFlag SaveContent=ResizeFlag_Keep);
-
+    void Bind(Shader::ShaderType type, UINT slot=0u);
+    void Release();
 };

@@ -310,15 +310,16 @@ private:
         }
 
         // Try to create a texture
+        HRESULT res = S_FALSE;
         UINT BindFlags = D3D11_BIND_SHADER_RESOURCE
                        | (UAV   ? D3D11_BIND_UNORDERED_ACCESS : 0)
                        | (Depth ? (UAV ? 0 : D3D11_BIND_DEPTH_STENCIL) : D3D11_BIND_RENDER_TARGET);
-        HRESULT res = S_FALSE;
+        UINT MipLevels = mMSAA ? 1 : 1;
         if( dim == 1 ) {
             // Create Texture 1D
             D3D11_TEXTURE1D_DESC pTexDesc = {};
             pTexDesc.ArraySize          = ArraySize;
-            pTexDesc.MipLevels          = mMSAA ? 1 : 1;
+            pTexDesc.MipLevels          = MipLevels;
             pTexDesc.BindFlags          = BindFlags;
             pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
             pTexDesc.CPUAccessFlags     = 0;
@@ -331,7 +332,7 @@ private:
             // Create Texture 2D
             D3D11_TEXTURE2D_DESC pTexDesc = {};
             pTexDesc.ArraySize          = ArraySize;
-            pTexDesc.MipLevels          = mMSAA ? 1 : 1;
+            pTexDesc.MipLevels          = MipLevels;
             pTexDesc.BindFlags          = BindFlags;
             pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
             pTexDesc.CPUAccessFlags     = 0;
@@ -346,7 +347,7 @@ private:
         } else if( dim == 3 ) {
             // Create Texture 3D
             D3D11_TEXTURE3D_DESC pTexDesc = {};
-            pTexDesc.MipLevels          = mMSAA ? 1 : 1;
+            pTexDesc.MipLevels          = MipLevels;
             pTexDesc.BindFlags          = BindFlags;
             pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
             pTexDesc.CPUAccessFlags     = 0;

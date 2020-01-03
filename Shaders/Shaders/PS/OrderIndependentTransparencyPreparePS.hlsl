@@ -30,7 +30,7 @@ float4 ComputeTransparentColor(PS In, bool front) {
 }
 
 [earlydepthstencil]
-float4 main(PS In, uint coverage : SV_COVERAGE, bool front : SV_IsFrontFace) : SV_TARGET0 {
+float4 main(PS In, uint coverage : SV_Coverage, bool front : SV_IsFrontFace) : SV_Target0 {
 	uint head = sbLinkedLists.IncrementCounter();
 	if( head == 0xFFFFFFFF ) return 0.f;
     
