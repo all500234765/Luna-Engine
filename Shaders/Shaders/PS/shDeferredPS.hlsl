@@ -1,24 +1,19 @@
-cbuffer bGlobal : register(b0) {
-    float2 _TanAspect; // dtan(fov * .5) * aspect, - dtan(fov / 2)
-    float2 _Texel;     // 1 / texture width, 1 / texture height
-    float1 _Far;
-    float1 PADDING0;
-    float4 _ProjValues;
-    float4x4 _mInvView;
+cbuffer cbGlobal : register(b0) {
+    #include "Global.h"
 }
 
-cbuffer bLightData : register(b1) {
+cbuffer cbLightData : register(b1) {
     float3 _LightDiffuse;
     float1 PADDING1;
     float2 _LightData; // Empty, Intensity
     float2 PADDING2;
 };
 
-Texture2D<half2> _NormalTexture : register(t0);
-SamplerState _NormalSampler     : register(s0);
+SamplerState _DepthSampler  : register(s0);
+SamplerState _NormalSampler : register(s1);
 
-Texture2D _DepthTexture    : register(t1);
-SamplerState _DepthSampler : register(s1);
+Texture2D _DepthTexture         : register(t0);
+Texture2D<half2> _NormalTexture : register(t1);
 
 struct PS {
     float4 Position : SV_Position;
@@ -58,7 +53,7 @@ half4 main(PS In): SV_Target0 {
     float3 lDir = In.vLightPs.xyz - Vertex.xyz;
 
     // Light properties, but doubled
-    float dist = length(lDir); // Faster than length
+    float dist = length(lDir); // dot(x, x) Faster than length
     float range = In.LightPos.w;// *In.LightPos.w;
     
     float3 Diffuse = 0.f, Specular = 0.f;

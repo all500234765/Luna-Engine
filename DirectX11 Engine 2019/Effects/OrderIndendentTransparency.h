@@ -10,8 +10,8 @@
 #include "Engine/States/DepthStencilState.h"
 #include "Engine/States/RasterState.h"
 #include "Engine/States/TopologyState.h"
-#include "Engine/Materials/Sampler.h"
-#include "Engine/Model/Scene.h"
+#include "Engine/Scene/Sampler.h"
+#include "Engine/Scene/Scene.h"
 #include "Engine/ScopedMapper.h"
 
 struct OITSettings {
@@ -120,7 +120,7 @@ public:
         bsDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
         bsDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
         bsDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        bsDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+        bsDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_DEST_ALPHA;
         bsDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
         bsDesc.RenderTarget[0].RenderTargetWriteMask = 0;
 
@@ -204,11 +204,12 @@ public:
              bool WillHaveMSAA=false, bool Cube=false>
     void End(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube>* rtTransparent, const OITSettings& params) {
         ScopedRangeProfiler s0(L"End");
+        Scene* mScene = Scene::Current();
 
         {
             ScopeMapConstantBuffer<DataBuffer> q(cbDataBuffer);
 
-            q.data->_CameraPos    = Scene::Current()->GetCamera(Scene::Current()->GetActiveCamera())->cTransf->vPosition;
+            q.data->_CameraPos    = mScene->GetCamera(mScene->GetActiveCamera())->cTransf->vPosition;
             q.data->_InvViewProj  = params.mInvViewProj;
             q.data->_MinFadeDist2 = params.fMinFadeDist * params.fMinFadeDist;
             q.data->_MaxFadeDist2 = params.fMaxFadeDist * params.fMaxFadeDist;
@@ -219,7 +220,7 @@ public:
         ID3D11RenderTargetView *rtv[2] = { rtTransparent->GetBufferRTV<0, false>(), rtTransparent->GetBufferRTV<1, false>() };
         ID3D11DepthStencilView *dsv = rtTransparent->GetDSV<0, false>();
 
-        const float Clear0[4] = { 0.f, 0.f, 0.f, 1.f };
+        const float Clear0[4] = { 0.f, 0.f, 0.f, 0.f };
 
         gDirectX->gContext->OMSetRenderTargetsAndUnorderedAccessViews(2, rtv, dsv, 2, 2, uav, 0);
         gDirectX->gContext->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.f, 1);
@@ -234,15 +235,16 @@ public:
         //bsNoBlend->Bind();
 
         // Store states
-        Scene::Current()->DefineCameraOrtho(2, .1f, 10.f, 1.f, 1.f);
-        mProjTmp = Scene::Current()->GetCamera(2)->cCam->mProj;
-        mViewTmp = Scene::Current()->GetCamera(2)->cCam->mView;
+        mScene->DefineCameraOrtho(2, .1f, 10.f, 1.f, 1.f);
+        mProjTmp = mScene->GetCamera(2)->cCam->mProj;
+        mViewTmp = mScene->GetCamera(2)->cCam->mView;
         RasterState::Pop();
         BlendState::Pop();
 
         // Bind camera
-        Scene::Current()->GetCamera(2)->ProjIdentity();
-        Scene::Current()->GetCamera(2)->ViewIdentity();
+        mScene->GetCamera(2)->ProjIdentity();
+        mScene->GetCamera(2)->ViewIdentity();
+        mScene->BindCamera(2, Shader::Vertex, 1);
 
         // Bind resources
         cbDataBuffer->Bind(Shader::Pixel, 0);
@@ -260,8 +262,8 @@ public:
         rtTransparent->MSAAResolve();
 
         // Restore old states
-        Scene::Current()->GetCamera(2)->SetProj(mProjTmp);
-        Scene::Current()->GetCamera(2)->SetView(mViewTmp);
+        mScene->GetCamera(2)->SetProj(mProjTmp);
+        mScene->GetCamera(2)->SetView(mViewTmp);
         //TopologyState::Pop();
         DepthStencilState::Pop();
 

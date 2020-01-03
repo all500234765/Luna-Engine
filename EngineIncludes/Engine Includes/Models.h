@@ -15,7 +15,6 @@
 #include "Engine/Camera/Camera.h"
 
 // Materials
-#include "Engine/Materials/Sampler.h"
-#include "Engine/Materials/Texture.h"
-#include "Engine/Materials/Material.h"
+#include "Engine/Scene/Sampler.h"
+#include "Engine/Scene/Texture.h"
 

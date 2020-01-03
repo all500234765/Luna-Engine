@@ -10,7 +10,7 @@
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/States/BlendState.h"
 #include "Engine/States/DepthStencilState.h"
-#include "Engine/Materials/Sampler.h"
+#include "Engine/Scene/Sampler.h"
 #include "HighLevel/DirectX/Utlities.h"
 
 struct SSLRArgs {

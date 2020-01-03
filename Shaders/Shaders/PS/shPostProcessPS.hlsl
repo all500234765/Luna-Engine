@@ -67,7 +67,10 @@ float3 EyeAdaptationNtoneMapping(float3 HDR) {
     LScale = (LScale + LScale * LScale / _LumWhiteSqr) / (1.f + LScale);
 
     // Apply lum scale
-    return HDR * LScale;
+    HDR *= LScale;
+    
+    // Reinhard & Gamma
+    return HDR; //pow(HDR / (1.f + HDR), 2.2f);
 }
 
 float3 _toneExposure(float3 vColor, float average) {
@@ -170,11 +173,11 @@ half4 main(PS In): SV_Target0 {
     //Diff.rgb *= (1.f / (Diff.rgb + 1.f)) * 2.f; // 1.5f;
     
     // Ambient Occlusion
-    float AO = 1.f;
+    /*float AO = 1.f;
     [flatten] if( _RenderFlags & 2 ) {
         AO = _AmbientOcclusion.Sample(_LinearSampler, In.Texcoord);
         Diff.rgb *= AO;
-    }
+    }*/
     
     // Depth of Field
     [flatten] if( _RenderFlags & 8 ) {
@@ -194,8 +197,8 @@ half4 main(PS In): SV_Target0 {
     }
 
     // Order Independent Transparency
-    float4 OIT = _OITransparencyCl.Sample(_Sampler, In.Texcoord);
-    Diff.rgb += OIT.rgb;// * OIT.a;
+    //float4 OIT = _OITransparencyCl.Sample(_Sampler, In.Texcoord);
+    //Diff.rgb += OIT.rgb;// * OIT.a;
     
     // Deferred lightning
     [flatten] if( _RenderFlags & 128 ) {

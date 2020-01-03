@@ -23,6 +23,7 @@ private:
     struct {
         struct {
             Texture *checkboard{};
+            Texture *tile_normal{};
             Texture *bluenoise_rg_512{};
             Texture *black{};
             Texture *white{};
@@ -60,6 +61,19 @@ private:
         } raster;
     } s_states{};
 
+    // Deferred renderer
+    ConstantBuffer *cbDeferredGlobal;
+    struct DeferredGlobal {
+        #include "Deferred/Global.h"
+    };
+
+    ConstantBuffer *cbDeferredLight;
+    struct DeferredLight {
+        #include "Deferred/Light.h"
+    };
+
+    CounterStructuredBuffer<DeferredLight> *sbDeferredLight;
+
     // Effects
     HDRPostProcess                 *gHDRPostProcess{};
     SSAOPostProcess                *gSSAOPostProcess{};
@@ -78,10 +92,12 @@ private:
     // Resources
     RenderTarget2DDepthMSAA       *rtDepth{};
     RenderTarget2DColor4DepthMSAA *rtGBuffer{}, *rtCombinedGBuffer{};
-    RenderTarget2DColor2DepthMSAA *rtTransparency{};
+    RenderTarget2DColor4DepthMSAA *rtTransparency{};
     RenderTarget2DColor1          *rtFinalPass{};
+    RenderTarget2DColor2MSAA      *rtDeferred{};
 
     Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
+    Shader *shDeferredPointLights{};
     Shader *shSimpleGUI{};
 
     // Local
@@ -101,6 +117,8 @@ private:
 
     // Screen-Space Passes
     void Deferred();
+    void DeferredLights();
+
     void SSAO();
     void SSLR();
     void SSLF();

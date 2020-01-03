@@ -2,8 +2,11 @@
 
 #include "pc.h"
 #include "PipelineState.h"
+#include "Engine/DirectX/DirectX.h"
 
-typedef D3D_PRIMITIVE_TOPOLOGY Topology;
+extern _DirectX* gDirectX;
+
+using Topology = D3D_PRIMITIVE_TOPOLOGY;
 
 class TopologyState: public PipelineState<TopologyState> {
 private:
@@ -16,4 +19,18 @@ public:
     void Bind(Topology topology) { gDirectX->gContext->IASetPrimitiveTopology(topology); mTopology = topology; }
 
     Topology Current() { return mTopology; }
+};
+
+// Static
+class STopologyState {
+protected:
+    static Topology gState;
+    static Topology gStateOld;
+
+public:
+    static Topology Current();
+    static void Push();
+    static void Pop();
+
+    static void Bind(Topology T);
 };

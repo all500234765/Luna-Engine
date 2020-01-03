@@ -7,7 +7,7 @@
 
 // 
 #include "Engine/Materials/Texture.h"
-#include "Engine/Materials/Sampler.h"
+#include "Engine/Scene/Sampler.h"
 
 
 class Font: public DirectXChild {

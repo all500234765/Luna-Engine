@@ -1,11 +1,12 @@
 {
-    "hlsl.preprocessorDefinitions": {
+  "hlsl.preprocessorDefinitions": {
 
-    },
+  },
   "hlsl.additionalIncludeDirectories": [
     ".",
     "..\\Shaders\\Common\\",
-    "..\\..\\DirectX11 Engine 2019\\Engine\\Model\\Components\\"
+    "..\\..\\DirectX11 Engine 2019\\Engine\\Scene\\Components\\", 
+    "..\\..\\Renderers\\Renderer\\"
   ]
   }
   

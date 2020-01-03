@@ -12,7 +12,7 @@
 #include "Engine/States/DepthStencilState.h"
 #include "Engine/States/RasterState.h"
 #include "Engine/States/TopologyState.h"
-#include "Engine/Materials/Sampler.h"
+#include "Engine/Scene/Sampler.h"
 #include "Engine/DirectX/Query.h"
 
 struct SSLFArgs {

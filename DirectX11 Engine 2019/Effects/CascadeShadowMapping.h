@@ -12,8 +12,8 @@
 #include "Engine/States/DepthStencilState.h"
 #include "Engine/States/RasterState.h"
 #include "Engine/States/TopologyState.h"
-#include "Engine/Materials/Sampler.h"
-#include "Engine/Model/Scene.h"
+#include "Engine/Scene/Sampler.h"
+#include "Engine/Scene/Scene.h"
 
 struct CSMArgs {
     // 2u < _CascadeNum <= CascadeMaxNum

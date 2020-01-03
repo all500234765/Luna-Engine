@@ -14,6 +14,9 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\Global.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\Light.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\ShaderDefinesLocal.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\RendererBase.h" />
   </ItemGroup>
   <ItemGroup>

@@ -125,7 +125,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     // Get normal
     half3 N = 0.f;
     [branch] if( _Norm ) {
-        N = normalize(mul(In.WorldTBN, _NormalTex.Sample(_NormalSampl, In.Texcoord).rgb * 2.f - 1.f));
+        N = normalize(mul(In.WorldTBN, mad(_NormalTex.Sample(_NormalSampl, In.Texcoord).rgb, 2.f, -1.f)));
         
         // Flip normals
         //N *= (1. - bIsFront * 2.);
@@ -134,6 +134,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     }
 
     // Flip normals
+    N *= mad(1.f - bIsFront, 2.f, -1.f);
     if( _FlipNormals ) N *= -1.f;
     
     // Sample PBR textures
@@ -151,7 +152,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     // PBR Here
     // Vectors
     float3 L = normalize(In.LightPos.xyz - In.WorldPos);
-    float3 V = normalize(In.ViewDir 	 - In.Position.xyz);
+    float3 V = normalize(In.ViewDir      - In.Position.xyz);
     float3 H = normalize(L + V);
 
     // 
@@ -187,7 +188,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     
     float3 Irradiance = _CubemapTexture.SampleLevel(_CubemapSampler, N.xzy, 1).rgb;
     float3 Diffuse    = Irradiance * Albedo.rgb;
-    float3 AmbientIBL = KD / Diffuse;
+    float3 AmbientIBL = KD * Diffuse;
     
     Ambient *= AmbientIBL;
     Direct = Diffuse;

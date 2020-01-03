@@ -40,35 +40,40 @@ void RendererDeferred::Init() {
 #pragma endregion
 
 #pragma region Render Targets
-    rtGBuffer = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "GBuffer");
+    rtGBuffer = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "[RT]: GBuffer");
     rtGBuffer->Create(32);                                     // Depth
     rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // Direct
                              DXGI_FORMAT_R16G16B16A16_FLOAT,   // Normals
                              DXGI_FORMAT_R16G16B16A16_FLOAT,   // Ambient
                              DXGI_FORMAT_R16G16B16A16_FLOAT);  // Emission
     
-    rtCombinedGBuffer = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "GBuffer combined");
+    rtCombinedGBuffer = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "[RT]: GBuffer combined");
     rtCombinedGBuffer->Create(32);                                     // Depth
-    rtCombinedGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // Color
+    rtCombinedGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // Direct light
                                      DXGI_FORMAT_R16G16B16A16_FLOAT,   // Normals
-                                     DXGI_FORMAT_R16G16B16A16_FLOAT,   // 
-                                     DXGI_FORMAT_R16G16B16A16_FLOAT);  // 
+                                     DXGI_FORMAT_R16G16B16A16_FLOAT,   // Ambient light
+                                     DXGI_FORMAT_R16G16B16A16_FLOAT);  // Emission
 
-    rtDepth = new RenderTarget2DDepthMSAA(2048, 2048, 1, "World light shadowmap");
+    rtDepth = new RenderTarget2DDepthMSAA(2048, 2048, 1, "[RT]: World light shadowmap");
     rtDepth->Create(32);
 
-    rtFinalPass = new RenderTarget2DColor1(Width(), Height(), 1, "Final Pass");
+    rtFinalPass = new RenderTarget2DColor1(Width(), Height(), 1, "[RT]: Final Pass");
     rtFinalPass->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM);
 
-    rtTransparency = new RenderTarget2DColor2DepthMSAA(Width(), Height(), 1, "Transparency");
+    rtDeferred = new RenderTarget2DColor2MSAA(Width(), Height(), 1, "[RT]: Deferred");
+    rtDeferred->CreateList(0, DXGI_FORMAT_R11G11B10_FLOAT, DXGI_FORMAT_R11G11B10_FLOAT);
+
+    rtTransparency = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "[RT]: Transparency");
     rtTransparency->Create(32);                                     // Depth
-    rtTransparency->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM,       // Color
-                                  DXGI_FORMAT_R16G16B16A16_FLOAT);  // Normals
+    rtTransparency->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM,       // Direct light
+                                  DXGI_FORMAT_R16G16B16A16_FLOAT,   // Normals
+                                  DXGI_FORMAT_R16G16B16A16_FLOAT,   // Ambient light
+                                  DXGI_FORMAT_R16G16B16A16_FLOAT);  // Emission
 #pragma endregion
 
 #pragma region Default Textures
     s_material.mCubemap = new CubemapTexture();
-    s_material.mCubemap->CreateFromDDS("../Textures/Cubemaps/environment.dds", false);
+    s_material.mCubemap->CreateFromDDS("../Textures/Cubemap default.dds", false);
     
     s_material.tex.checkboard = new Texture();
     s_material.tex.checkboard->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -77,6 +82,10 @@ void RendererDeferred::Init() {
     s_material.tex.bluenoise_rg_512 = new Texture();
     s_material.tex.bluenoise_rg_512->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
     s_material.tex.bluenoise_rg_512->SetName("Bluenoise RG");
+
+    s_material.tex.tile_normal = new Texture();
+    s_material.tex.tile_normal->Load("../Textures/Normal.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    s_material.tex.tile_normal->SetName("Tile normalmap");
 
     s_material.tex.black = new Texture();
     s_material.tex.black->Load("../Textures/Black.png", DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -241,8 +250,13 @@ void RendererDeferred::Init() {
     gCSMArgs._CascadeRange[2] = 25.f;
     gCSMArgs._CascadeRange[3] = 100.f;
 
+    cbDeferredGlobal = new ConstantBuffer();
+    cbDeferredGlobal->CreateDefault(sizeof(DeferredGlobal));
+    cbDeferredGlobal->SetName("[Deferred::CB]: Deferred Global");
+
     cbTransform = new ConstantBuffer();
     cbTransform->CreateDefault(sizeof(TransformBuff));
+    cbTransform->SetName("[Deferred::CB]: Transform");
 
     IdentityTransf = new TransformComponent;
     IdentityTransf->fAcceleration = 0.f;
@@ -332,8 +346,10 @@ void RendererDeferred::Resize() {
     rtCombinedGBuffer->Resize(Width(), Height(), 1);
     rtTransparency->Resize(Width(), Height(), 1);
     rtFinalPass->Resize(Width(), Height(), 1);
+    rtDeferred->Resize(Width(), Height(), 1);
     rtGBuffer->Resize(Width(), Height(), 1);
 
+    EffectBase::ResizeGlobal(Width(), Height()); // TODO: EffectBase::ResizeGlobal
     gHDRPostProcess->Resize(Width(), Height());
     gSSAOPostProcess->Resize(Width(), Height());
     gSSLRPostProcess->Resize(Width(), Height());
@@ -355,6 +371,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(rtGBuffer);
     SAFE_RELEASE(rtDepth);
     SAFE_RELEASE(rtFinalPass);
+    SAFE_RELEASE(rtDeferred);
 
     // Textures
     SAFE_RELEASE(s_material.tex.bluenoise_rg_512);
@@ -362,6 +379,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(s_material.tex.black);
     SAFE_RELEASE(s_material.tex.white);
     SAFE_RELEASE(s_material.mCubemap);
+    SAFE_RELEASE(s_material.tex.tile_normal);
 
     // Samplers
     SAFE_RELEASE(s_material.sampl.point      );
@@ -389,12 +407,15 @@ void RendererDeferred::Release() {
 
     // Buffers
     SAFE_RELEASE(cbTransform);
+    SAFE_RELEASE(cbDeferredGlobal);
 
     // Other
     SAFE_DELETE(IdentityTransf);
 }
 
 void RendererDeferred::ImGui() {
+    ScopedRangeProfiler s0(L"ImGui");
+
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
 
@@ -635,11 +656,14 @@ void RendererDeferred::ClearMainRT() {
 
 void RendererDeferred::DebugHUD() {
     if( !bDebugHUD ) return;
+    ScopedRangeProfiler s0(L"Debug HUD");
+
     std::vector<ID3D11ShaderResourceView*> surfaces = {
-        rtGBuffer->GetBufferSRV<0>(),
+        rtTransparency->GetBufferSRV<0>(),
         rtGBuffer->GetBufferSRV<1>(),
+        rtGBuffer->GetBufferSRV<0>(),
         rtGBuffer->GetBufferSRV<2>(),
-        rtGBuffer->GetBufferSRV<3>()
+        rtCombinedGBuffer->GetBufferSRV<0>()
 
     };
 
@@ -686,50 +710,62 @@ void RendererDeferred::DebugHUD() {
 }
 
 void RendererDeferred::Shadows() {
-    ScopedRangeProfiler s1(L"World light");
+    ScopedRangeProfiler s1(L"Shadows");
 
-    // Bind render target
-    rtDepth->Bind();
-    rtDepth->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
-
-    //gDirectX->gContext->OMSetDepthStencilState(pDSS_Default, 1);
-    gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    shVertexOnly->Bind();
-    
-    // 
-    uint32_t old = mScene->GetActiveCamera();
-    mScene->SetActiveCamera(1);
-    
     {
-        mScene->BindCamera(1, Shader::Vertex, 1); // Light camera
-        mScene->Render(RendererFlags::ShadowPass | RendererFlags::OpaquePass, Shader::Vertex);
-    }
+        ScopedRangeProfiler s1(L"World light");
+        // Bind render target
+        rtDepth->Bind();
+        rtDepth->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
 
-    // CSM
-    {
-        gCascadeShadowMapping->Begin(gCSMArgs);
-        mScene->Render(RendererFlags::ShadowPass | RendererFlags::OpaquePass, Shader::Vertex);
-    }
+        //gDirectX->gContext->OMSetDepthStencilState(pDSS_Default, 1);
+        gDirectX->gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        shVertexOnly->Bind();
+        
+        // 
+        uint32_t old = mScene->GetActiveCamera();
+        mScene->SetActiveCamera(1);
+        
+        {
+            mScene->BindCamera(1, Shader::Vertex, 1); // Light camera
+            mScene->Render(RendererFlags::ShadowPass | RendererFlags::OpaquePass, Shader::Vertex);
+        }
 
-    mScene->SetActiveCamera(old);
+        // TODO: CSM
+        {
+            //gCascadeShadowMapping->Begin(gCSMArgs);
+            //mScene->Render(RendererFlags::ShadowPass | RendererFlags::OpaquePass, Shader::Vertex);
+        }
+
+        mScene->SetActiveCamera(old);
+    }
 }
 
 void RendererDeferred::GBuffer() {
-    ScopedRangeProfiler s1(L"Render GBuffer");
+    ScopedRangeProfiler s1(L"GBuffer");
 
     // Bind render target
     rtGBuffer->Bind();
     rtGBuffer->Clear(0.f, 0, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
-    rtGBuffer->Clear(s_clear.black_void2);
+    //rtGBuffer->Clear(s_clear.black_void2);
 
     // Bind shader
     shSurface->Bind();
 
     // Bind default material textures
-    for( uint32_t i = 0; i < 6; i++ ) {
-        s_material.tex.checkboard->Bind(Shader::Pixel, i);
-        s_material.sampl.linear->Bind(Shader::Pixel, i);
+    s_material.sampl.point->Bind(Shader::Pixel, 0);
+    s_material.sampl.linear->Bind(Shader::Pixel, 1);
+
+    for( uint32_t i = 2; i < 6; i++ ) {
+        s_material.sampl.point->Bind(Shader::Pixel, i);
     }
+
+    s_material.tex.checkboard->Bind(Shader::Pixel, 0);  // Albedo
+    s_material.tex.tile_normal->Bind(Shader::Pixel, 1); // Normal
+    s_material.tex.black->Bind(Shader::Pixel, 2);       // Metallic
+    s_material.tex.black->Bind(Shader::Pixel, 3);       // Roughness
+    s_material.tex.black->Bind(Shader::Pixel, 4);       // Emission
+    s_material.tex.white->Bind(Shader::Pixel, 5);       // Ambient Occlusion
 
     // Bind ambient light
     mScene->BindAmbientLight(Shader::Pixel, 1);
@@ -756,17 +792,21 @@ void RendererDeferred::GBuffer() {
 
     uint32_t old = mScene->GetActiveCamera();
     mScene->SetActiveCamera(0);
-    
+
+    UINT dc = gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount;
+
     {
         mScene->Render(RendererFlags::OpaquePass, Shader::Vertex);
     }
+
+    mOpaqueAmount = (gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount) - dc;
 
     // Restore states
     mScene->SetActiveCamera(old);
     mScene->SetLayersState(old_ml);
 
     // Unbind textures
-    LunaEngine::PSDiscardSRV<8>();
+    //LunaEngine::PSDiscardSRV<8>();
 }
 
 void RendererDeferred::OIT() {
@@ -784,10 +824,11 @@ void RendererDeferred::OIT() {
     mScene->Render(RendererFlags::OpacityPass, Shader::Vertex);
 
     // 
-    UINT ddc = (gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount) - dc;
+    mTransparencyAmount = (gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount) - dc;
 
     // Done
-    if( ddc ) {
+    if( mTransparencyAmount ) {
+        IdentityTransf->Bind(cbTransform, Shader::Vertex, 0);
         gOrderIndendentTransparency->End(rtTransparency, gOITSettings);
     } else {
         // Unbind
@@ -810,11 +851,125 @@ void RendererDeferred::CoverageBuffer() {
 }
 
 void RendererDeferred::Deferred() {
+    ScopedRangeProfiler s1(L"Deferred pass");
+
+    // Light pass
+    {
+        ScopedRangeProfiler s2(L"Lights");
+        rtDeferred->Bind();
+
+        // Store states
+        STopologyState::Push();
+        STopologyState::Bind(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+
+        // Get camera info
+        CameraComponent* cam = mScene->GetCamera(0)->cCam;
+        float fNear = cam->fNear;
+        float fFar  = cam->fFar;
+        float fQ    = fFar / (fNear - fFar);
+        float fHalfTanFov = tanf(DirectX::XMConvertToRadians(cam->fFOV_X * .5f)); // dtan(fov * .5)
+
+        mfloat4x4 mProj = cam->mProj;
+        mfloat4x4 mView = cam->mView;
+        mfloat4x4 mInvProj = cam->mInvProj;
+        mfloat4x4 mInvView = cam->mInvView;
+
+        float4x4 mProjF;
+        DirectX::XMStoreFloat4x4(&mProjF, DirectX::XMMatrixTranspose(mProj));
+
+        // Bind data
+        {
+            {
+                ScopeMapConstantBuffer<DeferredGlobal> map(cbDeferredGlobal);
+                map.data->_mInvView = mInvView;
+                map.data->_mInvProj = mInvProj;
+                map.data->_TanAspect = { fHalfTanFov * cam->fAspect, -fHalfTanFov };
+                map.data->_Texel = { 1.f / Width(), 1.f / Height() };
+                map.data->_Far = fFar;
+                map.data->_ProjValues = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
+            }
+
+            cbDeferredGlobal->Bind(Shader::Pixel, 0); // CB
+
+            s_material.sampl.point->Bind(Shader::Pixel, 0); // Samplers
+            s_material.sampl.point->Bind(Shader::Pixel, 1); // Samplers
+        }
+
+        if( mOpaqueAmount )
+        {
+            ScopedRangeProfiler s3(L"Opaque");
+
+            rtGBuffer->Bind(0u, Shader::Pixel, 0); // Opaque Depth Buffer
+            rtGBuffer->Bind(2u, Shader::Pixel, 1); // Opaque Normal Buffer
+
+            //rtGBuffer->Bind(1u, Shader::Pixel, 2); // Direct light
+            //rtGBuffer->Bind(3u, Shader::Pixel, 3); // Ambient light
+
+            DeferredLights();
+        }
+
+        if( mTransparencyAmount )
+        {
+            ScopedRangeProfiler s3(L"Transparent");
+
+            rtTransparency->Bind(0u, Shader::Pixel, 0); // Opaque Depth Buffer
+            rtTransparency->Bind(2u, Shader::Pixel, 1); // Opaque Normal Buffer
+
+            //rtTransparency->Bind(1u, Shader::Pixel, 2); // Direct light
+            //rtTransparency->Bind(3u, Shader::Pixel, 3); // Ambient light
+
+            DeferredLights();
+        }
+
+        LunaEngine::PSDiscardSRV<2>(); // TODO: Use defines
+        STopologyState::Pop();
+    }
+    
 
 }
 
+void RendererDeferred::DeferredLights() {
+    // Point lights
+    {
+        ScopedRangeProfiler s2(L"Point");
+        //shDeferredPointLights->Bind();
+
+        {
+            //ScopeMapConstantBuffer<DeferredLight> map(cbDeferredLight);
+
+
+        }
+
+        //DXDraw(2, 0);
+
+        // TODO: 
+        //DXDrawInstanced(2, CulledLightCount, 0, 0);
+    }
+
+    // Spot lights
+    {
+
+    }
+
+    // Line lights (GPU Pro 3)
+    {
+
+    }
+
+    // TODO: Maybe interchangable with line lights
+    // Capsule lights
+    {
+
+    }
+
+    // Area lights
+    {
+
+    }
+}
+
 void RendererDeferred::SSAO() {
-    CameraComponent *cam = mScene->GetCamera(0)->cCam;
+    //CameraComponent *cam = mScene->GetCamera(0)->cCam;
 
     // Opaque
     gSSAOPostProcess->Begin(rtGBuffer, gSSAOArgs);
@@ -856,6 +1011,7 @@ void RendererDeferred::Combine() {
     rtGBuffer->Bind(1, Shader::Pixel, 0);
     rtGBuffer->Bind(3, Shader::Pixel, 1);
     gSSAOPostProcess->BindAO(Shader::Pixel, 2);
+    rtTransparency->Bind(1, Shader::Pixel, 3);
 
     // Draw call
     DXDraw(6, 0);
@@ -865,69 +1021,11 @@ void RendererDeferred::Combine() {
     LunaEngine::PSDiscardSRV<3>();
 
     // Copy result
-    gDirectX->gContext->CopyResource(rtGBuffer->GetBufferTexture<0>(), rtCombinedGBuffer->GetBufferTexture<0>());
+    //gDirectX->gContext->CopyResource(rtGBuffer->GetBufferTexture<0>(), rtCombinedGBuffer->GetBufferTexture<0>());
 
 }
 
 void RendererDeferred::HDR() {
-    /*CameraComponent* cam = mScene->GetCamera(0)->cCam;
-    float fNear = cam->fNear;
-    float fFar  = cam->fFar;
-    float fQ    = fFar / (fNear - fFar);
-    
-    /*float White             = 21.53f;
-    float MidGray           = 20.863f;
-    float gAdaptation       = 5.f;
-    float gBloomScale       = 4.f;
-    float gBloomThres       = 10.f;
-    float gFarStart         = 0.f;
-    float gFarRange         = 60.f;
-    float gBokehThreshold   = 0.f;
-    float gBokehColorScale  = 0.f;
-    float gBokehRadiusScale = 0.f;
-
-    const float gFarScale = 100.f;
-    
-    uint1 _RenderFlags = 0;
-    bool gRenderSSLR          = true;
-    bool gRenderSSAO          = true;
-    bool gRenderEyeAdaptation = true;
-    bool gRenderDepthOfField  = true;
-    bool gRenderBloom         = true;
-    bool gRenderBokeh         = true;
-    bool gRenderDiffuse       = true;
-    bool gRenderLight         = true;
-
-    // Update flags
-    //                        0            1            2
-    std::array<bool, 8> _val{ gRenderSSLR, gRenderSSAO, gRenderEyeAdaptation,
-    //  3                    4             5             6               7
-        gRenderDepthOfField, gRenderBloom, gRenderBokeh, gRenderDiffuse, gRenderLight };
-
-    for( size_t i = 0; i < _val.size(); i++ ) if( _val[i] ) _RenderFlags |= 1 << i;
-
-    // Update constant buffers
-    FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
-        __q->_LumWhiteSqr     = White * White * MidGray * MidGray;
-        __q->_MiddleGrey      = MidGray;
-        __q->_BloomScale      = gBloomScale;
-        __q->_ProjectedValues = { fNear * fQ, fQ };
-        __q->_DoFFarValues    = { gFarStart * gFarScale, 1.f / (gFarRange * gFarScale) };
-        __q->_BokehThreshold  = gBokehThreshold;
-        __q->_ColorScale      = gBokehColorScale;
-        __q->_RadiusScale     = gBokehRadiusScale;
-        __q->_RenderFlags     = _RenderFlags;
-    gHDRPostProcess->UnmapFinalPass();
-
-    const WindowConfig& cfg = Window::Current()->GetCFG();
-    DownScaleInst* __c = gHDRPostProcess->MapDownScale();
-        __c->_Res            = { static_cast<uint32_t>(cfg.CurrentWidth / 4), static_cast<uint32_t>(cfg.CurrentHeight / 4) };
-        __c->_Domain         = __c->_Res.x * __c->_Res.y;
-        __c->_GroupSize      = __c->_Domain / 1024;
-        __c->_Adaptation     = gAdaptation / (float)gDirectX->GetConfig().RefreshRate;
-        __c->_BloomThreshold = gBloomThres;
-    gHDRPostProcess->UnmapDownScale();
-    */
     gHDRPostProcess->Begin(rtGBuffer);
 }
 
@@ -977,6 +1075,7 @@ void RendererDeferred::Final() {
 void RendererDeferred::BindOrtho() {
     // Bind matrices
     mScene->DefineCameraOrtho(2, .1f, 10.f, Width(), Height());
+    mScene->GetCamera(2)->ViewIdentity();
     mScene->BindCamera(2, Shader::Vertex, 1);
 
     IdentityTransf->Bind(cbTransform, Shader::Vertex, 0);

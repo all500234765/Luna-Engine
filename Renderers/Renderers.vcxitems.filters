@@ -2,6 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\RendererBase.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\Global.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\Light.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\ShaderDefinesLocal.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Renderer\RendererDeferred.h" />

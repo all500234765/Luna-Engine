@@ -45,7 +45,7 @@ extern Gamepad* gGamepad[NUM_GAMEPAD];
 
 #include "Types.h"
 
-#include "Engine/Model/Scene.h"
+#include "Engine/Scene/Scene.h"
 
 #ifndef WINMAIN
     #ifdef UNICODE

@@ -18,6 +18,7 @@ RendererBase *gRenderer;
 Scene *gMainScene;
 
 bool g_bMouseHUD{};
+float g_fAvgMS{};
 
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
@@ -29,7 +30,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Show splashscreen
-    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1000);
+    //SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1000);
 
     // Print CPU info
     CPUID cpu;
@@ -113,9 +114,16 @@ bool _DirectX::FrameFunction() {
     gRenderer->ImGui();
 
     // Debug frame statistics
-    if( (gRenderFrame % 120) == 0 ) {
-        printf_s("Frame=%u; Drawcalls=%u; Instances=%u; Dispatches=%u\n", 
-                 gRenderFrame, gDrawCallCount, gDrawCallInstanceCount, gDispatchCallCount);
+    if( (gRenderFrame % 240) == 0 ) {
+        printf_s("Frame=%u(%.4fms; %ffps); Drawcalls=%u; Instances=%u; Dispatches=%u;\n"
+                 "Render stats: \n"
+                 "\t- Transparent %u\n"
+                 "\t- Opaque %u\n",
+                 gRenderFrame, g_fAvgMS * 1000.f, 1.f / g_fAvgMS, 
+                 gDrawCallCount, gDrawCallInstanceCount, gDispatchCallCount, 
+                 gRenderer->GetTransparencyAmount(), gRenderer->GetOpaqueAmount());
+
+        g_fAvgMS = 0.f;
     }
 
     // End of frame
@@ -125,6 +133,13 @@ bool _DirectX::FrameFunction() {
 }
 
 void _DirectX::Tick(float fDeltaTime) {
+    static uint64_t g_iTickFrame = 0;
+    if( (g_iTickFrame % 240) == 0 ) {
+        g_fAvgMS /= 240.f;
+    } else {
+        g_fAvgMS += fDeltaTime;
+    }
+
     gMainScene->Update(fDeltaTime);
 
     if( gKeyboard->IsPressed(VK_F2) ) {
@@ -160,6 +175,8 @@ void _DirectX::Tick(float fDeltaTime) {
 
         gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
     }
+
+    g_iTickFrame++;
 }
 
 void _DirectX::Resize() {
@@ -211,16 +228,30 @@ void _DirectX::Load() {
     // Add controls to main camera
     gMainScene->AddComponent(gMainScene->GetActiveCameraHandle(), &lMovementControlComp);
 
-    // Add model
-    gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj", [](TransformComponent *transf) {
-        transf->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
-        transf->vScale    = float3(.125, .125, .125);
-        transf->vPosition = float3(-50.f, 0.f, 50.f);
+    // Add models
+    gMainScene->SetSkybox("../Textures/Cubemap default.dds");
+    /*gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj", 
+                                      [](TransformComponent *transf, MaterialComponent *mat) {
+        mat->_Alb = true;
+        mat->_AlbedoTex = new Texture("../Textures/environment.dds");
+        
+    });*/
+
+    gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
+                                      [](TransformComponent *transf, MaterialComponent *mat) {
+        //transf->vScale = float3(5.f, 5.f, 5.f);
+        transf->vScale = float3(3.f, 3.f, 3.f);
+
+        //transf->vRotation = float3(DirectX::XMConvertToRadians(270.f), 0.f, 0.f);
+        //transf->vScale    = float3(.125, .125, .125);
+        //transf->vPosition = float3(-50.f, 0.f, 50.f);
         transf->fAcceleration = 0.f;
         transf->fVelocity     = 0.f;
         transf->vDirection    = float3(0.f, 0.f, 0.f);
 
         transf->Build();
+
+        mat->_Norm = 1.f;
     });
 
     // TODO: Try DefaultTexture.png
@@ -228,8 +259,7 @@ void _DirectX::Load() {
 }
 
 void _DirectX::Unload() {
-    SAFE_RELEASE(gRenderer);
+    SAFE_RELEASE((RendererDeferred*)gRenderer);
     SAFE_DELETE(gMainScene);
-
 }
 

@@ -1,3 +1,7 @@
+cbuffer cbMaterial : register(b0) {
+    #include "Material.h"
+};
+
 #include "../Common/OITCommon.h"
 
 struct PS {
@@ -7,17 +11,21 @@ struct PS {
     float4 WorldPos : TEXCOORD1;
 };
 
-Texture2D _Texture    : register(t0);
-SamplerState _Sampler : register(s0);
+#include "MaterialTextures.h"
 
 float4 ComputeTransparentColor(PS In, bool front) {
     //abs(In.Position.x - In.Position.y - front * 2.f).xxx * 10.f
     //return front ? float4(1.f, 0.f, 0.f, 1.f) : float4(0.f, 1.f, 0.f, 1.f);
     
     //return front ? float4(.9f, 0.f, 0.f, .5f) : float4(.9f, .9f, 0.f, .5f);
-    return front ? float4(.7f, .9f, 0.f, .1f) : float4(0.f, 0.f, 1.f, 0.f);
     
-    return float4(_Texture.Sample(_Sampler, In.Texcoord).rgb, .1f);
+    float3 Albedo = 1.f;
+    [flatten] if( _Alb ) Albedo = _AlbedoTex.Sample(_AlbedoSampl, In.Texcoord).rgb * _AlbedoMul;
+    
+    return float4(Albedo, _Alpha);
+    //return front ? float4(.7f, .9f, 0.f, .1f) : float4(0.f, 0.f, 1.f, 0.f);
+    
+    //return float4(_Texture.Sample(_Sampler, In.Texcoord).rgb, .1f);
     //return float4(1.f, 0.f, 0.f, 1.f);
 }
 

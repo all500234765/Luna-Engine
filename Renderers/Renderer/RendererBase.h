@@ -14,7 +14,7 @@
 #include "Effects/OrderIndendentTransparency.h"
 //#include "Effects/CoverageBuffer.h"
 
-#include "Engine/Model/Scene.h"
+#include "Engine/Scene/Scene.h"
 
 #include "Other/DrawCall.h"
 
@@ -51,6 +51,10 @@ protected:
     bool bIsWireframe{};
     bool bDebugHUD{};
 
+    // Draw calls
+    uint32_t mTransparencyAmount{};
+    uint32_t mOpaqueAmount{};
+
 public:
     //RendererBase() {};
     virtual ~RendererBase() {};
@@ -73,6 +77,9 @@ public:
     // Getters
     inline bool GetMSAA() const { return mMSAA; }
     inline bool GetMSAALevel() const { return mMSAALevel; }
+
+    inline uint32_t GetTransparencyAmount() const { return mTransparencyAmount; }
+    inline uint32_t GetOpaqueAmount() const { return mOpaqueAmount; }
 
     inline uint32_t Width() const { return Window::Current()->GetCFG().CurrentWidth; }
     inline uint32_t Height() const { return Window::Current()->GetCFG().CurrentHeight; }

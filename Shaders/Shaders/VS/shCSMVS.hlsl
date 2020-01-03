@@ -1,5 +1,5 @@
 cbuffer MeshBuffer : register(b0) {
-    #include "../../../DirectX11 Engine 2019/Engine/Model/Components/Transform.h"
+    #include "Transform.h"
 }
 
 struct VS {
