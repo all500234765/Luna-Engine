@@ -4,6 +4,18 @@
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "HighLevel/DirectX/Utlities.h"
 
+enum ResizeFlag {
+    // Keep at top-left corner
+    ResizeFlag_Keep, 
+
+    // Stretch to new size
+    ResizeFlag_Stretch,
+
+    // Clear with 0, 0, 0, 0
+    ResizeFlag_Clear, 
+
+};
+
 enum TextureFlags {
     // Texture dimension
     dim_1 = 1, dim_2 = 2, dim_3 = 4, 
@@ -108,7 +120,7 @@ private:
         return std::get<ID3D11Texture3D*>(pTexture);
     }
 
-    implTexture* CreateTexture(std::variant<> format, void* data=nullptr) {
+    implTexture* CreateTexture(std::variant<DXGI_FORMAT, UINT> format, void* data=nullptr, UINT ArraySize=1) {
         union {
             ID3D11DepthStencilView* _DSV;
             ID3D11RenderTargetView* _RTV;
@@ -150,7 +162,83 @@ private:
             formatSRV = formatTex;
         }
 
+        // MSAA
+        uint32_t Quality = 0;
+        uint32_t SampleCount = 1;
+
+
+
+        // Create sub-resource data
+        D3D11_SUBRESOURCE_DATA *SubResource = new D3D11_SUBRESOURCE_DATA[ArraySize * (5u * IsCube + 1u)];
+
+
+
+        // Display warning
+        if( HasUAV && IsDepth ) {
+            // TODO: Test
+            static const char* name[] = { "R16_TYPELESS", "R24G8_TYPELESS", "R32_TYPELESS" };
+            
+            printf_s("[Texture::CreateTexture]: Warning: can't create DSV for texture with UAV! Creating %s type texture with UAV\n", 
+                     name[(formatTex == DXGI_FORMAT_R32_TYPELESS) * 2 + (formatTex == DXGI_FORMAT_R24G8_TYPELESS)]);
+        }
+
         // 
+        UINT BindFlags = D3D11_BIND_SHADER_RESOURCE
+                       | (HasUAV ? D3D11_BIND_UNORDERED_ACCESS : 0)
+                       | (IsDepth ? (HasUAV ? 0 : D3D11_BIND_DEPTH_STENCIL) : D3D11_BIND_RENDER_TARGET);
+        HRESULT res = S_FALSE;
+        if( dim == 1 ) {
+            // Create Texture 1D
+            D3D11_TEXTURE1D_DESC pTexDesc = {};
+            pTexDesc.ArraySize          = ArraySize;
+            pTexDesc.MipLevels          = 1;
+            pTexDesc.BindFlags          = BindFlags;
+            pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
+            pTexDesc.CPUAccessFlags     = 0;
+            pTexDesc.MiscFlags          = 0;
+            pTexDesc.Format             = formatTex;
+            pTexDesc.Width              = mWidth;
+
+            res = gDirectX->gDevice->CreateTexture1D(&pTexDesc, SubResource, &pTexture._1D);
+        } else if( dim == 2 ) {
+            // Create Texture 2D
+            D3D11_TEXTURE2D_DESC pTexDesc = {};
+            pTexDesc.ArraySize          = ArraySize;
+            pTexDesc.MipLevels          = 1;
+            pTexDesc.BindFlags          = BindFlags;
+            pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
+            pTexDesc.CPUAccessFlags     = 0;
+            pTexDesc.MiscFlags          = 0;
+            pTexDesc.Format             = formatTex;
+            pTexDesc.Width              = mWidth;
+            pTexDesc.Height             = mHeight;
+            pTexDesc.SampleDesc.Count   = SampleCount;
+            pTexDesc.SampleDesc.Quality = (UINT)std::max((int)Quality - 1, 0);
+
+            res = gDirectX->gDevice->CreateTexture2D(&pTexDesc, SubResource, &pTexture._2D);
+        } else if( dim == 3 ) {
+            // Create Texture 3D
+            D3D11_TEXTURE3D_DESC pTexDesc = {};
+            pTexDesc.MipLevels          = 1;
+            pTexDesc.BindFlags          = BindFlags;
+            pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
+            pTexDesc.CPUAccessFlags     = 0;
+            pTexDesc.MiscFlags          = 0;
+            pTexDesc.Format             = formatTex;
+            pTexDesc.Width              = mWidth;
+            pTexDesc.Height             = mHeight;
+            pTexDesc.Depth              = mDepth;
+
+            res = gDirectX->gDevice->CreateTexture3D(&pTexDesc, SubResource, &pTexture._3D);
+        }
+
+        if( FAILED(res) ) {
+            std::cout << "[RT]: Failed to create " << dim << "D texture" << std::endl;
+        }
+
+        // Free memory
+        delete[] SubResource;
+
 
 
     }
@@ -160,14 +248,20 @@ public:
     Texture() = delete;
 
     // Create empty texture
-    Texture(TextureFlags flags, uint32_t w, uint32_t h, uint32_t d=1u, const char* name="UnnamedEmptyTexture");
+    Texture(UINT flags, std::variant<DXGI_FORMAT, UINT> format,
+            uint32_t w, uint32_t h, uint32_t d=1u, const char* name="UnnamedEmptyTexture");
 
     // Auto loading from file
-    Texture(const char* fname, const char* name = "UnnamedTexture");
+    Texture(const char* fname, UINT flags=0u, const char* name="UnnamedTexture");
 
     // Setters
     void SetMinLOD(uint32_t min_lod);
 
 
+    // Getters
+    
+
+    // 
+    void Resize(uint32_t w, uint32_t h, uint32_t d=1u, ResizeFlag SaveContent=ResizeFlag_Keep);
 
 };

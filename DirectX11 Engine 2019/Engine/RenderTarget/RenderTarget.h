@@ -318,7 +318,7 @@ private:
             // Create Texture 1D
             D3D11_TEXTURE1D_DESC pTexDesc = {};
             pTexDesc.ArraySize          = ArraySize;
-            pTexDesc.MipLevels          = 1;
+            pTexDesc.MipLevels          = mMSAA ? 1 : 1;
             pTexDesc.BindFlags          = BindFlags;
             pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
             pTexDesc.CPUAccessFlags     = 0;
@@ -331,7 +331,7 @@ private:
             // Create Texture 2D
             D3D11_TEXTURE2D_DESC pTexDesc = {};
             pTexDesc.ArraySize          = ArraySize;
-            pTexDesc.MipLevels          = 1;
+            pTexDesc.MipLevels          = mMSAA ? 1 : 1;
             pTexDesc.BindFlags          = BindFlags;
             pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
             pTexDesc.CPUAccessFlags     = 0;
@@ -346,7 +346,7 @@ private:
         } else if( dim == 3 ) {
             // Create Texture 3D
             D3D11_TEXTURE3D_DESC pTexDesc = {};
-            pTexDesc.MipLevels          = 1;
+            pTexDesc.MipLevels          = mMSAA ? 1 : 1;
             pTexDesc.BindFlags          = BindFlags;
             pTexDesc.Usage              = D3D11_USAGE_DEFAULT;
             pTexDesc.CPUAccessFlags     = 0;
