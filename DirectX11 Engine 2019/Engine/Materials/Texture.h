@@ -6,7 +6,7 @@
 #include "Engine/Utility/Utils.h"
 
 //template<bool UAV=false>
-class Texture: public DirectXChild {
+class Texture3: public DirectXChild {
 private:
     int w, h, channels;
     UINT flags;
@@ -25,11 +25,11 @@ private:
     };
 
 public:
-    Texture();
-    Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV=false, bool Depth=false, bool CPURead=false);
-    Texture(std::wstring fname, bool UAV=false, bool bGenMips2=false);
-    Texture(std::string fname, UINT bpc=8, bool UAV=false);
-    Texture(std::string fname, DXGI_FORMAT format, bool UAV=false);
+    Texture3();
+    Texture3(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV=false, bool Depth=false, bool CPURead=false);
+    Texture3(std::wstring fname, bool UAV=false, bool bGenMips2=false);
+    Texture3(std::string fname, UINT bpc=8, bool UAV=false);
+    Texture3(std::string fname, DXGI_FORMAT format, bool UAV=false);
 
     void Load(std::string fname, bool UAV=false, bool bGenMips2=false);
 
@@ -50,7 +50,7 @@ public:
     void Resize(UINT Width, UINT Height, bool Save=false);
 
     // Copy data from another texture
-    inline void Copy(Texture *src) { gDirectX->gContext->CopyResource(GetTexture(), src->GetTexture()); }
+    inline void Copy(Texture3 *src) { gDirectX->gContext->CopyResource(GetTexture(), src->GetTexture()); }
     inline void Copy(ID3D11Texture2D *src) { gDirectX->gContext->CopyResource(GetTexture(), src); }
 
     // Getters

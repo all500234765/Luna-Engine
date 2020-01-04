@@ -5,7 +5,7 @@
 #include "Engine/RenderTarget/RenderTarget.h"
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/StructuredBuffer.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/States/BlendState.h"
 #include "Engine/States/DepthStencilState.h"
 #include "Engine/States/RasterState.h"
@@ -70,7 +70,7 @@ public:
         uint32_t Width = 1366;
         uint32_t Height = 768;
 
-        rwListHead = Texture(Width, Height, DXGI_FORMAT_R32_UINT, true);
+        rwListHead = Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_UINT, Width, Height, 1u, 1u, "[OIT::Texture]: Linked lists heads");
         sbLinkedLists.CreateDefault(MAX_ELEMENTS * Width * Height, nullptr, true);
 
         // Topology state

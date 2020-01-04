@@ -5,7 +5,7 @@
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/DirectX/Shader.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/Utility/Utils.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/States/BlendState.h"

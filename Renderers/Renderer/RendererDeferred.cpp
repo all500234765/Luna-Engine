@@ -72,27 +72,20 @@ void RendererDeferred::Init() {
 #pragma endregion
 
 #pragma region Default Textures
-    s_material.mCubemap = new CubemapTexture();
-    s_material.mCubemap->CreateFromDDS("../Textures/Cubemap default.dds", false);
+    s_material.mCubemap = new Texture("../Textures/Cubemap default.dds");
     
-    s_material.tex.checkboard = new Texture();
-    s_material.tex.checkboard->Load("../Textures/TileInverse.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    s_material.tex.checkboard = new Texture("../Textures/DefaultTile.png");
     s_material.tex.checkboard->SetName("Default texture");
     
-    s_material.tex.bluenoise_rg_512 = new Texture();
-    s_material.tex.bluenoise_rg_512->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
-    s_material.tex.bluenoise_rg_512->SetName("Bluenoise RG");
+    s_material.tex.bluenoise_rg_512 = new Texture("../Textures/Noise/Blue/LDR_RG01_0.png", 0u, "Blue noise RG", 1u, DXGI_FORMAT_R16G16_UNORM);
 
-    s_material.tex.tile_normal = new Texture();
-    s_material.tex.tile_normal->Load("../Textures/Normal.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    s_material.tex.tile_normal = new Texture("../Textures/Normal.png");
     s_material.tex.tile_normal->SetName("Tile normalmap");
 
-    s_material.tex.black = new Texture();
-    s_material.tex.black->Load("../Textures/Black.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    s_material.tex.black = new Texture("../Textures/Black.png");
     s_material.tex.black->SetName("Black");
 
-    s_material.tex.white = new Texture();
-    s_material.tex.white->Load("../Textures/White.png", DXGI_FORMAT_R8G8B8A8_UNORM);
+    s_material.tex.white = new Texture("../Textures/White.png");
     s_material.tex.white->SetName("White");
 #pragma endregion
 

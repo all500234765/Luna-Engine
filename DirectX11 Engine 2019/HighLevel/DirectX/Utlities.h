@@ -9,9 +9,8 @@
 #include "Engine/DirectX/Shader.h"
 #include "Engine/DirectX/PolygonLayout.h"
 #include "Engine/DirectX/ConstantBuffer.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Other/DrawCall.h"
-
 
 extern _DirectX *gDirectX;
 
@@ -366,7 +365,6 @@ namespace LunaEngine {
         void Triangle(float x1, float y1, float x2, float y2, float x3, float y3);
 
         void CircleOuter(float x, float y, float r, UINT precision=32);
-
 
         void TextureRect(Texture* tex, float x, float y, float xscale=1.f, float yscale=1.f, float ang=0.f);
         void TextureStreched(Texture* tex, float x, float y, float xscale=1.f, float yscale=1.f, float ang=0.f);

@@ -1,10 +1,10 @@
 #include "pc.h"
-#include "Texture.h"
+#include "Texture3.h"
 
-Texture::Texture() {
+Texture3::Texture3() {
 }
 
-Texture::Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV, bool Depth, bool CPURead): w(Width), h(Height) {
+Texture3::Texture3(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV, bool Depth, bool CPURead): w(Width), h(Height) {
     channels    = Format2Ch(format);
     bDepth      = Depth;
     bCPURead    = CPURead;
@@ -13,7 +13,7 @@ Texture::Texture(UINT Width, UINT Height, DXGI_FORMAT format, bool UAV, bool Dep
     Create(nullptr, format, bpp, 0, mpitch, UAV);
 }
 
-Texture::Texture(std::wstring fname, bool UAV, bool bGenMips2) {
+Texture3::Texture3(std::wstring fname, bool UAV, bool bGenMips2) {
     //DirectX::CreateDDSTextureFromFile(gDirectX->gDevice);
     DirectX::CreateDDSTextureFromFile(gDirectX->gDevice, fname.c_str(), (ID3D11Resource**)&pTexture, &pSRV);
 
@@ -34,15 +34,15 @@ Texture::Texture(std::wstring fname, bool UAV, bool bGenMips2) {
     }
 }
 
-Texture::Texture(std::string fname, UINT bpc, bool UAV) {
+Texture3::Texture3(std::string fname, UINT bpc, bool UAV) {
     Load(fname, bpc, UAV);
 }
 
-Texture::Texture(std::string fname, DXGI_FORMAT format, bool UAV) {
+Texture3::Texture3(std::string fname, DXGI_FORMAT format, bool UAV) {
     Load(fname, format, UAV);
 }
 
-void Texture::Load(std::string fname, UINT bpc, bool UAV, bool bGenMips) {
+void Texture3::Load(std::string fname, UINT bpc, bool UAV, bool bGenMips) {
     // Load texture
     std::string ext = GetFileExtension(fname);
 
@@ -123,7 +123,7 @@ void Texture::Load(std::string fname, UINT bpc, bool UAV, bool bGenMips) {
         MemPitch = UINT((uint64_t(w) * bpp + 7) / 8);
     }
 
-    // Create Texture and SRV
+    // Create Texture3 and SRV
     Create(data, format, bpp, SlicePitch, MemPitch, UAV, bGenMips);
 
     if( bStbi ) {
@@ -131,7 +131,7 @@ void Texture::Load(std::string fname, UINT bpc, bool UAV, bool bGenMips) {
     }
 }
 
-void Texture::Load(std::string fname, DXGI_FORMAT format, bool UAV, bool bGenMips) {
+void Texture3::Load(std::string fname, DXGI_FORMAT format, bool UAV, bool bGenMips) {
     // Load texture
     std::string ext = GetFileExtension(fname);
 
@@ -178,7 +178,7 @@ void Texture::Load(std::string fname, DXGI_FORMAT format, bool UAV, bool bGenMip
         MemPitch = UINT((uint64_t(w) * bpp + 7) / 8);
     }
 
-    // Create Texture and SRV
+    // Create Texture3 and SRV
     Create(data, format, bpp, SlicePitch, MemPitch, UAV, bGenMips);
 
     if( bStbi ) {
@@ -187,7 +187,7 @@ void Texture::Load(std::string fname, DXGI_FORMAT format, bool UAV, bool bGenMip
 }
 
 
-void Texture::Load(std::string fname, bool UAV, bool bGenMips2) {
+void Texture3::Load(std::string fname, bool UAV, bool bGenMips2) {
     // Load texture
     std::string ext = GetFileExtension(fname);
 
@@ -247,7 +247,7 @@ void Texture::Load(std::string fname, bool UAV, bool bGenMips2) {
         MemPitch = UINT((uint64_t(w) * bpp + 7) / 8);
     }
 
-    // Create Texture and SRV
+    // Create Texture3 and SRV
     bool bGenMips = (data != nullptr) ? bGenMips2 : false;
 
     // if bDepth is set to true, then we must 
@@ -373,7 +373,7 @@ void Texture::Load(std::string fname, bool UAV, bool bGenMips2) {
     }
 }
 
-void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch, UINT MemPitch, bool UAV, bool bGenMips2) {
+void Texture3::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch, UINT MemPitch, bool UAV, bool bGenMips2) {
     bool bGenMips = (data != nullptr) ? bGenMips2 : false;
 
     // if bDepth is set to true, then we must 
@@ -481,7 +481,7 @@ void Texture::Create(void* data, DXGI_FORMAT format, UINT bpp, UINT SlicePitch, 
     std::cout << "Successfully created Texture2D" << std::endl;
 }
 
-void Texture::Bind(Shader::ShaderType type, UINT slot, bool UAV) {
+void Texture3::Bind(Shader::ShaderType type, UINT slot, bool UAV) {
     if( !pSRV ) { return; }
 
     if( type & Shader::Vertex   ) gDirectX->gContext->VSSetShaderResources(slot, 1, &pSRV);
@@ -499,13 +499,13 @@ void Texture::Bind(Shader::ShaderType type, UINT slot, bool UAV) {
     }
 }
 
-void Texture::Release() {
+void Texture3::Release() {
     if( pTexture ) pTexture->Release();
     if( pSRV ) pSRV->Release();
     if( pUAV ) pUAV->Release();
 }
 
-void Texture::Resize(UINT Width, UINT Height, bool Save) {
+void Texture3::Resize(UINT Width, UINT Height, bool Save) {
     bool bGenMips = !pDesc.MipLevels;
 
     pDesc.Width = Width;

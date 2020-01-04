@@ -5,7 +5,7 @@
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/DirectX/Shader.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/Utility/Utils.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/States/BlendState.h"
@@ -87,11 +87,8 @@ public:
         qPredicate->Create(D3D11_QUERY_OCCLUSION_PREDICATE);
 
         // Load textures
-        _Aperture0 = new Texture();
-        _Aperture0->Load("../Textures/Flare.dds", false, false);
-
-        _Corona = new Texture();
-        _Corona->Load("../Textures/Corona.dds", false, false);
+        _Aperture0 = new Texture("../Textures/Flare.dds");
+        _Corona = new Texture("../Textures/Corona.dds");
 
         // Create additive blend state
         bsAdditive = new BlendState();

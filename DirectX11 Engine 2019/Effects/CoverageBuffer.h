@@ -4,7 +4,7 @@
 #include "Engine/RenderTarget/RenderTarget.h"
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/Shader.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/Utility/Utils.h"                   // LunaEngine::
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 
@@ -373,11 +373,13 @@ public:
         uint32_t Width = 1366 / 2;
         uint32_t Height = 768 / 2;
 
-        _DepthDS = new Texture(Width, Height, DXGI_FORMAT_R32_FLOAT, true);
-        _DepthDS_Read = new Texture(Width, Height, DXGI_FORMAT_R32_FLOAT, false, false, true);
+        _DepthDS = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, Width, Height, 1u, 1u, "CBuffer Depth RW");
+        _DepthDS_Read = new Texture(tf_dim_2, DXGI_FORMAT_R32_FLOAT, Width, Height, 1u, 1u, "CBuffer Depth Read");
+        //_DepthDS = new Texture(Width, Height, DXGI_FORMAT_R32_FLOAT, true);
+        //_DepthDS_Read = new Texture(Width, Height, DXGI_FORMAT_R32_FLOAT, false, false, true);
 
-        _DepthDS->SetName("CBuffer Depth RW");
-        _DepthDS_Read->SetName("CBuffer Depth Read");
+        //_DepthDS->SetName("CBuffer Depth RW");
+        //_DepthDS_Read->SetName("CBuffer Depth Read");
 
         cbDownscaling = new ConstantBuffer();
         cbDownscaling->CreateDefault(sizeof(Downscaling));

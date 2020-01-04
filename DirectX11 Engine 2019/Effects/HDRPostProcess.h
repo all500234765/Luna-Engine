@@ -5,7 +5,7 @@
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/DirectX/Shader.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/Utility/Utils.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/States/BlendState.h"
@@ -222,14 +222,15 @@ public:
         // Create UAV textures
         DXGI_FORMAT format1 = DXGI_FORMAT_R16G16B16A16_FLOAT, 
                     format2 = DXGI_FORMAT_R32_FLOAT;
-        _HDRDS   = new Texture(Width, Height, format1, true);
-        _Bloom   = new Texture(Width, Height, format1, true);
-        _Bloom2  = new Texture(Width, Height, format1, true);
-        _Blur    = new Texture(Width, Height, format1, true);
-        _BlurOut = new Texture(Width, Height, format1, true);
+        _HDRDS   = new Texture(tf_dim_2 | tf_UAV, format1, Width, Height, 1u, 1u, "HDR Downsample");
+        _Bloom   = new Texture(tf_dim_2 | tf_UAV, format1, Width, Height, 1u, 1u, "HDR Bloom");
+        _Bloom2  = new Texture(tf_dim_2 | tf_UAV, format1, Width, Height, 1u, 1u, "HDR Bloom 2");
+        _Blur    = new Texture(tf_dim_2 | tf_UAV, format1, Width, Height, 1u, 1u, "HDR Blur");
+        _BlurOut = new Texture(tf_dim_2 | tf_UAV, format1, Width, Height, 1u, 1u, "HDR Blur output");
 
-        _BokehTex = new Texture(); // "../Textures/Bokeh.dds", false, false);
-        _BokehTex->Load("../Textures/Bokeh5.dds", false, false);
+        _BokehTex = new Texture("../Textures/Bokeh.dds");
+        //_BokehTex = new Texture(); // "../Textures/Bokeh.dds", false, false);
+        //_BokehTex->Load("../Textures/Bokeh5.dds", false, false);
         
         // Create blend state
         bsAdditive = new BlendState();
@@ -375,7 +376,7 @@ public:
         shBloom->Dispatch(X, 1, 1);
 
         // Copy _HDRDS to _Blur
-        gDirectX->gContext->CopyResource(_Blur->GetTexture(), _HDRDS->GetTexture());
+        _Blur->Copy(_HDRDS);
 
         // Unbind slots
         LunaEngine::CSDiscardUAV<1>();

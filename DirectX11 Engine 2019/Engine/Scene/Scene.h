@@ -15,7 +15,7 @@
 #include "Engine/ScopedMapper.h"
 #include "Other/FileSystem.h"
 #include "Engine/States/PipelineState.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/Scene/Sampler.h"
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/VertexBuffer.h"
@@ -202,7 +202,7 @@ private:
     uint32_t bUpdatedCameraLists{};
     uint32_t bIsTransparentPass{};
 
-    CubemapTexture *mSkybox;
+    Texture *mSkybox;
 
     uint32_t mMaterialLayerStates = 0xFFFFFFFF;
 
@@ -398,8 +398,6 @@ public:
     };
 
     Scene() {
-        mSkybox = new CubemapTexture();
-
         // Create default lights
         AmbientLightComponent ambient;
         ambient._AmbientLightStrengh = 1.f;
@@ -456,6 +454,8 @@ public:
 
         for( auto cd : mCameraData )
             if( cd ) delete cd;
+
+        SAFE_RELEASE(mSkybox);
 
         //SAFE_RELEASE_N(cbCameraData, SCENE_MAX_CAMERA_COUNT);
         SAFE_RELEASE(cbTransform);
@@ -614,10 +614,11 @@ public:
     }
 
     void SetSkybox(const char* fname) {
-        mSkybox->CreateFromDDS(fname, false);
+        SAFE_RELEASE(mSkybox);
+        mSkybox = new Texture(fname, 0, "[Scene::Env]: Skybox");
     }
 
-    inline CubemapTexture *GetSkybox() const { return mSkybox; }
+    inline Texture *GetSkybox() const { return mSkybox; }
 
     void AddOpaque(EntityHandleList list) {
         mOpaque.resize(list.size() + list.size());

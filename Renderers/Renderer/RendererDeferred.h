@@ -37,7 +37,7 @@ private:
         } sampl{};
 
         // TODO: Do clustered rendering
-        CubemapTexture *mCubemap{};
+        Texture *mCubemap{};
 
     } s_material{};
 

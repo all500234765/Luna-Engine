@@ -5,7 +5,7 @@
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/DirectX/Shader.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/Utility/Utils.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 
@@ -93,11 +93,11 @@ public:
         sbDepthNDS = new StructuredBuffer<float4>();
         sbDepthNDS->CreateDefault(Width * Height, nullptr, true);
 
-        _SSAO      = new Texture(Width, Height, DXGI_FORMAT_R32_FLOAT, true);
-        _SSAOInter = new Texture(Width, Height, DXGI_FORMAT_R32_FLOAT, true);
-        _BlueNoise = new Texture();
+        _SSAO      = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, Width, Height, 1u, 1u, "[SSAO::Texture]: SSAO");
+        _SSAOInter = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, Width, Height, 1u, 1u, "[SSAO::Texture]: SSAO Intermidiate");
+        _BlueNoise = new Texture("../Textures/Noise/Blue/LDR_RG01_0.png", 0u, "[SSAO::Texture]: Bluenoise", 1u, DXGI_FORMAT_R16G16_UNORM);
         
-        _BlueNoise->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
+        //_BlueNoise->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
 
         cbDownscaling = new ConstantBuffer();
         cbDownscaling->CreateDefault(sizeof(Downscaling));

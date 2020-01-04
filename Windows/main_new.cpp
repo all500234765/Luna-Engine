@@ -13,7 +13,7 @@
 #include "Engine/Window/SplashScreen.h"
 
 HighLevel gHighLevel;
-Texture2 *g_Texture;
+Texture *g_Texture;
 RendererBase *gRenderer;
 Scene *gMainScene;
 
@@ -208,10 +208,10 @@ void _DirectX::CreateResources() {
     // Create renderer's resources
     gRenderer->Init();
 
-    g_Texture = new Texture2(tf_dim_2 | tf_Cube, DXGI_FORMAT_R8G8B8A8_UNORM, 8u, 8u, 1u, 2u);
-    //g_Texture = new Texture2(tf_dim_2 | tf_MipMaps, DXGI_FORMAT_R32G32B32A32_FLOAT, 64u, 64u, 1u, 2u, std::string_view("gfd"));
-    //g_Texture = new Texture2("../Textures/Bokeh.dds", tf_MipMaps, "UnnamedTexture", 1u, 4);
-    //g_Texture = new Texture2("../Textures/Cubemap default.dds");
+    //g_Texture = new Texture(tf_dim_2 | tf_Cube, DXGI_FORMAT_R8G8B8A8_UNORM, 8u, 8u, 1u, 2u);
+    //g_Texture = new Texture(tf_dim_2 | tf_MipMaps, DXGI_FORMAT_R32G32B32A32_FLOAT, 64u, 64u, 1u, 2u, std::string_view("gfd"));
+    g_Texture = new Texture("../Textures/Bokeh.dds", tf_MipMaps, "Bokeh", 1u);
+    //g_Texture = new Texture("../Textures/Cubemap default.dds");
     //g_Texture->Release();
 
     // Add models

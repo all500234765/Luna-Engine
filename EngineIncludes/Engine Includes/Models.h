@@ -16,6 +16,5 @@
 
 // Materials
 #include "Engine/Scene/Sampler.h"
-#include "Engine/Materials/Texture.h"
-#include "Engine/Scene/Texture2.h"
+#include "Engine/Scene/Texture.h"
 

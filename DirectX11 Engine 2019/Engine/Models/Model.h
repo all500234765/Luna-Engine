@@ -4,7 +4,7 @@
 #undef max
 
 #include "pc.h"
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/DirectX/Buffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/IndexBuffer.h"

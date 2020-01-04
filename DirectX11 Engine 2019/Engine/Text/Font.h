@@ -6,7 +6,7 @@
 #include "Engine Includes/EngineDirectories.h"
 
 // 
-#include "Engine/Materials/Texture.h"
+#include "Engine/Scene/Texture.h"
 #include "Engine/Scene/Sampler.h"
 
 
