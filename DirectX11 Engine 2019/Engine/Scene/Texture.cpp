@@ -372,7 +372,7 @@ void Texture::Load(std::string_view fname, UINT flags, uint32_t ArraySize, DXGI_
         // Load image
         int ch = 0;
         stbi_image = stbi_load(fname.data(), (int*)&mWidth, (int*)&mHeight, &ch, 
-            (custom_format == DXGI_FORMAT_UNKNOWN) ? 4 : Format2Ch(custom_format));
+            (custom_format == DXGI_FORMAT_UNKNOWN) ? 0*4 : 0*Format2Ch(custom_format));
 
         if( !stbi_image ) {
             printf_s("[Texture::Load]: Failed to load texture! [%s]\n", fname.data());
@@ -405,7 +405,6 @@ void Texture::Load(std::string_view fname, UINT flags, uint32_t ArraySize, DXGI_
     if( strcmp(ext, "dds") ) {
         stbi_image_free(stbi_image);
     }
-
 }
 
 void Texture::SetSubresource(const D3D11_SUBRESOURCE_DATA* resource, UINT mip, UINT array) {
