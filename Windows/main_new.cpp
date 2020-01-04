@@ -208,7 +208,8 @@ void _DirectX::CreateResources() {
     // Create renderer's resources
     gRenderer->Init();
 
-    g_Texture = new Texture2("../Textures/Cubemap default.dds");
+    g_Texture = new Texture2("../Textures/Bokeh.dds");
+    //g_Texture = new Texture2("../Textures/Cubemap default.dds");
     //g_Texture->Release();
 
     // Add models

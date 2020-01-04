@@ -61,7 +61,9 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
 
     // 
     HRESULT res = S_FALSE;
-    UINT BindFlags = D3D11_BIND_SHADER_RESOURCE | (HasUAV ? D3D11_BIND_UNORDERED_ACCESS : 0);
+    UINT BindFlags = D3D11_BIND_SHADER_RESOURCE | 
+                     (HasUAV ? D3D11_BIND_UNORDERED_ACCESS : 0)
+                   | (HasMipMaps & !MSAA && (mMipMaps < 1) ? D3D11_BIND_RENDER_TARGET : 0);
     UINT MipMaps      = MSAA ? 1 : (HasMipMaps ? mMipMaps : 1);
     UINT CPUAccess    = (CPURead ? D3D11_CPU_ACCESS_READ : 0) | (CPUWrite ? D3D11_CPU_ACCESS_WRITE : 0);
     D3D11_USAGE Usage = (CPURead ? D3D11_USAGE_STAGING : (CPUWrite ? D3D11_USAGE_DYNAMIC : (Immutable ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT)));
@@ -72,7 +74,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
                         (HWRContent ? D3D11_RESOURCE_MISC_HW_PROTECTED : 0) |
                         (IsTilePool ? D3D11_RESOURCE_MISC_TILE_POOL : 0) |
                         (IsTiled    ? D3D11_RESOURCE_MISC_TILED : 0);
-    D3D11_SUBRESOURCE_DATA *subres = (MipMaps > 0 && (Usage != D3D11_USAGE_IMMUTABLE)) ? nullptr : SubResource;
+    D3D11_SUBRESOURCE_DATA *subres = (MipMaps > 1 && (Usage != D3D11_USAGE_IMMUTABLE)) ? nullptr : SubResource;
 
     // No CPU access flags can be specified.
     // This flag cannot be used with the following D3D11_USAGE values:
@@ -85,9 +87,9 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
 
     // Try to create a texture
     auto CreateTextureLocal = [formatTex, &res]
-            (uint32_t dim, uint32_t mWidth, uint32_t mHeight, uint32_t mDepth, uint32_t ArraySize, 
+               (uint32_t dim, uint32_t mWidth, uint32_t mHeight, uint32_t mDepth, uint32_t ArraySize, 
                 uint32_t MipMaps, uint32_t BindFlags, uint32_t CPUAccess, D3D11_USAGE Usage,
-                uint32_t SampleCount, uint32_t Quality, uint32_t Misc, const D3D11_SUBRESOURCE_DATA* subres, 
+                uint32_t SampleCount, uint32_t Quality, uint32_t Misc, D3D11_SUBRESOURCE_DATA* subres, 
                 local_texture& pTexture) {
 
         res = S_FALSE;
@@ -150,7 +152,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
         for( UINT i = 0, j = ArraySize; i < j; i++ ) {
             local_texture pTexLocal{};
 
-            CreateTextureLocal(dim, mWidth, mHeight, mDepth, 1, MipMaps, 0, D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE,
+            CreateTextureLocal(dim, mWidth, mHeight, mDepth, 1, MipMaps, 0, D3D11_CPU_ACCESS_WRITE,
                                D3D11_USAGE_STAGING, 1, 0, 0, &SubResource[i * mips], pTexLocal);
             
             if( FAILED(res) ) {
@@ -162,8 +164,14 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
                     if( dim == 2 ) pTexLocal._2D->Release();
                     if( dim == 3 ) pTexLocal._3D->Release();
                 }
+
                 continue;
             }
+
+            // Debug
+            //char buff[32];
+            //sprintf_s(&buff[0], 32, "[Texture]: Test %u", i);
+            //_SetName(pTexLocal._3D, buff);
 
             for( UINT mip = 0; mip < mips; mip++ ) {
                 src.left   = 0;
@@ -181,7 +189,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
                 src.back  = std::max(src.back , 1u); // 1D, 2D
 
                 gDirectX->gContext->CopySubresourceRegion(pTexture._3D, D3D11CalcSubresource(mip, i, MipMaps),
-                                                            0, 0, 0, pTexLocal._3D, mip, &src);
+                                                          0, 0, 0, pTexLocal._3D, mip, &src);
             }
 
             if( dim == 1 ) pTexLocal._1D->Release();
@@ -199,28 +207,28 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
                 printf_s("[Texture::Create]: Can't create 3D UAV with ArraySize > 1! [%s]\n", mName.data());
             } else {
                 D3D11_UNORDERED_ACCESS_VIEW_DESC pUAVDesc = {};
-                pUAVDesc.Format = formatSRV;
+                pUAVDesc.Format        = formatSRV;
                 pUAVDesc.ViewDimension = (D3D11_UAV_DIMENSION)((D3D11_UAV_DIMENSION_TEXTURE1D + (ArraySize > 1) * (dim < 3)) * dim);
 
                 if( dim == 1 ) {
                     pUAVDesc.Texture1D.MipSlice = 0;
 
                     if( ArraySize > 1 ) {
-                        pUAVDesc.Texture1DArray.MipSlice = 0;
+                        pUAVDesc.Texture1DArray.MipSlice        = 0;
                         pUAVDesc.Texture1DArray.FirstArraySlice = 0;
-                        pUAVDesc.Texture1DArray.ArraySize = ArraySize;
+                        pUAVDesc.Texture1DArray.ArraySize       = ArraySize;
                     }
                 } else if( dim == 2 ) {
                     pUAVDesc.Texture2D.MipSlice = 0;
 
                     if( ArraySize > 1 ) {
-                        pUAVDesc.Texture2DArray.MipSlice = 0;
+                        pUAVDesc.Texture2DArray.MipSlice        = 0;
                         pUAVDesc.Texture2DArray.FirstArraySlice = 0;
-                        pUAVDesc.Texture2DArray.ArraySize = ArraySize;
+                        pUAVDesc.Texture2DArray.ArraySize       = ArraySize;
                     }
                 } else if( dim == 3 ) {
-                    pUAVDesc.Texture3D.MipSlice = 0;
-                    pUAVDesc.Texture3D.WSize = mDepth;
+                    pUAVDesc.Texture3D.MipSlice    = 0;
+                    pUAVDesc.Texture3D.WSize       = mDepth;
                     pUAVDesc.Texture3D.FirstWSlice = 0;
                 }
 
@@ -253,7 +261,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
                 pSRVDesc.Texture1DArray.FirstArraySlice = 0;
             }
         } else if( dim == 2  ) {
-            pSRVDesc.Texture2D.MipLevels       = std::max(0, (int)MipMaps - 1);
+            pSRVDesc.Texture2D.MipLevels       = std::max(0, (int)MipMaps);
             pSRVDesc.Texture2D.MostDetailedMip = 0;
 
             if( ArraySize > 1 ) {
@@ -344,12 +352,12 @@ void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize) {
     // Ext
     const char* ext = path_ext(fname).data();
 
+    using namespace tinyddsloader;
+    DDSFile dds;
+
     // Load texture
     if( !strcmp(ext, "dds") ) {
         // Load dds file
-        using namespace tinyddsloader;
-        DDSFile dds;
-
         auto res = dds.Load(fname.data());
         if( res != Result::Success ) {
 
@@ -412,9 +420,15 @@ void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize) {
 
     // Create texture unit
     mTextureUnit = CreateTexture(format, SubResource, n, nullptr);
+    SetName(mName);
     delete[] SubResource;
 
-    SetName(mName);
+    // Not dds
+    if( strcmp(ext, "dds") ) {
+        
+
+    }
+
 }
 
 void Texture2::Bind(Shader::ShaderType type, UINT slot) {
