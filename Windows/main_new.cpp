@@ -16,7 +16,7 @@ HighLevel gHighLevel;
 RendererBase *gRenderer;
 Scene *gMainScene;
 
-Shader *shTerrain{}, *shTerrainDepth{};
+Shader *shTerrain{}, *shTerrainDepth{}, *shSkybox{};
 
 EntityHandleList g_eTerrain{};
 
@@ -228,6 +228,12 @@ void _DirectX::CreateResources() {
     shTerrain->AttachShader(shTerrainDepth, Shader::Domain);
     shTerrain->LoadFile("shTerrainPS.cso", Shader::Pixel);
 
+    shSkybox = new Shader();
+    shSkybox->SetLayoutGenerator(LgMesh);
+    shSkybox->LoadFile("shSkyboxVS.cso", Shader::Vertex);
+    shSkybox->LoadFile("shSkyboxPS.cso", Shader::Pixel);
+
+    shSkybox->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
     shTerrainDepth->ReleaseBlobs();
 
@@ -239,15 +245,17 @@ void _DirectX::CreateResources() {
         MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
 
         transf->vPosition = { 0.f, 0.f, 0.f };
-        transf->vRotation = { 0.f, 0.f, 0.f };
-        transf->vScale = float3(1000.f, 1000.f, 1000.f);
+        transf->vRotation = { -90.f, 0.f, 0.f };
+        transf->vScale = float3(10000.f, 10000.f, 10000.f);
         transf->Build();
 
         mat->_ShadowCaster   = 0.f;
         mat->_ShadowReceiver = 0.f;
 
-        //mat->_Alb = true;
-        //mat->_AlbedoTex = new Texture("../Textures/environment.dds");
+        mat->_Shader = shSkybox;
+
+        mat->_Alb = true;
+        mat->_AlbedoTex = new Texture("../Textures/Cubemap default.dds", 0u, "Env Cubemap");
 
     });
 
@@ -324,8 +332,9 @@ void _DirectX::InitGameData() {
 }
 
 void _DirectX::FreeResources() {
-    shTerrain->Release();
-    shTerrainDepth->Release();
+    SAFE_RELEASE(shSkybox);
+    SAFE_RELEASE(shTerrain);
+    SAFE_RELEASE(shTerrainDepth);
 
     gRenderer->Release();
     // TODO: Must!

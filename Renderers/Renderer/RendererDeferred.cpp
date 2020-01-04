@@ -74,7 +74,7 @@ void RendererDeferred::Init() {
 #pragma region Default Textures
     s_material.mCubemap = new Texture("../Textures/Cubemap default.dds");
     
-    s_material.tex.checkboard = new Texture("../Textures/DefaultTile.png");
+    s_material.tex.checkboard = new Texture("../Textures/DefaultTileBig.png");
     s_material.tex.checkboard->SetName("Default texture");
     
     s_material.tex.bluenoise_rg_512 = new Texture("../Textures/Noise/Blue/LDR_RG01_0.png", 0u, "Blue noise RG", 1u, DXGI_FORMAT_R16G16_UNORM);
@@ -229,7 +229,7 @@ void RendererDeferred::Init() {
 
         // Wireframe
         pDesc.ScissorEnable = false;
-        s_states.raster.wire->Create(pDesc);
+        s_states.raster.wire_scissors->Create(pDesc);
     }
 #pragma endregion
     
@@ -281,8 +281,14 @@ void RendererDeferred::Render() {
         s_states.depth.normal->Bind();
 
         Shadows();
+
+        (bIsWireframe ? s_states.raster.wire : s_states.raster.normal)->Bind();
+        if( bIsWireframe ) rtGBuffer->Clear(s_clear.black_void2);
+        
         GBuffer();
+
         OIT();
+        s_states.raster.normal->Bind();
     }
 
     {
@@ -429,7 +435,11 @@ void RendererDeferred::ImGui() {
                 MemoryUsage.CurrentUsage, MemoryUsage.AvailableForReservation, MemoryUsage.Budget, MemoryUsage.CurrentReservation);
 
     // 
-    bIsWireframe ^= ImGui::Button("Wireframe");
+    if( ImGui::Button("Wireframe") ) {
+        bIsWireframe ^= true;
+        //(bIsWireframe ? s_states.raster.wire : s_states.raster.normal)->Bind();
+    }
+
     bDebugHUD ^= ImGui::Button("Debug buffers");
 
     // Test

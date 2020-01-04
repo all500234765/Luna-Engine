@@ -420,8 +420,8 @@ void Texture::Resize(uint32_t w, uint32_t h, uint32_t d, TResizeFlag SaveContent
         case TResizeFlag::Stretch:
         {
             mWidth = w; mHeight = h; mDepth = d;
-            SAFE_RELEASE(mTextureUnit->pUAV);
-            SAFE_RELEASE(mTextureUnit->pSRV);
+            mTextureUnit->pUAV->Release();
+            mTextureUnit->pSRV->Release();
             CreateTexture(mTextureUnit->mFormat, nullptr, mArraySize, mTextureUnit);
         }
         break;

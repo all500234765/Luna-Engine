@@ -1,8 +1,9 @@
-cbuffer MatrixBuffer : register(b0) {
-    float4x4 mWorld;
-    float4x4 mView;
-    float4x4 mProj;
-    float4   vPosition;
+cbuffer MeshBuffer : register(b0) {
+    #include "Transform.h"
+}
+
+cbuffer MatrixBuffer : register(b1) {
+    #include "Camera.h"
 };
 
 struct VS {
@@ -20,7 +21,7 @@ PS main(VS In) {
     float4 WorldPos = mul(mWorld, float4(In.Position, 1.));
 
     PS Out;
-        Out.Position = mul(mProj, mul(mView, WorldPos));
+        Out.Position = mul(mProj0, mul(mView0, WorldPos));
         Out.InputPos = In.Position.xyz;
     return Out;
 }

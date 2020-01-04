@@ -45,10 +45,10 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
     // If material can't cast shadows and currently we are rendering shadow map
     //      Then skip
     if( (flags & RendererFlags::ShadowPass) && !material->_ShadowCaster ) return;
-    if( flags & RendererFlags::ShadowPass && material->_ShaderDepth ) {
+    if( (flags & RendererFlags::ShadowPass) && material->_ShaderDepth ) {
         Shader::Push();
         material->_ShaderDepth->Bind();
-    } else if( material->_ShaderDepth ) {
+    } else if( material->_Shader ) {
         Shader::Push();
         material->_Shader->Bind();
     }

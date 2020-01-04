@@ -74,11 +74,14 @@ struct TransformComponent: ECSComponent<TransformComponent> {
     }
 
     void Build() {
-        mWorld = DirectX::XMMatrixIdentity();
+        using namespace DirectX;
+        mWorld = XMMatrixIdentity();
 
-        mWorld *= DirectX::XMMatrixRotationRollPitchYaw(vRotation.x, vRotation.y, vRotation.z);
-        mWorld *= DirectX::XMMatrixScaling(vScale.x, vScale.y, vScale.z);
-        mWorld *= DirectX::XMMatrixTranslation(vPosition.x, vPosition.y, vPosition.z);
+        mWorld *= XMMatrixRotationRollPitchYaw(XMConvertToRadians(vRotation.x), 
+                                               XMConvertToRadians(vRotation.y), 
+                                               XMConvertToRadians(vRotation.z));
+        mWorld *= XMMatrixScaling(vScale.x, vScale.y, vScale.z);
+        mWorld *= XMMatrixTranslation(vPosition.x, vPosition.y, vPosition.z);
     }
 };
 
