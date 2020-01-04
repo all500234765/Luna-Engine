@@ -42,7 +42,7 @@ struct implTexture {
     std::variant<bool, ID3D11Texture1D*, ID3D11Texture2D*, ID3D11Texture3D*> pTexture;
 
     // Format unit
-    std::variant<DXGI_FORMAT, UINT> mFormat;
+    DXGI_FORMAT mFormat;
 
     // Flags
     union {
@@ -132,7 +132,7 @@ private:
         return std::get<ID3D11Texture3D*>(pTexture);
     }
 
-    implTexture* CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D11_SUBRESOURCE_DATA *SubResource, 
+    implTexture* CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *SubResource, 
                                uint32_t ArraySize=1, implTexture* Out=nullptr, uint32_t mips=0u);
 
 public:
@@ -140,7 +140,7 @@ public:
     Texture2() = delete;
 
     // Create empty texture
-    Texture2(UINT flags, std::variant<DXGI_FORMAT, UINT> format, uint32_t w, uint32_t h, uint32_t d=1u, 
+    Texture2(UINT flags, DXGI_FORMAT format, uint32_t w, uint32_t h, uint32_t d=1u, 
              uint32_t ArraySize=1u, std::string_view name="UnnamedEmptyTexture", uint32_t mips=0u);
 
     // Auto loading from file

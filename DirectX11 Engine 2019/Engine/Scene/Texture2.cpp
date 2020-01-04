@@ -1,7 +1,7 @@
 #include "pc.h"
 #include "Texture2.h"
 
-implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D11_SUBRESOURCE_DATA *SubResource, 
+implTexture* Texture2::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *SubResource, 
                                      uint32_t ArraySize, implTexture *Out, uint32_t mips) {
     union local_texture {
         ID3D11Texture1D* _1D;
@@ -12,52 +12,9 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
     ID3D11ShaderResourceView  *pSRV = 0;
     ID3D11UnorderedAccessView *pUAV = 0;
 
-    // Cheese the texture format
-    DXGI_FORMAT formatTex, formatDSV, formatSRV;
-    if( IsDepth ) {
-        switch( std::get<UINT>(format) ) {
-            case 32:
-                formatTex = DXGI_FORMAT_R32_TYPELESS;
-                formatDSV = DXGI_FORMAT_D32_FLOAT;
-                formatSRV = DXGI_FORMAT_R32_FLOAT;
-                break;
-
-            case 24:
-                formatTex = DXGI_FORMAT_R24G8_TYPELESS;
-                formatDSV = DXGI_FORMAT_D24_UNORM_S8_UINT;
-                formatSRV = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-                break;
-
-            case 16:
-                formatTex = DXGI_FORMAT_R16_TYPELESS;
-                formatDSV = DXGI_FORMAT_D16_UNORM;
-                formatSRV = DXGI_FORMAT_R16_UNORM;
-                break;
-        }
-    } else {
-        formatTex = std::get<DXGI_FORMAT>(format);
-        formatSRV = formatTex;
-    }
-
     // MSAA
     uint32_t Quality = 0;
     uint32_t SampleCount = 1;
-
-
-
-    // Create sub-resource data
-    //D3D11_SUBRESOURCE_DATA *SubResource = new D3D11_SUBRESOURCE_DATA[ArraySize * (5u * IsCube + 1u)];
-
-
-
-    // Display warning
-    if( HasUAV && IsDepth ) {
-        // TODO: Test
-        static const char* name[] = { "R16_TYPELESS", "R24G8_TYPELESS", "R32_TYPELESS" };
-            
-        printf_s("[Texture::CreateTexture]: Warning: can't create DSV for texture with UAV! Creating %s type texture with UAV. [%s]\n", 
-                    name[(formatTex == DXGI_FORMAT_R32_TYPELESS) * 2 + (formatTex == DXGI_FORMAT_R24G8_TYPELESS)], mName.data());
-    }
 
     // 
     HRESULT res = S_FALSE;
@@ -86,7 +43,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
     }
 
     // Try to create a texture
-    auto CreateTextureLocal = [formatTex, &res]
+    auto CreateTextureLocal = [format, &res]
                (uint32_t dim, uint32_t mWidth, uint32_t mHeight, uint32_t mDepth, uint32_t ArraySize, 
                 uint32_t MipMaps, uint32_t BindFlags, uint32_t CPUAccess, D3D11_USAGE Usage,
                 uint32_t SampleCount, uint32_t Quality, uint32_t Misc, D3D11_SUBRESOURCE_DATA* subres, 
@@ -102,7 +59,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
             pTexDesc.Usage          = Usage;
             pTexDesc.CPUAccessFlags = CPUAccess;
             pTexDesc.MiscFlags      = Misc;
-            pTexDesc.Format         = formatTex;
+            pTexDesc.Format         = format;
             pTexDesc.Width          = mWidth;
 
             res = gDirectX->gDevice->CreateTexture1D(&pTexDesc, subres, &pTexture._1D);
@@ -115,7 +72,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
             pTexDesc.Usage              = Usage;
             pTexDesc.CPUAccessFlags     = CPUAccess;
             pTexDesc.MiscFlags          = Misc;
-            pTexDesc.Format             = formatTex;
+            pTexDesc.Format             = format;
             pTexDesc.Width              = mWidth;
             pTexDesc.Height             = mHeight;
             pTexDesc.SampleDesc.Count   = SampleCount;
@@ -130,7 +87,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
             pTexDesc.Usage          = Usage;
             pTexDesc.CPUAccessFlags = CPUAccess;
             pTexDesc.MiscFlags      = Misc;
-            pTexDesc.Format         = formatTex;
+            pTexDesc.Format         = format;
             pTexDesc.Width          = mWidth;
             pTexDesc.Height         = mHeight;
             pTexDesc.Depth          = mDepth;
@@ -207,7 +164,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
                 printf_s("[Texture::Create]: Can't create 3D UAV with ArraySize > 1! [%s]\n", mName.data());
             } else {
                 D3D11_UNORDERED_ACCESS_VIEW_DESC pUAVDesc = {};
-                pUAVDesc.Format        = formatSRV;
+                pUAVDesc.Format        = format;
                 pUAVDesc.ViewDimension = (D3D11_UAV_DIMENSION)((D3D11_UAV_DIMENSION_TEXTURE1D + (ArraySize > 1) * (dim < 3)) * dim);
 
                 if( dim == 1 ) {
@@ -244,7 +201,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
     // Create SRV
     if( Usage != D3D11_USAGE_STAGING ) {
         D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc = {};
-        pSRVDesc.Format        = formatSRV;
+        pSRVDesc.Format        = format;
         pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION(
             (dim == 1) ? (D3D11_SRV_DIMENSION_TEXTURE1D + (ArraySize > 1)) : 
             (dim == 2) ? (IsCube ? (D3D11_SRV_DIMENSION_TEXTURECUBE + (ArraySize/6 > 1)) : (D3D11_SRV_DIMENSION_TEXTURE2D + (ArraySize > 1) + 2 * (Quality > 0))) :
@@ -320,7 +277,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
     return Out;
 }
 
-Texture2::Texture2(UINT flags, std::variant<DXGI_FORMAT, UINT> format, 
+Texture2::Texture2(UINT flags, DXGI_FORMAT format, 
                    uint32_t w, uint32_t h, uint32_t d, uint32_t ArraySize, 
                    std::string_view name, uint32_t mips) {
     mFlags = flags;
@@ -353,7 +310,7 @@ void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize, uint
     if( mTextureUnit ) { mTextureUnit->Release(); }
 
     mFlags = flags;
-    std::variant<DXGI_FORMAT, UINT> format = DXGI_FORMAT_R8_UNORM;
+    DXGI_FORMAT format = DXGI_FORMAT_R8_UNORM;
 
     D3D11_SUBRESOURCE_DATA *SubResource;
     uint32_t n;
