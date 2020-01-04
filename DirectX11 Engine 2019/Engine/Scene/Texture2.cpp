@@ -2,7 +2,7 @@
 #include "Texture2.h"
 
 implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D11_SUBRESOURCE_DATA *SubResource, 
-                                     uint32_t ArraySize, implTexture *Out) {
+                                     uint32_t ArraySize, implTexture *Out, uint32_t mips) {
     union local_texture {
         ID3D11Texture1D* _1D;
         ID3D11Texture2D* _2D;
@@ -63,18 +63,18 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
     HRESULT res = S_FALSE;
     UINT BindFlags = D3D11_BIND_SHADER_RESOURCE | 
                      (HasUAV ? D3D11_BIND_UNORDERED_ACCESS : 0)
-                   | (HasMipMaps & !MSAA && (mMipMaps < 1) ? D3D11_BIND_RENDER_TARGET : 0);
-    UINT MipMaps      = MSAA ? 1 : (HasMipMaps ? mMipMaps : 1);
-    UINT CPUAccess    = (CPURead ? D3D11_CPU_ACCESS_READ : 0) | (CPUWrite ? D3D11_CPU_ACCESS_WRITE : 0);
-    D3D11_USAGE Usage = (CPURead ? D3D11_USAGE_STAGING : (CPUWrite ? D3D11_USAGE_DYNAMIC : (Immutable ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT)));
-    UINT Misc         = (HasMipMaps ? (MSAA ? 0 : (mMipMaps > 1 ? 0 : D3D11_RESOURCE_MISC_GENERATE_MIPS)) : 0) | 
-                        (IsCube ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0) | 
-                        (ClampMip ? D3D11_RESOURCE_MISC_RESOURCE_CLAMP : 0) | 
-                        (RContent ? D3D11_RESOURCE_MISC_RESTRICTED_CONTENT : 0) | 
+                   | (HasMipMaps & !MSAA ? D3D11_BIND_RENDER_TARGET : 0);
+    UINT MipMaps      = MSAA ? 1 : (HasMipMaps ? ((mMipMaps == 1) ? 0 : mMipMaps) : 1);
+    UINT CPUAccess    = (CPURead    ? D3D11_CPU_ACCESS_READ : 0) | (CPUWrite ? D3D11_CPU_ACCESS_WRITE : 0);
+    D3D11_USAGE Usage = (CPURead    ? D3D11_USAGE_STAGING : (CPUWrite ? D3D11_USAGE_DYNAMIC : (Immutable ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT)));
+    UINT Misc         = (HasMipMaps ? (MSAA ? 0 : (mips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)) : 0) |
+                        (IsCube     ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0) | 
+                        (ClampMip   ? D3D11_RESOURCE_MISC_RESOURCE_CLAMP : 0) | 
+                        (RContent   ? D3D11_RESOURCE_MISC_RESTRICTED_CONTENT : 0) | 
                         (HWRContent ? D3D11_RESOURCE_MISC_HW_PROTECTED : 0) |
                         (IsTilePool ? D3D11_RESOURCE_MISC_TILE_POOL : 0) |
                         (IsTiled    ? D3D11_RESOURCE_MISC_TILED : 0);
-    D3D11_SUBRESOURCE_DATA *subres = (MipMaps > 1 && (Usage != D3D11_USAGE_IMMUTABLE)) ? nullptr : SubResource;
+    D3D11_SUBRESOURCE_DATA *subres = ((MipMaps > 1 || HasMipMaps) && (Usage != D3D11_USAGE_IMMUTABLE)) ? nullptr : SubResource;
 
     // No CPU access flags can be specified.
     // This flag cannot be used with the following D3D11_USAGE values:
@@ -144,15 +144,15 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
 
     if( FAILED(res) ) {
         printf_s("[Texture::Create]: Failed to create %uD texture! [%s]\n", dim, mName.data());
-    } else if( MipMaps > 1 ) {
+    } else if( (MipMaps > 1 || HasMipMaps) && SubResource ) {
         // Load mip data
         D3D11_BOX src;
-        UINT mips = MipMaps;
+        UINT mips = std::max(1u, MipMaps);
 
         for( UINT i = 0, j = ArraySize; i < j; i++ ) {
             local_texture pTexLocal{};
 
-            CreateTextureLocal(dim, mWidth, mHeight, mDepth, 1, MipMaps, 0, D3D11_CPU_ACCESS_WRITE,
+            CreateTextureLocal(dim, mWidth, mHeight, mDepth, 1, mips, 0, D3D11_CPU_ACCESS_READ,
                                D3D11_USAGE_STAGING, 1, 0, 0, &SubResource[i * mips], pTexLocal);
             
             if( FAILED(res) ) {
@@ -240,7 +240,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
             }
         }
     }
-        
+    
     // Create SRV
     if( Usage != D3D11_USAGE_STAGING ) {
         D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc = {};
@@ -252,8 +252,10 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
             D3D11_SRV_DIMENSION_UNKNOWN
         );
 
+        uint32_t mip_levels = ((MipMaps <= 1) && HasMipMaps) ? -1 : std::max({ 1, (int)MipMaps - 1 });
+
         if( dim == 1 ) {
-            pSRVDesc.Texture1D.MipLevels       = std::max(0, (int)MipMaps - 1);
+            pSRVDesc.Texture1D.MipLevels       = mip_levels;
             pSRVDesc.Texture1D.MostDetailedMip = 0;
 
             if( ArraySize > 1 ) {
@@ -261,7 +263,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
                 pSRVDesc.Texture1DArray.FirstArraySlice = 0;
             }
         } else if( dim == 2  ) {
-            pSRVDesc.Texture2D.MipLevels       = std::max(0, (int)MipMaps);
+            pSRVDesc.Texture2D.MipLevels       = mip_levels;
             pSRVDesc.Texture2D.MostDetailedMip = 0;
 
             if( ArraySize > 1 ) {
@@ -269,7 +271,7 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
                     pSRVDesc.Texture2DMSArray.ArraySize       = ArraySize;
                     pSRVDesc.Texture2DMSArray.FirstArraySlice = 0;
                 } else {
-                    pSRVDesc.Texture2DArray.MipLevels       = std::max(0, (int)MipMaps - 1);
+                    pSRVDesc.Texture2DArray.MipLevels       = mip_levels;
                     pSRVDesc.Texture2DArray.MostDetailedMip = 0;
                     pSRVDesc.Texture2DArray.ArraySize       = ArraySize;
                     pSRVDesc.Texture2DArray.FirstArraySlice = 0;
@@ -278,17 +280,17 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
 
             if( IsCube ) {
                 if( ArraySize == 6 ) {
-                    pSRVDesc.TextureCube.MipLevels       = std::max(0, (int)MipMaps - 1);
+                    pSRVDesc.TextureCube.MipLevels       = mip_levels;
                     pSRVDesc.TextureCube.MostDetailedMip = 0;
                 } else {
-                    pSRVDesc.TextureCubeArray.MipLevels        = std::max(0, (int)MipMaps - 1);
+                    pSRVDesc.TextureCubeArray.MipLevels        = mip_levels;
                     pSRVDesc.TextureCubeArray.MostDetailedMip  = 0;
                     pSRVDesc.TextureCubeArray.First2DArrayFace = 0;
                     pSRVDesc.TextureCubeArray.NumCubes         = floor(ArraySize / 6);
                 }
             }
         } else if( dim == 3 ) {
-            pSRVDesc.Texture3D.MipLevels       = std::max(0, (int)MipMaps - 1);
+            pSRVDesc.Texture3D.MipLevels       = mip_levels;
             pSRVDesc.Texture3D.MostDetailedMip = 0;
         }
 
@@ -296,6 +298,10 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
         if( FAILED(res) ) {
             printf_s("[Texture::Create]: Failed to create SRV! [%s]\n", mName.data());
         }
+
+        // Generate mips for texture
+        if( (MipMaps <= 1) && HasMipMaps && SubResource )
+            gDirectX->gContext->GenerateMips(pSRV);
     }
     
     // 
@@ -314,7 +320,9 @@ implTexture* Texture2::CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D
     return Out;
 }
 
-Texture2::Texture2(UINT flags, std::variant<DXGI_FORMAT, UINT> format, uint32_t w, uint32_t h, uint32_t d, uint32_t ArraySize, std::string_view name) {
+Texture2::Texture2(UINT flags, std::variant<DXGI_FORMAT, UINT> format, 
+                   uint32_t w, uint32_t h, uint32_t d, uint32_t ArraySize, 
+                   std::string_view name, uint32_t mips) {
     mFlags = flags;
     SetName(name);
 
@@ -329,18 +337,19 @@ Texture2::Texture2(UINT flags, std::variant<DXGI_FORMAT, UINT> format, uint32_t 
 
     delete[] SubResource;*/
     
-    mWidth = w; mHeight = h; mDepth = d;
+    mWidth = w; mHeight = h; mDepth = d; mMipMaps = mips;
     mTextureUnit = CreateTexture(format, nullptr, ArraySize * (1 + 5 * IsCube), nullptr);
     SetName(mName);
 }
 
-Texture2::Texture2(std::string_view fname, UINT flags, std::string_view name, uint32_t ArraySize) {
+Texture2::Texture2(std::string_view fname, UINT flags, std::string_view name, 
+                   uint32_t ArraySize, uint32_t mips) {
     SetName(name);
-    Load(fname, flags, ArraySize);
+    Load(fname, flags, ArraySize, mips);
     SetName(mName);
 }
 
-void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize) {
+void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize, uint32_t mips) {
     if( mTextureUnit ) { mTextureUnit->Release(); }
 
     mFlags = flags;
@@ -352,8 +361,10 @@ void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize) {
     // Ext
     const char* ext = path_ext(fname).data();
 
+    // File loader specific
     using namespace tinyddsloader;
     DDSFile dds;
+    void* stbi_image = 0;
 
     // Load texture
     if( !strcmp(ext, "dds") ) {
@@ -376,8 +387,8 @@ void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize) {
         ArraySize = dds.GetArraySize();
 
         // Update flags
-        mFlags |= 1 << (UINT(dds.GetTextureDimension()) - 2);
-        mFlags |= mMipMaps ? tf_MipMaps : 0;
+        mFlags |= (dds.GetTextureDimension() == DDSFile::TextureDimension::Texture3D) ? tf_dim_3 : (1 << (UINT(dds.GetTextureDimension()) - 2));
+        mFlags |= mMipMaps != 1 ? tf_MipMaps : 0;
         mFlags |= dds.IsCubemap() ? tf_Cube : 0;
 
         n = ArraySize;
@@ -401,6 +412,8 @@ void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize) {
         n = ArraySize * (1 + 5 * IsCube);
 
         return;
+
+        //stbi_load();
         /*SubResource = new D3D11_SUBRESOURCE_DATA[n];
 
         // Load subresource data
@@ -419,14 +432,13 @@ void Texture2::Load(std::string_view fname, UINT flags, uint32_t ArraySize) {
     }
 
     // Create texture unit
-    mTextureUnit = CreateTexture(format, SubResource, n, nullptr);
+    mTextureUnit = CreateTexture(format, SubResource, n, nullptr, mips);
     SetName(mName);
     delete[] SubResource;
 
     // Not dds
     if( strcmp(ext, "dds") ) {
-        
-
+        stbi_image_free(stbi_image);
     }
 
 }

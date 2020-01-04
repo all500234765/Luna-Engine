@@ -17,9 +17,10 @@ enum ResizeFlag {
 
 };
 
-enum TextureFlags {
+enum TextureFlags: uint32_t {
     // Texture dimension
-    tf_dim_1 = 1, tf_dim_2 = 2, tf_dim_3 = 4,
+    tf_dim_1 = 1, tf_dim_2 = 2, tf_dim_3 = 3,
+    tf_dim_mask = 3, 
 
     // Misc
     tf_Depth = 8, tf_Array = 16, tf_UAV = 32,
@@ -47,21 +48,21 @@ struct implTexture {
     union {
         uint32_t mFlags;
         struct {
-            uint32_t dim        : 3; // 0-2
-            uint32_t IsDepth    : 1; // 3
-            uint32_t IsArray    : 1; // 4
-            uint32_t HasUAV     : 1; // 5
-            uint32_t MSAA       : 1; // 6 // ?
-            uint32_t IsCube     : 1; // 7
-            uint32_t HasMipMaps : 1; // 8
-            uint32_t CPURead    : 1; // 9
-            uint32_t CPUWrite   : 1; // 10
-            uint32_t ClampMip   : 1; // 11
-            uint32_t RContent   : 1; // 12
-            uint32_t HWRContent : 1; // 13
-            uint32_t Immutable  : 1; // 14
-            uint32_t IsTilePool : 1; // 15
-            uint32_t IsTiled    : 1; // 16
+            uint32_t dim        : 2; // 0-1
+            uint32_t IsDepth    : 1; // 2
+            uint32_t IsArray    : 1; // 3
+            uint32_t HasUAV     : 1; // 4
+            uint32_t MSAA       : 1; // 5 // ?
+            uint32_t IsCube     : 1; // 6
+            uint32_t HasMipMaps : 1; // 7
+            uint32_t CPURead    : 1; // 8
+            uint32_t CPUWrite   : 1; // 9
+            uint32_t ClampMip   : 1; // 10
+            uint32_t RContent   : 1; // 11
+            uint32_t HWRContent : 1; // 12
+            uint32_t Immutable  : 1; // 13
+            uint32_t IsTilePool : 1; // 14
+            uint32_t IsTiled    : 1; // 15
         };
     };
 
@@ -132,7 +133,7 @@ private:
     }
 
     implTexture* CreateTexture(std::variant<DXGI_FORMAT, UINT> format, D3D11_SUBRESOURCE_DATA *SubResource, 
-                               uint32_t ArraySize=1, implTexture* Out=nullptr) ;
+                               uint32_t ArraySize=1, implTexture* Out=nullptr, uint32_t mips=0u);
 
 public:
     // Deleted call
@@ -140,12 +141,13 @@ public:
 
     // Create empty texture
     Texture2(UINT flags, std::variant<DXGI_FORMAT, UINT> format, uint32_t w, uint32_t h, uint32_t d=1u, 
-             uint32_t ArraySize=1u, std::string_view name="UnnamedEmptyTexture");
+             uint32_t ArraySize=1u, std::string_view name="UnnamedEmptyTexture", uint32_t mips=0u);
 
     // Auto loading from file
-    Texture2(std::string_view fname, UINT flags=0u, std::string_view name="UnnamedTexture", uint32_t ArraySize=1u);
+    Texture2(std::string_view fname, UINT flags=0u, std::string_view name="UnnamedTexture", 
+             uint32_t ArraySize=1u, uint32_t mips=0u);
 
-    void Load(std::string_view fname, UINT flags=0u, uint32_t ArraySize=1u);
+    void Load(std::string_view fname, UINT flags=0u, uint32_t ArraySize=1u, uint32_t mips=0u);
 
     // Setters
     inline void SetMinLOD(uint32_t min_lod) {

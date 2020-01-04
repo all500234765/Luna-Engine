@@ -8,9 +8,9 @@ ConstantBuffer* RenderTargetMSAA::g_MSAAConstantBuffer = 0;
 
 void implRenderTarget::Release() {
     if( pTexture.index() > 0 ) {
-        if( (mFlags & dim_1) && std::get<ID3D11Texture1D*>(pTexture) ) { std::get<ID3D11Texture1D*>(pTexture)->Release(); }
-        if( (mFlags & dim_2) && std::get<ID3D11Texture2D*>(pTexture) ) { std::get<ID3D11Texture2D*>(pTexture)->Release(); }
-        if( (mFlags & dim_3) && std::get<ID3D11Texture3D*>(pTexture) ) { std::get<ID3D11Texture3D*>(pTexture)->Release(); }
+        if( (mFlags & dim_1)            && std::get<ID3D11Texture1D*>(pTexture) ) { std::get<ID3D11Texture1D*>(pTexture)->Release(); }
+        if( (mFlags & dim_2)            && std::get<ID3D11Texture2D*>(pTexture) ) { std::get<ID3D11Texture2D*>(pTexture)->Release(); }
+        if( ((mFlags & dim_3) == dim_3) && std::get<ID3D11Texture3D*>(pTexture) ) { std::get<ID3D11Texture3D*>(pTexture)->Release(); }
     }
 
     if( pView.index() > 0 ) {
