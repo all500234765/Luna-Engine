@@ -181,10 +181,10 @@ public:
     inline uint32_t                   GetArraySize() const { return mArraySize;                     }
     inline uint32_t                   GetCubeNum()   const { return floor(mArraySize / 6);          }
 
-    // 
     // Copy data from another texture
     inline void Copy(Texture *src) { gDirectX->gContext->CopyResource(GetResource(), src->GetResource()); }
     inline void Copy(ID3D11Texture2D *src) { gDirectX->gContext->CopyResource(GetResource(), src); }
+    
     void SetSubresource(const D3D11_SUBRESOURCE_DATA* resource, UINT mip=0, UINT array=0);
     void Resize(uint32_t w, uint32_t h, uint32_t d=1u, TResizeFlag SaveContent= TResizeFlag::Clear);
     void Bind(UINT type, UINT slot=0u, bool UAV=false);

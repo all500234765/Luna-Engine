@@ -1,33 +1,41 @@
 #include "ShaderDefines.h"
 
-float _IsTransparent;
-float _UseVertexColor;
-float _FlipNormals;
-float _Alb;
+_ShDefault_(float, _IsTransparent, 0);
+_ShDefault_(float, _UseVertexColor, 0);
+_ShDefault_(float, _FlipNormals, 0);
+_ShDefault_(float, _Alb, 0);
 
-float _Norm;
-float _Metal;
-float _Rough;
-float _Emis;
+_ShDefault_(float, _Norm, 0);
+_ShDefault_(float, _Metal, 0);
+_ShDefault_(float, _Rough, 0);
+_ShDefault_(float, _Emis, 0);
 
-float _AO;
-float _ShadowReceiver;
-float _ShadowCaster;
-float _MatPadding;
-//float _MatPadding[32 - 11];
+_ShDefault_(float, _AO, 0);
+_ShDefault_(float, _ShadowReceiver, 1);
+_ShDefault_(float, _ShadowCaster, 1);
+_ShDefault_(float, _MatPadding1, 0);
 
-float _Alpha;
+_ShDefault_(float, _Alpha, 1);
+_ShDefault_(float, _AlbedoMul, 1);
+_ShDefault_(float, _NormalMul, 1);
+_ShDefault_(float, _MetallnessMul, 1);
 
-float _AlbedoMul;
-float _NormalMul;
-float _MetallnessMul;
+_ShDefault_(float, _RoughnessMul, 1.f);
+_ShDefault_(float, _AmbientOcclusionMul, 1.f);
+_ShDefault_(float, _EmissionMul, 1.f);
+_ShDefault_(uint32_t, _MaterialLayer, 0xFFFFFFFF);
 
-float _RoughnessMul;
-float _AmbientOcclusionMul;
-float _EmissionMul;
+_ShDefault_(float3, _EmissionColor, float3(0.f, 0.f, 0.f));
+_ShDefault_(float, _MatPadding2, 0);
 
-uint32_t _MaterialLayer;
+#ifdef _MATERIAL_EXT_
 
-float3 _EmissionColor;
-float _MatPadding2;
+// C++ side only
+_Shader_(_Shader);
+_Shader_(_ShaderDepth);
+_ShDefault_(uint32_t, _MatDrawCallType, DXDRAWINDEXED);
+_ShDefault_(uint32_t, _MatBindingShader, 0);
+Topology _MatTopology = (Topology)0;
+
+#endif
 

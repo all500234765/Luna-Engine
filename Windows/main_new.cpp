@@ -13,9 +13,12 @@
 #include "Engine/Window/SplashScreen.h"
 
 HighLevel gHighLevel;
-Texture *g_Texture;
 RendererBase *gRenderer;
 Scene *gMainScene;
+
+Shader *shTerrain{}, *shTerrainDepth{};
+
+EntityHandleList g_eTerrain{};
 
 bool g_bMouseHUD{};
 float g_fAvgMS{};
@@ -176,6 +179,8 @@ void _DirectX::Tick(float fDeltaTime) {
         float wh = wcfg.CurrentHeight;
 
         gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
+    } else {
+
     }
 
     g_iTickFrame++;
@@ -208,23 +213,49 @@ void _DirectX::CreateResources() {
     // Create renderer's resources
     gRenderer->Init();
 
-    //g_Texture = new Texture(tf_dim_2 | tf_Cube, DXGI_FORMAT_R8G8B8A8_UNORM, 8u, 8u, 1u, 2u);
-    //g_Texture = new Texture(tf_dim_2 | tf_MipMaps, DXGI_FORMAT_R32G32B32A32_FLOAT, 64u, 64u, 1u, 2u, std::string_view("gfd"));
-    g_Texture = new Texture("../Textures/Bokeh.dds", tf_MipMaps, "Bokeh", 1u);
-    //g_Texture = new Texture("../Textures/Cubemap default.dds");
-    //g_Texture->Release();
+    // Load Terrain shaders
+    shTerrainDepth = new Shader();
+    shTerrainDepth->SetLayoutGenerator(LayoutGenerator::LgMesh);
+    shTerrainDepth->LoadFile("shTerrainVS.cso", Shader::Vertex);
+    shTerrainDepth->LoadFile("shTerrainHS.cso", Shader::Hull);
+    shTerrainDepth->LoadFile("shTerrainDS.cso", Shader::Domain);
+    shTerrainDepth->SetNullShader(Shader::Pixel);
+
+    shTerrain = new Shader();
+    shTerrain->SetLayoutGenerator(LayoutGenerator::LgMesh);
+    shTerrain->AttachShader(shTerrainDepth, Shader::Vertex);
+    shTerrain->AttachShader(shTerrainDepth, Shader::Hull);
+    shTerrain->AttachShader(shTerrainDepth, Shader::Domain);
+    shTerrain->LoadFile("shTerrainPS.cso", Shader::Pixel);
+
+    shTerrain->ReleaseBlobs();
+    shTerrainDepth->ReleaseBlobs();
 
     // Add models
     gMainScene->SetSkybox("../Textures/Cubemap default.dds");
-    /*gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj",
-                                      [](TransformComponent *transf, MaterialComponent *mat) {
-        mat->_Alb = true;
-        mat->_AlbedoTex = new Texture("../Textures/environment.dds");
+    gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj",
+                                      [](EntityHandle e, uint32_t index) {
+        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
+        MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
 
-    });*/
+        transf->vPosition = { 0.f, 0.f, 0.f };
+        transf->vRotation = { 0.f, 0.f, 0.f };
+        transf->vScale = float3(1000.f, 1000.f, 1000.f);
+        transf->Build();
 
-    gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
-                                      [](TransformComponent *transf, MaterialComponent *mat) {
+        mat->_ShadowCaster   = 0.f;
+        mat->_ShadowReceiver = 0.f;
+
+        //mat->_Alb = true;
+        //mat->_AlbedoTex = new Texture("../Textures/environment.dds");
+
+    });
+
+    /*gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
+                                      [](EntityHandle e, uint32_t index) {
+        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
+        MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
+
         //transf->vScale = float3(5.f, 5.f, 5.f);
         transf->vScale = float3(3.f, 3.f, 3.f);
 
@@ -238,6 +269,26 @@ void _DirectX::CreateResources() {
         transf->Build();
 
         mat->_Norm = 1.f;
+    });*/
+
+    g_eTerrain = gMainScene->LoadModelStaticOpaque("../Models/Plane.obj", 
+                                                   [](EntityHandle e, uint32_t index) {
+        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
+        MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
+        MeshStaticComponent *mesh  = gMainScene->GetComponent<MeshStaticComponent>(e);
+
+        transf->vPosition = { 0.f, 0.f, 0.f };
+        transf->vRotation = { 0.f, 0.f, 0.f };
+        transf->vScale = float3(3.f, 3.f, 3.f);
+        transf->Build();
+        
+        mat->_ShaderDepth      = shTerrainDepth;
+        mat->_Shader           = shTerrain;
+        mat->_MatDrawCallType  = DXDRAWINDEXED;//DXDRAWINDEXEDINSTANCED;
+        mat->_MatBindingShader = Shader::Domain << (32 - Shader::Count);
+        mat->_MatTopology      = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
+
+        mesh->mInstanceCount = 4;
     });
 
     // TODO: Try DefaultTexture.png
@@ -273,8 +324,10 @@ void _DirectX::InitGameData() {
 }
 
 void _DirectX::FreeResources() {
+    shTerrain->Release();
+    shTerrainDepth->Release();
+
     gRenderer->Release();
-    g_Texture->Release();
     // TODO: Must!
     //gMainScene->ReleaseResources();
 }

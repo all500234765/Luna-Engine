@@ -25,6 +25,7 @@
 #include "Other/DrawCall.h"
 #include "Engine/Window/Window.h"
 #include "Engine/Textures/CubemapTexture.h"
+#include "Engine/States/TopologyState.h"
 
 // Components
 #include "Components/Components.h"
@@ -222,14 +223,18 @@ private:
         mat._AmbientOcclusionMul = 1.f;
         mat._EmissionMul         = 1.f;
 
+        mat._RoughnessSampl        = nullptr;
+        mat._EmissionSampl         = nullptr;
+        mat._AmbientOcclusionSampl = nullptr;
+
         return mat;
     }
 
     TransformComponent DefaultTransformComp() const {
-        TransformComponent transform;
+        TransformComponent transform{};
         transform.mWorld    = DirectX::XMMatrixIdentity();
-        transform.vPosition = {};
-        transform.vRotation = {};
+        transform.vPosition = { 0.f, 0.f, 0.f };
+        transform.vRotation = { 0.f, 0.f, 0.f };
         transform.vScale    = { 1.f, 1.f, 1.f };
 
         return transform;
@@ -306,7 +311,12 @@ private:
         for( size_t i = 0; i < inMesh->mNumVertices; i++ ) {
             Position.push_back({ inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z });
             Normal  .push_back({ inMesh->mNormals [i].x, inMesh->mNormals [i].y, inMesh->mNormals [i].z });
-            Tangent .push_back({ inMesh->mTangents[i].x, inMesh->mTangents[i].y, inMesh->mTangents[i].z });
+            
+            if( inMesh->mTangents ) {
+                Tangent.push_back({ inMesh->mTangents[i].x, inMesh->mTangents[i].y, inMesh->mTangents[i].z });
+            } else {
+                Tangent.push_back({ 0, 0, 0 });
+            }
 
             if( inMesh->mTextureCoords[0] ) {
                 Texcoord.push_back({ inMesh->mTextureCoords[0][i].x, inMesh->mTextureCoords[0][i].y });
@@ -655,9 +665,13 @@ public:
         return {};
     }
 
-    EntityHandleList LoadModelStaticOpaque(const char* fname, void(*Operator)(TransformComponent*, MaterialComponent*)=[](TransformComponent*, MaterialComponent*)->void{}) {
+    EntityHandleList LoadModelStaticOpaque(const char* fname, 
+                                           void(*Operator)(EntityHandle e, uint32_t index)
+                                           =[](EntityHandle e, uint32_t index)->void{}) {
         EntityHandleList list = LoadModelStatic(fname);
-        for( auto e : list ) Operator(GetComponent<TransformComponent>(e), GetComponent<MaterialComponent>(e));
+        
+        uint32_t i = 0;
+        for( auto e : list ) Operator(e, i++);
 
         AddOpaque(list);
         return list;

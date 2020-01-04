@@ -96,8 +96,10 @@ struct CameraComponent: ECSComponent<CameraComponent> {
 };
 
 struct MaterialComponent: ECSComponent<MaterialComponent> {
+#define _MATERIAL_EXT_
     #include "Material.h"
     #include "MaterialTextures.h"
+#undef _MATERIAL_EXT_
 
     void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot, uint32_t flags) {
         if( (flags & RendererFlags::DepthPass) == 0 ) {
@@ -224,7 +226,8 @@ struct MeshComponent {
 
     IndexBuffer *mIndexBuffer;
 
-    uint32_t mReferenced;
+    uint32_t mReferenced{};
+    uint32_t mInstanceCount{};
 };
 
 struct MeshStaticComponent: ECSComponent<MeshStaticComponent>, MeshComponent {

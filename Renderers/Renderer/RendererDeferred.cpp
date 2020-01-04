@@ -720,7 +720,7 @@ void RendererDeferred::Shadows() {
         mScene->SetActiveCamera(1);
         
         {
-            mScene->BindCamera(1, Shader::Vertex, 1); // Light camera
+            mScene->BindCamera(1, Shader::Domain | Shader::Vertex, 1); // Light camera
             mScene->Render(RendererFlags::ShadowPass | RendererFlags::OpaquePass, Shader::Vertex);
         }
 
@@ -776,8 +776,8 @@ void RendererDeferred::GBuffer() {
     s_material.sampl.linear->Bind(Shader::Pixel, 8);
 
     // Bind CBs
-    mScene->BindCamera(0, Shader::Vertex, 1); // Main camera
-    mScene->BindCamera(1, Shader::Vertex, 2); // Shadow camera
+    mScene->BindCamera(0, Shader::Domain | Shader::Vertex, 1); // Main camera
+    mScene->BindCamera(1, Shader::Domain | Shader::Vertex, 2); // Shadow camera
 
     // Bind material layers
     uint32_t old_ml = mScene->GetEnabledMaterialLayers();

@@ -45,10 +45,31 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
     // If material can't cast shadows and currently we are rendering shadow map
     //      Then skip
     if( (flags & RendererFlags::ShadowPass) && !material->_ShadowCaster ) return;
+    if( flags & RendererFlags::ShadowPass && material->_ShaderDepth ) {
+        Shader::Push();
+        material->_ShaderDepth->Bind();
+    } else if( material->_ShaderDepth ) {
+        Shader::Push();
+        material->_Shader->Bind();
+    }
 
     // Target shader types
-    Shader::ShaderType type = Shader::ShaderType(flags >> 25);
+    Shader::ShaderType type     = Shader::ShaderType( flags >> 25);
     Shader::ShaderType mat_type = Shader::ShaderType((flags >> 18) & 0x7F);
+
+    // Custom values from material data
+    if( material->_MatBindingShader != 0u ) {
+        uint32_t _type     =  material->_MatBindingShader >> 25;
+        uint32_t _mat_type = (material->_MatBindingShader >> 18) & 0x7F;
+
+        if( _type     > 0u ) type     = (Shader::ShaderType)_type;
+        if( _mat_type > 0u ) mat_type = (Shader::ShaderType)_mat_type;
+    }
+
+    if( material->_MatTopology ) {
+        STopologyState::Push();
+        STopologyState::Bind(material->_MatTopology);
+    }
 
     // Bind mesh data
     mesh->Bind();
@@ -58,7 +79,20 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
     // TODO: Make sorting by materials
 
     // Draw call
-    DXDrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);
+    switch( material->_MatDrawCallType ) {
+        case DXDRAWINDEXED         : DXDrawIndexed(mesh->mIndexBuffer->GetNumber(), 0, 0);                                   break;
+        case DXDRAWINDEXEDINSTANCED: DXDrawIndexedInstanced(mesh->mIndexBuffer->GetNumber(), mesh->mInstanceCount, 0, 0, 0); break;
+        case DXDRAWINSTANCED       : DXDrawInstanced(mesh->mVBPosition->GetNumber(), mesh->mInstanceCount, 0, 0);            break;
+        case DXDRAW                : DXDraw(mesh->mVBPosition->GetNumber(), 0);                                              break;
+        case DXDRAWAUTO            : DXDrawAuto();                                                                           break;
+    }
+    
+    // Restore states
+    if( flags & RendererFlags::ShadowPass && material->_ShaderDepth ) 
+        Shader::Pop();
+
+    if( material->_MatTopology )
+        STopologyState::Pop();
 }
 
 MovementControlIntegrationSystem::MovementControlIntegrationSystem(): BaseECSSystem() {

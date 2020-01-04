@@ -1,8 +1,9 @@
-cbuffer MatrixBuffer : register(b0) {
-    float4x4 mWorld;
-    float4x4 mView;
-    float4x4 mProj;
-    float4   vPosition;
+cbuffer MeshBuffer : register(b0) {
+    #include "Transform.h"
+}
+
+cbuffer MatrixBuffer : register(b1) {
+    #include "Camera.h"
 };
 
 struct TS {
@@ -36,8 +37,8 @@ PS main(TS In, float3 uvwCoord : SV_DomainLocation, const OutputPatch<DS, 3> pat
              uvwCoord.z * path[2].Normal;
 
     Out.Position = mul(mWorld, float4(Vertex, 1.));
-    Out.Position = mul(mView, Out.Position);
-    Out.Position = mul(mProj, Out.Position);
+    Out.Position = mul(mView0, Out.Position);
+    Out.Position = mul(mProj0, Out.Position);
 
     Out.Normal = mul(mWorld, float4(Normal, 0.)).xyz;
     Out.Texcoord = path[0].Texcoord;
