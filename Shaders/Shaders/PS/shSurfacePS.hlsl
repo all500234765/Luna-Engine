@@ -12,17 +12,17 @@ cbuffer cbBasicFog : register(b2) {
 
 #include "MaterialTextures.h"
 
-Texture2D<float1> _DepthTexture       : register(t6);
-SamplerComparisonState  _DepthSampler : register(s6) {
+Texture2D<float1> _DepthTexture       : register(t8);
+SamplerComparisonState  _DepthSampler : register(s8) {
     Filter = COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
     ComparisonFunc = GREATER;
 };
 
-Texture2D<float2> _NoiseTexture : register(t7);
-SamplerState _NoiseSampler      : register(s7);
+Texture2D<float2> _NoiseTexture : register(t9);
+SamplerState _NoiseSampler      : register(s9);
 
-TextureCube<float3> _CubemapTexture : register(t8);
-SamplerState        _CubemapSampler : register(s8);
+TextureCube<float3> _CubemapTexture : register(t10);
+SamplerState        _CubemapSampler : register(s10);
 
 struct PS {
     float4   Position : SV_Position;
@@ -138,7 +138,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     if( _FlipNormals ) N *= -1.f;
     
     // Sample PBR textures
-    float3 Albedo   = _AlbedoTex.Sample(_AlbedoSampl, In.Texcoord).rgb * _AlbedoMul;
+    float3 Albedo   = pow(_AlbedoTex.Sample(_AlbedoSampl, In.Texcoord).rgb, 2.2f) * _AlbedoMul;
     float1 Metallic = _MetallicTex.Sample(_MetallicSampl, In.Texcoord).r * _MetallnessMul;
     float1 Rougness = _RoughnessTex.Sample(_RoughnessSampl, In.Texcoord).r * _RoughnessMul;
     float1 AOccl    = _AmbientOcclusionTex.Sample(_AmbientOcclusionSampl, In.Texcoord).r * _AmbientOcclusionMul;
@@ -190,12 +190,14 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     float3 Diffuse    = Irradiance * Albedo.rgb;
     float3 AmbientIBL = KD * Diffuse;
     
-    Ambient *= AmbientIBL;
-    Direct = Diffuse;
+    //Ambient *= AmbientIBL;
+    //Direct = Diffuse + Ambient;
+    
+    Direct = Albedo.rgb;
     
     // Shadow mapping
     //float S = SampleShadow(In.LightPos) * s + (1. - s); // lerp(a, b, x) = a + (b - a) * x;
-    const float s = 1.f;
+    const float s = .5f;
     float S = lerp(1.f - s, 1.f, SampleShadow(In.LightPos));
     Direct *= S;
     

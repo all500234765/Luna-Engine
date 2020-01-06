@@ -74,19 +74,19 @@ void RendererDeferred::Init() {
 #pragma region Default Textures
     s_material.mCubemap = new Texture("../Textures/Cubemap default.dds");
     
-    s_material.tex.checkboard = new Texture("../Textures/DefaultTileBig.png");
-    s_material.tex.checkboard->SetName("Default texture");
+    s_material.ti.tex.checkboard = new Texture("../Textures/DefaultTileBig.png");
+    s_material.ti.tex.checkboard->SetName("Default texture");
     
-    s_material.tex.bluenoise_rg_512 = new Texture("../Textures/Noise/Blue/LDR_RG01_0.png", 0u, "Blue noise RG", 1u, DXGI_FORMAT_R16G16_UNORM);
+    s_material.ti.tex.bluenoise_rg_512 = new Texture("../Textures/Noise/Blue/LDR_RG01_0.png", 0u, "Blue noise RG", 1u, DXGI_FORMAT_R16G16_UNORM);
 
-    s_material.tex.tile_normal = new Texture("../Textures/Normal.png");
-    s_material.tex.tile_normal->SetName("Tile normalmap");
+    s_material.ti.tex.tile_normal = new Texture("../Textures/Normal.png");
+    s_material.ti.tex.tile_normal->SetName("Tile normalmap");
 
-    s_material.tex.black = new Texture("../Textures/Black.png");
-    s_material.tex.black->SetName("Black");
+    s_material.ti.tex.black = new Texture("../Textures/Black.png");
+    s_material.ti.tex.black->SetName("Black");
 
-    s_material.tex.white = new Texture("../Textures/White.png");
-    s_material.tex.white->SetName("White");
+    s_material.ti.tex.white = new Texture("../Textures/White.png");
+    s_material.ti.tex.white->SetName("White");
 #pragma endregion
 
 #pragma region Samplers
@@ -142,16 +142,19 @@ void RendererDeferred::Init() {
 
     {
         D3D11_BLEND_DESC pDesc;
-        pDesc.RenderTarget[0].BlendEnable = true;
-        pDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-        pDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-        pDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-        pDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        pDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-        pDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+        pDesc.RenderTarget[0].BlendEnable           = true;
+        pDesc.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
+        pDesc.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
+
+        pDesc.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
+        pDesc.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
+        
+        pDesc.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_INV_SRC_ALPHA;
+        pDesc.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_SRC_ALPHA;
+        
         pDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-        pDesc.AlphaToCoverageEnable = false;
+        pDesc.AlphaToCoverageEnable  = false;
         pDesc.IndependentBlendEnable = false;
 
         s_states.blend.normal->Create(pDesc, { 1.f, 1.f, 1.f, 1.f });
@@ -373,12 +376,12 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(rtDeferred);
 
     // Textures
-    SAFE_RELEASE(s_material.tex.bluenoise_rg_512);
-    SAFE_RELEASE(s_material.tex.checkboard);
-    SAFE_RELEASE(s_material.tex.black);
-    SAFE_RELEASE(s_material.tex.white);
+    SAFE_RELEASE(s_material.ti.tex.bluenoise_rg_512);
+    SAFE_RELEASE(s_material.ti.tex.tile_normal);
+    SAFE_RELEASE(s_material.ti.tex.checkboard);
+    SAFE_RELEASE(s_material.ti.tex.black);
+    SAFE_RELEASE(s_material.ti.tex.white);
     SAFE_RELEASE(s_material.mCubemap);
-    SAFE_RELEASE(s_material.tex.tile_normal);
 
     // Samplers
     SAFE_RELEASE(s_material.sampl.point      );
@@ -684,7 +687,7 @@ void RendererDeferred::DebugHUD() {
     // Draw black rectangle to black everything before
     transf.vScale = { Width() * .5f, h, 1.f };
     transf.vPosition = { Width() * .5f, h, 0.f };
-    s_material.tex.black->Bind(Shader::Pixel);
+    s_material.ti.tex.black->Bind(Shader::Pixel);
 
     transf.Build();
     transf.Bind(cbTransform, Shader::Vertex, 0);
@@ -759,31 +762,33 @@ void RendererDeferred::GBuffer() {
     s_material.sampl.point->Bind(Shader::Pixel, 0);
     s_material.sampl.linear->Bind(Shader::Pixel, 1);
 
-    for( uint32_t i = 2; i < 6; i++ ) {
+    for( uint32_t i = 2; i < 8; i++ ) {
         s_material.sampl.point->Bind(Shader::Pixel, i);
     }
 
-    s_material.tex.checkboard->Bind(Shader::Pixel, 0);  // Albedo
-    s_material.tex.tile_normal->Bind(Shader::Pixel, 1); // Normal
-    s_material.tex.black->Bind(Shader::Pixel, 2);       // Metallic
-    s_material.tex.black->Bind(Shader::Pixel, 3);       // Roughness
-    s_material.tex.black->Bind(Shader::Pixel, 4);       // Emission
-    s_material.tex.white->Bind(Shader::Pixel, 5);       // Ambient Occlusion
+    s_material.ti.tex.checkboard->Bind(Shader::Pixel, 0);  // Albedo
+    s_material.ti.tex.tile_normal->Bind(Shader::Pixel, 1); // Normal
+    s_material.ti.tex.black->Bind(Shader::Pixel, 2);       // Metallic
+    s_material.ti.tex.black->Bind(Shader::Pixel, 3);       // Roughness
+    s_material.ti.tex.black->Bind(Shader::Pixel, 4);       // Emission
+    s_material.ti.tex.white->Bind(Shader::Pixel, 5);       // Ambient Occlusion
+    s_material.ti.tex.white->Bind(Shader::Pixel, 6);       // Heightmap
+    s_material.ti.tex.white->Bind(Shader::Pixel, 7);       // Opacity
 
     // Bind ambient light
     mScene->BindAmbientLight(Shader::Pixel, 1);
 
     // Bind depth buffer
-    rtDepth->Bind(0u, Shader::Pixel, 6);
-    s_material.sampl.linear_comp->Bind(Shader::Pixel, 6);
+    rtDepth->Bind(0u, Shader::Pixel, 8);
+    s_material.sampl.linear_comp->Bind(Shader::Pixel, 8);
 
     // Bind noise texture
-    s_material.tex.bluenoise_rg_512->Bind(Shader::Pixel, 7);
-    s_material.sampl.point->Bind(Shader::Pixel, 7);
+    s_material.ti.tex.bluenoise_rg_512->Bind(Shader::Pixel, 9);
+    s_material.sampl.point->Bind(Shader::Pixel, 9);
 
     // Bind cubemap
-    s_material.mCubemap->Bind(Shader::Pixel, 8);
-    s_material.sampl.linear->Bind(Shader::Pixel, 8);
+    s_material.mCubemap->Bind(Shader::Pixel, 10);
+    s_material.sampl.linear->Bind(Shader::Pixel, 10);
 
     // Bind CBs
     mScene->BindCamera(0, Shader::Domain | Shader::Vertex, 1); // Main camera

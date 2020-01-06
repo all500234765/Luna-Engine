@@ -24,7 +24,6 @@
 #include "HighLevel/DirectX/Utlities.h"
 #include "Other/DrawCall.h"
 #include "Engine/Window/Window.h"
-#include "Engine/Textures/CubemapTexture.h"
 #include "Engine/States/TopologyState.h"
 
 // Components
@@ -240,6 +239,7 @@ private:
         return transform;
     }
 
+    typedef std::map<std::string, std::pair<aiTextureType, std::vector<uint32_t>>> LoaderTextureList;
     EntityHandleList LoadModelExternalStatic(const char* fname) {
 
         TransformComponent transform = DefaultTransformComp();
@@ -257,7 +257,67 @@ private:
         // Process scene
         std::vector<MeshStaticComponent> mMeshList;
         std::vector<MaterialComponent> mMatList;
-        ProcessNodeStatic(scene->mRootNode, scene, &mMeshList, &mMatList);
+        LoaderTextureList mTextureFileList;
+
+        uint32_t index = 0u;
+        ProcessNodeStatic(scene->mRootNode, scene, &mMeshList, &mMatList, &mTextureFileList, index);
+
+        // Get current model's directory
+        char drive[_MAX_DRIVE];
+        char dir[_MAX_DIR];
+        char fnm[_MAX_FNAME];
+        char ext[_MAX_EXT];
+
+        WCHAR cdir[_MAX_DIR];
+        GetCurrentDirectory(_MAX_DIR, cdir);
+        std::string ndir = narrow(cdir) + "/";
+
+        _splitpath((ndir + fname).c_str(), drive, dir, fnm, ext);
+
+        std::string path = "";
+        path = drive;
+        path += dir;
+
+        _splitpath((ndir + "../Textures/").c_str(), drive, dir, fnm, ext);
+        
+        std::string tpath = "";
+        tpath = drive;
+        tpath += dir;
+
+        // Load textures & attach to materials
+        for( LoaderTextureList::iterator e = mTextureFileList.begin(); e != mTextureFileList.end(); e++ ) {
+            LoaderTextureList::mapped_type data = e->second;
+            std::string fnme = e->first;
+            Texture *texture = 0;
+
+            // Build paths
+            std::string file1 = path + fnme;
+            std::string file2 = tpath + fnme;
+
+            // Search in current directory
+            bool flag = false;
+            if( file_exists(file1) ) {
+                texture = new Texture(file1, tf_MipMaps);
+                flag = true;
+            } else if( file_exists(file2) ) {
+                texture = new Texture(file2, tf_MipMaps);
+                flag = true;
+            }
+
+            if( flag ) {
+                // Assign texture
+                switch( data.first ) {
+#define MIND(type, tex) case type: for( uint32_t mind : data.second ) mMatList[mind].tex = texture; break;
+                    MIND(aiTextureType_DIFFUSE, _AlbedoTex);
+                    //MIND(aiTextureType_DIFFUSE, _AlbedoTex);
+                    //MIND(aiTextureType_DIFFUSE, _AlbedoTex);
+                    //MIND(aiTextureType_DIFFUSE, _AlbedoTex);
+#undef MIND
+                }
+            } else {
+                printf_s("[Scene::ModelLoader]: Failed to load texture! [%s]\n", fnme.c_str());
+            }
+        }
 
         // Done
         if( mMeshList.size() == 1 ) {
@@ -276,21 +336,27 @@ private:
     }
 
     void ProcessNodeStatic(aiNode* node, const aiScene* scene, std::vector<MeshStaticComponent>* MeshList, 
-                           std::vector<MaterialComponent>* MatList) {
+                           std::vector<MaterialComponent>* MatList, 
+                           LoaderTextureList* TextureList,
+                           uint32_t& index) {
         // Process meshes
-        for( size_t i = 0; i < node->mNumMeshes; i++ ) {
+//#pragma omp parallel for num_threads(8)
+        for( int32_t i = 0; i < node->mNumMeshes; i++ ) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-            MeshList->push_back(ProcessMeshStatic(mesh, scene, MatList));
+            MeshList->push_back(ProcessMeshStatic(mesh, scene, MatList, TextureList, index));
+            index++;
         }
 
         // Process children
         for( size_t i = 0; i < node->mNumChildren; i++ ) {
-            ProcessNodeStatic(node->mChildren[i], scene, MeshList, MatList);
+            ProcessNodeStatic(node->mChildren[i], scene, MeshList, MatList, TextureList, index);
         }
     }
 
     MeshStaticComponent ProcessMeshStatic(aiMesh* inMesh, const aiScene* scene, 
-                           std::vector<MaterialComponent>* MatList) {
+                           std::vector<MaterialComponent>* MatList, 
+                           LoaderTextureList* TextureList, 
+                           uint32_t index) {
         MaterialComponent mat = DefaultMaterialComp();
         MeshStaticComponent mesh{};
 
@@ -344,6 +410,28 @@ private:
         m->Get(AI_MATKEY_OPACITY, alpha);
         mat._Alpha = alpha;
         if( mat._Alpha < 1.f ) { mat._IsTransparent = 1.f; }
+
+        // Gather material textures
+        auto AddTexture = [&TextureList, index, m](aiTextureType type) {
+            aiString fname;
+            m->GetTexture(type, 0, &fname);
+            std::string s = fname.C_Str();
+
+            // No texture found
+            if( !strcmp(fname.C_Str(), "") ) return;
+            LoaderTextureList::iterator it = TextureList->find(s);
+
+            if( it == TextureList->end() ) {
+                // Add
+                TextureList->insert_or_assign(s, LoaderTextureList::mapped_type({ type, { index } }));
+                return;
+            }
+
+            TextureList->at(s).second.push_back(index);
+        };
+
+        AddTexture(aiTextureType::aiTextureType_DIFFUSE);
+
 
         // Create buffers
         mesh.mIndexBuffer = new IndexBuffer();

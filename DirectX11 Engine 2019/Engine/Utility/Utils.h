@@ -6,6 +6,7 @@ size_t Format2BPP(DXGI_FORMAT format);
 size_t Format2Ch(DXGI_FORMAT format);
 DXGI_FORMAT Channel2Format(size_t channels, UINT bpc);
 DXGI_FORMAT BPP2DepthFormat(UINT bpp);
+bool FormatBC(DXGI_FORMAT format);
 
 float ieee_float(uint32_t f);
 uint32_t ieee_uint32(float f);
@@ -22,3 +23,6 @@ Dest ieee(Src f) {
 }
 
 std::wstring widen(const std::string& str);
+std::string narrow(const std::wstring& str);
+
+bool file_exists(std::string szPath);

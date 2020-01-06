@@ -67,11 +67,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\PipelineState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\RasterState.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\States\TopologyState.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Atlas.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\CustomTexture.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2D.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2DArray.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\Font.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\Text.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Text\TextController.h" />
@@ -127,9 +122,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\DepthStencilState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\RasterState.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\States\TopologyState.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\Atlas.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\CubemapTexture.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Textures\Texture2DArray.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\Font.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\Text.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Text\TextController.cpp" />

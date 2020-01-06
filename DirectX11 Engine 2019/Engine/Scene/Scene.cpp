@@ -88,7 +88,8 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
     }
     
     // Restore states
-    if( flags & RendererFlags::ShadowPass && material->_ShaderDepth ) 
+    if( ((flags & RendererFlags::ShadowPass) && material->_ShaderDepth)
+    || (!(flags & RendererFlags::ShadowPass) && material->_Shader) )
         Shader::Pop();
 
     if( material->_MatTopology )

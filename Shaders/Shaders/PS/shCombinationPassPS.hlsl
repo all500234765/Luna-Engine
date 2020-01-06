@@ -27,7 +27,7 @@ LBuffer main(PS In) {
     
     // Light formula
     SSAO = lerp(SSAO, 1.f, Transp.a * .5f);
-    Light = (Ambient + Direct) * SSAO + Transp; // Add SSAO for transparency
+    Light = (Ambient*0 + Direct) * SSAO + Transp; // Add SSAO for transparency
     
     //Light /= 1.f + Light;
     //Light = pow(Light, 1.f / 2.2f);

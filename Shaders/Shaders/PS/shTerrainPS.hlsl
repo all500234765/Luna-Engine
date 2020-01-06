@@ -12,17 +12,17 @@ cbuffer cbBasicFog : register(b2) {
 
 #include "MaterialTextures.h"
 
-Texture2D<float1> _DepthTexture       : register(t6);
-SamplerComparisonState  _DepthSampler : register(s6) {
+Texture2D<float1> _DepthTexture       : register(t8);
+SamplerComparisonState  _DepthSampler : register(s8) {
     Filter = COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
     ComparisonFunc = GREATER;
 };
 
-Texture2D<float2> _NoiseTexture : register(t7);
-SamplerState _NoiseSampler      : register(s7);
+Texture2D<float2> _NoiseTexture : register(t9);
+SamplerState _NoiseSampler      : register(s9);
 
-TextureCube<float3> _CubemapTexture : register(t8);
-SamplerState        _CubemapSampler : register(s8);
+TextureCube<float3> _CubemapTexture : register(t10);
+SamplerState        _CubemapSampler : register(s10);
 
 struct PS {
     float4 Position : SV_Position;

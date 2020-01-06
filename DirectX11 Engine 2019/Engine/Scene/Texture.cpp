@@ -20,11 +20,11 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
     HRESULT res = S_FALSE;
     UINT BindFlags = D3D11_BIND_SHADER_RESOURCE | 
                      (HasUAV ? D3D11_BIND_UNORDERED_ACCESS : 0)
-                   | (HasMipMaps & !MSAA ? D3D11_BIND_RENDER_TARGET : 0);
+                   | (HasMipMaps & !MSAA && !FormatBC(format) ? D3D11_BIND_RENDER_TARGET : 0);
     UINT MipMaps      = MSAA ? 1 : (HasMipMaps ? ((mMipMaps == 1) ? 0 : mMipMaps) : 1);
     UINT CPUAccess    = (CPURead    ? D3D11_CPU_ACCESS_READ : 0) | (CPUWrite ? D3D11_CPU_ACCESS_WRITE : 0);
     D3D11_USAGE Usage = (CPURead    ? D3D11_USAGE_STAGING : (CPUWrite ? D3D11_USAGE_DYNAMIC : (Immutable ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT)));
-    UINT Misc         = (HasMipMaps ? (MSAA ? 0 : ((mMipMaps == 1) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)) : 0) |
+    UINT Misc         = (HasMipMaps ? (MSAA ? 0 : ((MipMaps <= 1) && !FormatBC(format) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)) : 0) |
                         (IsCube     ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0) | 
                         (ClampMip   ? D3D11_RESOURCE_MISC_RESOURCE_CLAMP : 0) | 
                         (RContent   ? D3D11_RESOURCE_MISC_RESTRICTED_CONTENT : 0) | 
@@ -32,7 +32,7 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
                         (IsTilePool ? D3D11_RESOURCE_MISC_TILE_POOL : 0) |
                         (IsTiled    ? D3D11_RESOURCE_MISC_TILED : 0);
     D3D11_SUBRESOURCE_DATA *subres = ((MipMaps > 1 || HasMipMaps) && (Usage != D3D11_USAGE_IMMUTABLE)) ? nullptr : SubResource;
-
+    
     // No CPU access flags can be specified.
     // This flag cannot be used with the following D3D11_USAGE values:
     // - D3D11_USAGE_DYNAMIC
@@ -257,7 +257,7 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
         }
 
         // Generate mips for texture
-        if( (MipMaps <= 1) && HasMipMaps && SubResource )
+        if( (MipMaps <= 1) && HasMipMaps && SubResource && !FormatBC(format) )
             gDirectX->gContext->GenerateMips(pSRV);
     }
     

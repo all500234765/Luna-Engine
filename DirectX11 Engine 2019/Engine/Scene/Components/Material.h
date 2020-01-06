@@ -20,6 +20,11 @@ _ShDefault_(float, _AlbedoMul, 1);
 _ShDefault_(float, _NormalMul, 1);
 _ShDefault_(float, _MetallnessMul, 1);
 
+_ShDefault_(float, _MatPadding4, 1);
+_ShDefault_(float, _HeightmapMid, .5f);
+_ShDefault_(float, _Heightmap, 0);
+_ShDefault_(float, _HeightmapMul, 1.f);
+
 _ShDefault_(float, _RoughnessMul, 1.f);
 _ShDefault_(float, _AmbientOcclusionMul, 1.f);
 _ShDefault_(float, _EmissionMul, 1.f);

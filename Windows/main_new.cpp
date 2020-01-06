@@ -33,7 +33,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Show splashscreen
-    //SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1000);
+    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1000);
 
     // Print CPU info
     CPUID cpu;
@@ -239,25 +239,6 @@ void _DirectX::CreateResources() {
 
     // Add models
     gMainScene->SetSkybox("../Textures/Cubemap default.dds");
-    gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj",
-                                      [](EntityHandle e, uint32_t index) {
-        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
-        MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
-
-        transf->vPosition = { 0.f, 0.f, 0.f };
-        transf->vRotation = { -90.f, 0.f, 0.f };
-        transf->vScale = float3(10000.f, 10000.f, 10000.f);
-        transf->Build();
-
-        mat->_ShadowCaster   = 0.f;
-        mat->_ShadowReceiver = 0.f;
-
-        mat->_Shader = shSkybox;
-
-        mat->_Alb = true;
-        mat->_AlbedoTex = new Texture("../Textures/Cubemap default.dds", 0u, "Env Cubemap");
-
-    });
 
     /*gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
                                       [](EntityHandle e, uint32_t index) {
@@ -279,7 +260,7 @@ void _DirectX::CreateResources() {
         mat->_Norm = 1.f;
     });*/
 
-    g_eTerrain = gMainScene->LoadModelStaticOpaque("../Models/Plane.obj", 
+    g_eTerrain = gMainScene->LoadModelStaticOpaque("../Models/Sponza/sponza.obj", 
                                                    [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
@@ -287,16 +268,48 @@ void _DirectX::CreateResources() {
 
         transf->vPosition = { 0.f, 0.f, 0.f };
         transf->vRotation = { 0.f, 0.f, 0.f };
-        transf->vScale = float3(3.f, 3.f, 3.f);
+        transf->vScale = float3(.0625f, .0625f, .0625f);
+        //transf->vScale = float3(30.f, 30.f, 30.f);
         transf->Build();
-        
+
+        //mat->_Alpha = .5f;
+        //mat->_IsTransparent = 1.f;
+
+        mat->_AlbedoMul = 1.f;
+        //mat->_Alb = 1.f;
+        //mat->_AlbedoTex = gRenderer->GetTexture(RendererDeferred::TextureList::Checkboard);
+
+        /*mat->_Heightmap    = 1.f;
+        mat->_HeightmapMul = 1.f;
+        mat->_HeightmapTex = new Texture("../Textures/Heightmap.dds", 0u, "Heightmap");
+
         mat->_ShaderDepth      = shTerrainDepth;
         mat->_Shader           = shTerrain;
         mat->_MatDrawCallType  = DXDRAWINDEXED;//DXDRAWINDEXEDINSTANCED;
         mat->_MatBindingShader = Shader::Domain << (32 - Shader::Count);
         mat->_MatTopology      = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
 
-        mesh->mInstanceCount = 4;
+        mesh->mInstanceCount = 4;*/
+    });
+
+    gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj",
+                                      [](EntityHandle e, uint32_t index) {
+        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
+        MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
+
+        transf->vPosition = { 0.f, 0.f, 0.f };
+        transf->vRotation = { -90.f, 0.f, 0.f };
+        transf->vScale = float3(10000.f, 10000.f, 10000.f);
+        transf->Build();
+
+        mat->_ShadowCaster = 0.f;
+        mat->_ShadowReceiver = 0.f;
+
+        mat->_Shader = shSkybox;
+
+        //mat->_Alb = true;
+        //mat->_AlbedoTex = new Texture("../Textures/Cubemap default.dds", 0u, "Env Cubemap");
+
     });
 
     // TODO: Try DefaultTexture.png

@@ -1,5 +1,5 @@
-TextureCube<float3> _CubemapTexture : register(t0);
-SamplerState        _CubemapSampler : register(s0);
+TextureCube<float3> _CubemapTexture : register(t10);
+SamplerState        _CubemapSampler : register(s10);
 
 struct PS {
     float4 Position : SV_Position;

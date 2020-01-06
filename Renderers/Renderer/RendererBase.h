@@ -4,8 +4,6 @@
 #include "pc.h"
 #include "Engine/Window/Window.h"
 
-#include "Engine/Textures/CubemapTexture.h"
-
 #include "Effects/HDRPostProcess.h"
 #include "Effects/SSAOPostProcess.h"
 #include "Effects/SSLRPostProcess.h"
@@ -72,9 +70,17 @@ public:
     inline void SetMSAA(bool msaa) { mMSAA = msaa; }
     inline void SetMSAALevel(uint32_t level) { mMSAALevel = level; }
 
+    enum class TextureList: uint32_t {
+        Checkboard, TileNormal, BlueNoiseRG_512,
+        Black, White, MiddleGray, DarkGray, LightGray,
 
+
+        Count
+    };
 
     // Getters
+    virtual inline Texture* GetTexture(TextureList index) const { return nullptr; };
+
     inline bool GetMSAA() const { return mMSAA; }
     inline bool GetMSAALevel() const { return mMSAALevel; }
 

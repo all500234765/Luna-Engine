@@ -59,20 +59,6 @@ float3 DistDoF(float3 focus, float3 blur, float depth) {
     return lerp(focus, blur, CoC);
 }
 
-static const float3 _LumFactor = { .299f, .587f, .114f };
-float3 EyeAdaptationNtoneMapping(float3 HDR) {
-    float3 LScale = dot(HDR, _LumFactor);
-
-    LScale *= _MiddleGrey / _AvgLum[0];
-    LScale = (LScale + LScale * LScale / _LumWhiteSqr) / (1.f + LScale);
-
-    // Apply lum scale
-    HDR *= LScale;
-    
-    // Reinhard & Gamma
-    return HDR; //pow(HDR / (1.f + HDR), 2.2f);
-}
-
 float3 _toneExposure(float3 vColor, float average) {
     float T = -pow(average, -1.f);
     return 1. - exp(T * vColor);
@@ -108,6 +94,23 @@ float3 _toneReinhard(float3 vColor, float average, float exposure, float whitePo
                                0.0753, -0.2543,  1.1892};
     
     return mul(XYZ2RGB, XYZ);
+}
+
+static const float3 _LumFactor = { .299f, .587f, .114f };
+float3 EyeAdaptationNtoneMapping(float3 HDR) {
+    //return _toneReinhard(HDR, _AvgLum[0], _MiddleGrey, _LumWhiteSqr);
+    //return HDR;
+    
+    float3 LScale = dot(HDR, _LumFactor);
+
+    LScale *= _MiddleGrey / _AvgLum[0];
+    LScale = (LScale + LScale * LScale / _LumWhiteSqr) / (1.f + LScale);
+
+    // Apply lum scale
+    HDR *= LScale;
+    
+    // Reinhard & Gamma
+    return HDR; //pow(HDR / (1.f + HDR), 2.2f);
 }
 
 // https://aras-p.info/texts/CompactNormalStorage.html#method03spherical

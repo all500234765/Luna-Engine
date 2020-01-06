@@ -21,13 +21,20 @@ private:
     } s_clear;
 
     struct {
-        struct {
-            Texture *checkboard{};
-            Texture *tile_normal{};
-            Texture *bluenoise_rg_512{};
-            Texture *black{};
-            Texture *white{};
-        } tex{};
+        union {
+            Texture* texture_list[8];
+
+            struct {
+                Texture *checkboard{};
+                Texture *tile_normal{};
+                Texture *bluenoise_rg_512{};
+                Texture *black{};
+                Texture *white{};
+                Texture *mgray{}; // Middle gray; 127
+                Texture *dgray{}; // Dark gray; 63
+                Texture *lgray{}; // Light gray; 190
+            } tex{};
+        } ti{};
 
         struct {
             SamplerState point{};
@@ -146,4 +153,6 @@ public:
     virtual void ClearMainRT() override;
     virtual void DebugHUD()    override;
 
+    //inline Texture* GetTexture(uint32_t index) const override { return s_material.texture_list[index]; };
+    inline Texture* GetTexture(TextureList index) const { return s_material.ti.texture_list[(uint32_t)index]; };
 };

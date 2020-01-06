@@ -1,6 +1,11 @@
 #include "pc.h"
 #include "Utils.h"
 
+bool file_exists(std::string szPath) {
+    DWORD dwAttrib = GetFileAttributes(widen(szPath).c_str());
+    return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
 std::wstring widen(const std::string& str) {
     using namespace std;
 
@@ -9,6 +14,16 @@ std::wstring widen(const std::string& str) {
 
     for( size_t i = 0; i < str.size(); ++i ) wstm << ctfacet.widen(str[i]);
     return wstm.str();
+}
+
+std::string narrow(const std::wstring& str) {
+    using namespace std;
+
+    ostringstream stm;
+    const ctype<char>& ctfacet = use_facet< ctype<char> >(stm.getloc());
+
+    for( size_t i = 0; i < str.size(); ++i ) stm << ctfacet.narrow(str[i]);
+    return stm.str();
 }
 
 float ieee_float(uint32_t f) {
@@ -235,6 +250,11 @@ DXGI_FORMAT BPP2DepthFormat(UINT bpp) {
     }
 
     return DXGI_FORMAT_UNKNOWN;
+}
+
+bool FormatBC(DXGI_FORMAT format) {
+    return (format >= DXGI_FORMAT_BC1_TYPELESS && format <= DXGI_FORMAT_BC5_SNORM)
+        || (format >= DXGI_FORMAT_BC6H_TYPELESS && format <= DXGI_FORMAT_BC7_UNORM_SRGB);
 }
 
 size_t Format2BPP(DXGI_FORMAT format) {
