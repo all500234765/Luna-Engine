@@ -8,7 +8,7 @@ void VertexBuffer::CreateDefault(UINT Num, UINT _Stride, void* vertices) {
     desc.ByteWidth = Num * _Stride;
     desc.BindFlags = D3D11_BIND_VERTEX_BUFFER | (bSRV ? D3D11_BIND_SHADER_RESOURCE : 0);
     desc.CPUAccessFlags = 0;
-    desc.MiscFlags = 0;
+    desc.MiscFlags = (bSRV ? D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS : 0);
     desc.StructureByteStride = 0;
 
     D3D11_SUBRESOURCE_DATA data;
@@ -23,16 +23,17 @@ void VertexBuffer::CreateDefault(UINT Num, UINT _Stride, void* vertices) {
     if( bSRV ) {
         HRESULT hr = S_OK;
         D3D11_SHADER_RESOURCE_VIEW_DESC pSRVDesc = {};
-        pSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-        pSRVDesc.Format = DXGI_FORMAT_UNKNOWN;
-        pSRVDesc.Buffer.FirstElement = 0;
-        pSRVDesc.Buffer.NumElements = Number;
+        pSRVDesc.ViewDimension         = D3D11_SRV_DIMENSION_BUFFEREX;
+        pSRVDesc.Format                = DXGI_FORMAT_R32_TYPELESS;
+        pSRVDesc.BufferEx.FirstElement = 0;
+        pSRVDesc.BufferEx.NumElements  = Number;
+        pSRVDesc.BufferEx.Flags        = D3D11_BUFFEREX_SRV_FLAG_RAW;
 
         if( (hr = gDirectX->gDevice->CreateShaderResourceView(pBuff, &pSRVDesc, &pSRV)) != S_OK ) {
-            printf_s("Failed to create SRV for VertexBuffer (error=%d)", hr);
+            printf_s("[VB]: Failed to create SRV. (error=%d)\n", hr);
             return;
         }
 
-        printf_s("Successfully created SRV for VertexBuffer");
+        printf_s("[VB]: Successfully created SRV\n");
     }
 }

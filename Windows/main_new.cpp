@@ -23,6 +23,14 @@ EntityHandleList g_eTerrain{};
 bool g_bMouseHUD{};
 float g_fAvgMS{};
 
+// SDF Example
+Texture g_tSDF;
+ECS gCustomECS;
+Shader shSDFGen;
+EntityHandleList g_eSDF;
+ConstantBuffer cb;
+std::array<ID3D11ShaderResourceView*, 3> srv;
+
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
     // Create, redirect IO to, and hide console
@@ -33,7 +41,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Show splashscreen
-    SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1000);
+    //SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1000);
 
     // Print CPU info
     CPUID cpu;
@@ -129,6 +137,12 @@ bool _DirectX::Render() {
         g_fAvgMS = 0.f;
     }
 
+    //cb.Bind(Shader::Compute, 0);
+    //gContext->CSSetShaderResources(0, 3, srv.data());
+    //g_tSDF.Bind(Shader::Compute, 0, true);
+    //
+    //shSDFGen.Dispatch(g_tSDF.GetWidth(), g_tSDF.GetHeight(), g_tSDF.GetDepth());
+
     // Handle present event
     Present(1, 0);
 
@@ -209,7 +223,22 @@ void _DirectX::Resize() {
 
 void _DirectX::PostCreateResources(bool Recreated) {};
 
+struct cbSDFDims {
+    uint _VertexCount;
+    uint _IndexCount;
+    uint _Width;
+    uint _Height;
+    
+    uint _Depth;
+    uint _Spread;
+    uint2 _Align;
+};
+
 void _DirectX::CreateResources() {
+    gCustomECS = ECS();
+    g_tSDF = Texture(tf_dim_3 | tf_UAV, DXGI_FORMAT_R16_FLOAT, 15, 15, 15, 1u, "SDF");
+    cb.CreateDefault(sizeof(cbSDFDims));
+    
     // Create renderer's resources
     gRenderer->Init();
 
@@ -233,6 +262,9 @@ void _DirectX::CreateResources() {
     shSkybox->LoadFile("shSkyboxVS.cso", Shader::Vertex);
     shSkybox->LoadFile("shSkyboxPS.cso", Shader::Pixel);
 
+    shSDFGen.LoadFile("shSDFGenCS.cso", Shader::Compute);
+
+    shSDFGen.ReleaseBlobs();
     shSkybox->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
     shTerrainDepth->ReleaseBlobs();
@@ -260,7 +292,36 @@ void _DirectX::CreateResources() {
         mat->_Norm = 1.f;
     });*/
 
-    g_eTerrain = gMainScene->LoadModelStaticOpaque("../Models/Sponza/sponza.obj", 
+
+    g_eTerrain = gMainScene->LoadModelStaticOpaque("../Models/teapot.obj", 0u,
+                                                   [](EntityHandle e, uint32_t index) {
+        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
+        MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
+        MeshStaticComponent *mesh = gMainScene->GetComponent<MeshStaticComponent>(e);
+
+
+        transf->vScale = float3(1.f, 1.f, 1.f);
+        //transf->vScale = float3(5.f, 5.f, 5.f);
+        transf->Build();
+
+        uint8_t* buff = new uint8_t[MaterialComponent::_SERIALIZED_SIZE]{};
+
+        mat->Serialize(buff);
+
+        std::ofstream file(std::string("../teapot") + std::to_string(index) + std::string(".buff"), std::ios::binary);
+
+        //file.read((char*)buff, MaterialComponent::_SERIALIZED_SIZE);
+        file.write((char*)buff, MaterialComponent::_SERIALIZED_SIZE);
+        file.close();
+
+        //if( !mat->Deserialize(buff) ) {
+        //    printf_s("[ECS]: Failed to deserialize MaterialComponent! Wrong ID or SIZE!\n");
+        //}
+
+        delete buff;
+    });
+
+    gMainScene->LoadModelStaticOpaque("../Models/SponzaRed/SponzaRed.obj", 0u, 
                                                    [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
@@ -268,12 +329,14 @@ void _DirectX::CreateResources() {
 
         transf->vPosition = { 0.f, 0.f, 0.f };
         transf->vRotation = { 0.f, 0.f, 0.f };
-        transf->vScale = float3(.0625f, .0625f, .0625f);
-        //transf->vScale = float3(30.f, 30.f, 30.f);
+        //transf->vScale = float3(.0625f, .0625f, .0625f);
+        transf->vScale = float3(5.f, 5.f, 5.f);
         transf->Build();
 
         //mat->_Alpha = .5f;
         //mat->_IsTransparent = 1.f;
+
+
 
         mat->_AlbedoMul = 1.f;
         //mat->_Alb = 1.f;
@@ -292,7 +355,7 @@ void _DirectX::CreateResources() {
         mesh->mInstanceCount = 4;*/
     });
 
-    gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj",
+    gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj", 0u, 
                                       [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
@@ -314,6 +377,31 @@ void _DirectX::CreateResources() {
 
     // TODO: Try DefaultTexture.png
 
+    // Load test model into gCustomECS
+    gMainScene->SetMeshSRV(true);
+    g_eSDF = gMainScene->LoadModelStaticOpaque("../Models/Plane.obj", 0u, [](EntityHandle, uint32_t) {}, &gCustomECS);
+    gMainScene->SetMeshSRV(false);
+
+    
+    {
+        MeshStaticComponent* comp = gCustomECS.GetComponent<MeshStaticComponent>(g_eSDF[0]);
+
+        {
+            ScopeMapConstantBuffer<cbSDFDims> q(&cb);
+
+            q.data->_Depth  = g_tSDF.GetDepth();
+            q.data->_Width  = g_tSDF.GetWidth();
+            q.data->_Height = g_tSDF.GetHeight();
+            q.data->_IndexCount  = comp->mIndexBuffer->GetNumber();
+            q.data->_VertexCount = comp->mVBPosition->GetNumber();
+            q.data->_Spread      = 10.f;
+        }
+
+        srv[0] = comp->mVBPosition->GetSRV();
+        srv[1] = comp->mVBNormal->GetSRV();
+        srv[2] = comp->mIndexBuffer->GetSRV();
+
+    }
 }
 
 void _DirectX::InitGameData() {
@@ -345,11 +433,20 @@ void _DirectX::InitGameData() {
 }
 
 void _DirectX::FreeResources() {
+    // Cleanup
     SAFE_RELEASE(shSkybox);
     SAFE_RELEASE(shTerrain);
     SAFE_RELEASE(shTerrainDepth);
 
     gRenderer->Release();
+
+    // Release component resources
+    // TODO: Must!
+    shSDFGen.Release();
+    gCustomECS.~ECS();
+    g_tSDF.Release();
+    cb.Release();
+
     // TODO: Must!
     //gMainScene->ReleaseResources();
 }

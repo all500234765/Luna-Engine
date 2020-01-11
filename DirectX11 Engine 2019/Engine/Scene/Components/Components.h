@@ -106,12 +106,11 @@ struct MaterialComponent: ECSComponent<MaterialComponent> {
 
     void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot, uint32_t flags) {
         if( (flags & RendererFlags::DepthPass) == 0 ) {
-            _Alb   = _AlbedoTex           != nullptr;
-            _Metal = _MetallicTex         != nullptr;
-            _Rough = _RoughnessTex        != nullptr;
-            _Emis  = _EmissionTex         != nullptr;
-            _AO    = _AmbientOcclusionTex != nullptr;
-
+            _Alb   |= _AlbedoTex           != nullptr;
+            _Metal |= _MetallicTex         != nullptr;
+            _Rough |= _RoughnessTex        != nullptr;
+            _Emis  |= _EmissionTex         != nullptr;
+            _AO    |= _AmbientOcclusionTex != nullptr;
         }
 
         {

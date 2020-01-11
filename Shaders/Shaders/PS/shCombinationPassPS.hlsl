@@ -26,7 +26,7 @@ LBuffer main(PS In) {
     float3 Direct  = _DirectLightTex.Sample(_Sampler, In.Texcoord).rgb;
     
     // Light formula
-    SSAO = lerp(SSAO, 1.f, Transp.a * .5f);
+    SSAO = 1.f; //lerp(SSAO, 1.f, Transp.a * .5f);
     Light = (Ambient*0 + Direct) * SSAO + Transp; // Add SSAO for transparency
     
     //Light /= 1.f + Light;

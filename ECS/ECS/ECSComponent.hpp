@@ -13,6 +13,12 @@ typedef void(*ECSComponentFreeFunc)(BaseECSComponent* comp);
 
 #define NULL_HANDLE nullptr
 
+struct ECSComponentSearializeHeader {
+    uint32 _ID;
+    uint32 _Align;
+    size_t _SIZE;
+};
+
 struct BaseECSComponent {
 public:
     static uint32 _RegisterComponentType(ECSComponentCreateFunc createfn, ECSComponentFreeFunc freefn, size_t size);
@@ -35,6 +41,12 @@ struct ECSComponent: public BaseECSComponent {
     static const ECSComponentFreeFunc   _FREE;
     static const uint32 _ID;
     static const size_t _SIZE;
+    static const size_t _SERIALIZED_SIZE;
+
+    virtual void Serialize(uint8_t* out) const;
+    virtual std::vector<uint8_t>&& Serialize() const;
+
+    virtual bool Deserialize(uint8_t* in);
 };
 
 template<typename Component>
@@ -52,11 +64,60 @@ void ECSComponentFree(BaseECSComponent* comp) {
     component->~Component();
 }
 
+template<typename Component>
+void ECSComponent<Component>::Serialize(uint8_t* out) const {
+    // Header
+    ECSComponentSearializeHeader head{};
+    head._ID    = _ID;
+    head._SIZE  = _SIZE;
+    head._Align = 0;
+    memcpy(out, &head, sizeof(head));
+
+    // Data
+    memcpy((void*)(out + sizeof(head)), (Component*)this, sizeof(Component));
+}
+
+template<typename Component>
+std::vector<uint8_t>&& ECSComponent<Component>::Serialize() const {
+    std::vector<uint8_t> buff{};
+    buff.reserve(sizeof(_SERIALIZED_SIZE));
+
+    // Header
+    ECSComponentSearializeHeader head{};
+    head._ID    = _ID;
+    head._SIZE  = _SIZE;
+    head._Align = 0;
+    memcpy((void*)buff.data(), &head, sizeof(head));
+
+    // Data
+    memcpy((void*)(buff.data() + sizeof(head)), (Component*)this, sizeof(Component));
+
+    return std::move(buff);
+}
+
+template<typename Component>
+inline bool ECSComponent<Component>::Deserialize(uint8_t* in) {
+    // Header
+    ECSComponentSearializeHeader head{};
+    memcpy(&head, in, sizeof(head));
+
+    if( head._ID != _ID || head._SIZE != _SIZE ) return false;
+
+    // Data
+    memcpy((Component*)this, (void*)(in + sizeof(head)), sizeof(Component));
+
+    // Done
+    return true;
+}
+
 template<typename T>
 const uint32 ECSComponent<T>::_ID(BaseECSComponent::_RegisterComponentType(ECSComponentCreate<T>, ECSComponentFree<T>, sizeof(T)));
 
 template<typename T>
 const size_t ECSComponent<T>::_SIZE(sizeof(T));
+
+template<typename T>
+const size_t ECSComponent<T>::_SERIALIZED_SIZE(sizeof(T) - sizeof() + sizeof(ECSComponentSearializeHeader));
 
 template<typename T>
 const ECSComponentCreateFunc ECSComponent<T>::_CREATE(ECSComponentCreate<T>);

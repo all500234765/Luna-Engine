@@ -89,12 +89,17 @@
     #include "HBAOPlus/GFSDK_SSAO.h"
 #endif
 
-
-
 // Assimp
 #include "Assimp/Importer.hpp"
 #include "Assimp/scene.h"
 #include "Assimp/postprocess.h"
+#include "Assimp/pbrmaterial.h"
+
+#ifdef _WIN64
+    #pragma comment(lib, "Assimp/x64/assimp-vc141-mt.lib")
+#else
+    #pragma comment(lib, "Assimp/x86/assimp-vc141-mt.lib")
+#endif
 
 // ImGui
 #include "ImGUI/imgui.h"

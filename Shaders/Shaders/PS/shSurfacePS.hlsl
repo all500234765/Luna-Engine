@@ -30,7 +30,7 @@ struct PS {
     float2   Texcoord : TEXCOORD3;
     float3   WorldPos : TEXCOORD4;
     float4   LightPos : TEXCOORD5;
-    float3   InputPos : TEXCOORD6;
+    float3   LightPs2 : TEXCOORD6;
     float3   ViewDir  : TEXCOORD7;
 };
 
@@ -72,7 +72,7 @@ float SampleShadow(float4 lpos) {
 struct GBuffer {
     half4 Direct   : SV_Target0;
     half4 Normal   : SV_Target1;
-    half4 Ambient  : SV_Target2;
+    half4 Shading  : SV_Target2;
     half4 Emission : SV_Target3;
 };
 
@@ -123,25 +123,42 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     //const half3 _LightColor = half3(.7f, .9f, .8f);
     
     // Get normal
-    half3 N = 0.f;
-    [branch] if( _Norm ) {
-        N = normalize(mul(In.WorldTBN, mad(_NormalTex.Sample(_NormalSampl, In.Texcoord).rgb, 2.f, -1.f)));
+    half3 N = normalize(In.WorldTBN._m20_m21_m22), Bump = half3(0.f, 0.f, 0.f);
+    [flatten] if( _Norm ) {
+        Bump = mad(_NormalTex.SampleLevel(_NormalSampl, In.Texcoord, 0.f).rgb, 2.f, -1.f);
+        
+		Bump.g *= mad(bIsFront, 2.f, -1.f);
+        N = normalize(lerp(N, mul(transpose(In.WorldTBN), Bump), _NormalMul));
         
         // Flip normals
-        //N *= (1. - bIsFront * 2.);
-    } else {
-        N = normalize(In.WorldTBN._m20_m21_m22);
+        //N *= (bIsFront * 2. - 1);
     }
 
+    // Normal map strengh
+    N *= _NormalMul;
+    
     // Flip normals
-    N *= mad(1.f - bIsFront, 2.f, -1.f);
+    N *= mad(bIsFront, 2.f, -1.f);
     if( _FlipNormals ) N *= -1.f;
     
     // Sample PBR textures
     float3 Albedo   = pow(_AlbedoTex.Sample(_AlbedoSampl, In.Texcoord).rgb, 2.2f) * _AlbedoMul;
-    float1 Metallic = _MetallicTex.Sample(_MetallicSampl, In.Texcoord).r * _MetallnessMul;
-    float1 Rougness = _RoughnessTex.Sample(_RoughnessSampl, In.Texcoord).r * _RoughnessMul;
     float1 AOccl    = _AmbientOcclusionTex.Sample(_AmbientOcclusionSampl, In.Texcoord).r * _AmbientOcclusionMul;
+    float3 MR       = _MetallicTex.Sample(_MetallicSampl, In.Texcoord).rgb;
+    
+    float1 Metallic, Rougness;
+    [branch] if( _Metal & 4 ) {
+        // Combined
+        Rougness = MR.g;
+        Metallic = MR.b;
+    } else {
+        // Simple case
+        Metallic = MR.r;
+        Rougness = _RoughnessTex.Sample(_RoughnessSampl, In.Texcoord).r;
+    }
+    
+    Metallic *= _MetallnessMul;
+    Rougness *= _RoughnessMul;
     
     // Ambient light
     float3 Ambient = _AmbientLightColor * _AmbientLightStrengh;
@@ -151,8 +168,8 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     
     // PBR Here
     // Vectors
-    float3 L = normalize(In.LightPos.xyz - In.WorldPos);
-    float3 V = normalize(In.ViewDir      - In.Position.xyz);
+    float3 L = normalize(In.LightPs2.xyz - In.WorldPos.xyz);
+    float3 V = normalize(In.ViewDir);
     float3 H = normalize(L + V);
 
     // 
@@ -162,10 +179,10 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     // PBR
     float3 F0 = lerp((.04f).xxx, Albedo.rgb, Metallic);
     
-    float Dist = length(In.Position - In.LightPos);
+    float Dist = length(In.LightPs2.xyz - In.WorldPos.xyz);
     float invD = 1.f / (Dist * Dist); // TODO: Use inverse sqrt (rsqrt)
     
-    float3 Radiance = /*_WorldLightColor */ invD;
+    float3 Radiance = /*_WorldLightColor */ invD * 100.f + 0*Dist / 20.f; //invD;
 
     // Cook-Torrance BRDF
     float  NDF = DistrGGX(N, H, Rougness);
@@ -186,14 +203,19 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     KS = FresnelShlick(saturate(NdotV), F0, Rougness);
     KD = (1.f - KS) * (1.f - Metallic);
     
-    float3 Irradiance = _CubemapTexture.SampleLevel(_CubemapSampler, N.xzy, 1).rgb;
+    float3 Irradiance = _CubemapTexture.SampleLevel(_CubemapSampler, N.xzy, 3).rgb;
     float3 Diffuse    = Irradiance * Albedo.rgb;
     float3 AmbientIBL = KD * Diffuse;
     
-    //Ambient *= AmbientIBL;
-    //Direct = Diffuse + Ambient;
+    Ambient *= AmbientIBL;
+    Direct = Ambient + Light;
+    //Direct = Metallic;
+    //Direct = MR.b;
+    //Direct = N * .5f + .5f;
+    //Direct = In.WorldPos.xyz;
     
-    Direct = Albedo.rgb;
+    //Direct = /*Ambient */ NdotL * Albedo.rgb;
+    //Direct = max(NdotL, 0.f); //N * .5f + .5f;
     
     // Shadow mapping
     //float S = SampleShadow(In.LightPos) * s + (1. - s); // lerp(a, b, x) = a + (b - a) * x;
@@ -203,8 +225,8 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     
     // Final result
     GBuffer Out;
-        Out.Direct    = float4(Direct, 1.f);
-        Out.Ambient   = float4(Ambient, 1.f);
+        Out.Direct    = float4(pow(Direct, 1.f / 2.2f), 1.f);
+        Out.Shading   = float4(Metallic, Rougness, 1.f - AOccl, 1.f);
         Out.Normal    = half4(EncodeNormal(N), 0., 1.);
         Out.Emission  = _EmissionTex.Sample(_EmissionSampl, In.Texcoord) * _EmissionMul;
     return Out;

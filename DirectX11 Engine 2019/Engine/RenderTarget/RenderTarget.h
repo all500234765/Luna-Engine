@@ -468,7 +468,8 @@ private:
             } else {
                 D3D11_UNORDERED_ACCESS_VIEW_DESC pUAVDesc = {};
                 pUAVDesc.Format        = formatSRV;
-                pUAVDesc.ViewDimension = (D3D11_UAV_DIMENSION)((D3D11_UAV_DIMENSION_TEXTURE1D + (ArraySize > 1) * (dim < 3)) * dim);
+                pUAVDesc.ViewDimension = (dim == 3) ? D3D11_UAV_DIMENSION_TEXTURE3D : 
+                    (D3D11_UAV_DIMENSION)((D3D11_UAV_DIMENSION_TEXTURE1D + (ArraySize > 1) * (dim < 3)) * dim);
                 
                 if( dim == 1 ) {
                     pUAVDesc.Texture1D.MipSlice = 0;

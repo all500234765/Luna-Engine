@@ -3,14 +3,14 @@
 _ShDefault_(float, _IsTransparent, 0);
 _ShDefault_(float, _UseVertexColor, 0);
 _ShDefault_(float, _FlipNormals, 0);
-_ShDefault_(float, _Alb, 0);
+_ShDefault_(uint, _Alb, 0);
 
-_ShDefault_(float, _Norm, 0);
-_ShDefault_(float, _Metal, 0);
-_ShDefault_(float, _Rough, 0);
-_ShDefault_(float, _Emis, 0);
+_ShDefault_(uint, _Norm, 0);
+_ShDefault_(uint, _Metal, 0);
+_ShDefault_(uint, _Rough, 0);
+_ShDefault_(uint, _Emis, 0);
 
-_ShDefault_(float, _AO, 0);
+_ShDefault_(uint, _AO, 0);
 _ShDefault_(float, _ShadowReceiver, 1);
 _ShDefault_(float, _ShadowCaster, 1);
 _ShDefault_(float, _MatPadding1, 0);

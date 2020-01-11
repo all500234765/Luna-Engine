@@ -206,6 +206,8 @@ private:
 
     uint32_t mMaterialLayerStates = 0xFFFFFFFF;
 
+    bool mMeshSRV{};
+
     MaterialComponent DefaultMaterialComp() const {
         MaterialComponent mat{};
         mat._UseVertexColor = false;
@@ -240,14 +242,14 @@ private:
     }
 
     typedef std::map<std::string, std::pair<aiTextureType, std::vector<uint32_t>>> LoaderTextureList;
-    EntityHandleList LoadModelExternalStatic(const char* fname) {
+    EntityHandleList LoadModelExternalStatic(const char* fname, ECS* ecs, uint32_t flags) {
 
         TransformComponent transform = DefaultTransformComp();
 
         // Load model
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(fname, aiProcess_Triangulate | aiProcess_CalcTangentSpace
-                                                      | (0*aiProcess_GenSmoothNormals));
+                                                      | (0*aiProcess_GenSmoothNormals) | flags);
 
         if( !scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode ) {
             std::cout << "[Scene::LoadModelExternal]: Can't load model! (" << fname << ")" << std::endl;
@@ -297,23 +299,30 @@ private:
             // Search in current directory
             bool flag = false;
             if( file_exists(file1) ) {
-                texture = new Texture(file1, tf_MipMaps);
+                texture = new Texture(file1, tf_MipMaps*1);
                 flag = true;
             } else if( file_exists(file2) ) {
-                texture = new Texture(file2, tf_MipMaps);
+                texture = new Texture(file2, tf_MipMaps*0);
                 flag = true;
             }
 
             if( flag ) {
                 // Assign texture
                 switch( data.first ) {
-#define MIND(type, tex) case type: for( uint32_t mind : data.second ) mMatList[mind].tex = texture; break;
-                    MIND(aiTextureType_DIFFUSE, _AlbedoTex);
-                    //MIND(aiTextureType_DIFFUSE, _AlbedoTex);
-                    //MIND(aiTextureType_DIFFUSE, _AlbedoTex);
-                    //MIND(aiTextureType_DIFFUSE, _AlbedoTex);
+#define MIND(type, tex, ts, v) case type: for( uint32_t mind : data.second ) { mMatList[mind].tex = texture; mMatList[mind].ts = v; } break;
+                    case aiTextureType_NORMALS: 
+                        MIND(aiTextureType_HEIGHT, _NormalTex, _Norm, 2);
+
+                    MIND(aiTextureType_DIFFUSE  , _AlbedoTex          , _Alb  , 2);
+                    MIND(aiTextureType_SHININESS, _RoughnessTex       , _Rough, 2);
+                    MIND(aiTextureType_LIGHTMAP , _AmbientOcclusionTex, _AO   , 2);
+                    MIND(aiTextureType_EMISSIVE , _EmissionTex        , _Emis , 2);
+                    MIND(aiTextureType_UNKNOWN  , _MetallicTex        , _Metal, 2 | 4);
+
 #undef MIND
                 }
+
+                printf_s("[Scene::ModelLoader]: Loaded texture. [%s]\n", fnme.c_str());
             } else {
                 printf_s("[Scene::ModelLoader]: Failed to load texture! [%s]\n", fnme.c_str());
             }
@@ -321,14 +330,14 @@ private:
 
         // Done
         if( mMeshList.size() == 1 ) {
-            return { mECS.MakeEntity(transform, mMeshList[0], mMatList[0]) };
+            return { ecs->MakeEntity(transform, mMeshList[0], mMatList[0]) };
         }
 
         // Return list of entites
         EntityHandleList list;
         list.reserve(mMeshList.size());
         for( uint32_t i = 0; i < mMeshList.size(); i++ ) {
-            list.push_back(mECS.MakeEntity(transform, mMeshList[i], mMatList[i]));
+            list.push_back(ecs->MakeEntity(transform, mMeshList[i], mMatList[i]));
         }
 
         // Done
@@ -406,32 +415,64 @@ private:
         // Material
         uint32_t mat_index = inMesh->mMaterialIndex;
         aiMaterial* m = scene->mMaterials[mat_index];
+
+        // Opacity
         ai_real alpha;
         m->Get(AI_MATKEY_OPACITY, alpha);
+        if( alpha < 0.f ) alpha = 1.f;
         mat._Alpha = alpha;
         if( mat._Alpha < 1.f ) { mat._IsTransparent = 1.f; }
 
         // Gather material textures
-        auto AddTexture = [&TextureList, index, m](aiTextureType type) {
+        auto AddTexture = [&TextureList, index, m](aiTextureType type, uint32_t i=0u) {
             aiString fname;
-            m->GetTexture(type, 0, &fname);
+            m->GetTexture(type, i, &fname);
             std::string s = fname.C_Str();
+            printf_s(" - %u:%u\n", type, m->GetTextureCount(type));
 
             // No texture found
-            if( !strcmp(fname.C_Str(), "") ) return;
+            if( !strcmp(fname.C_Str(), "") ) return false;
             LoaderTextureList::iterator it = TextureList->find(s);
 
             if( it == TextureList->end() ) {
+                printf_s("%s; %u\n", s.c_str(), type);
+
                 // Add
-                TextureList->insert_or_assign(s, LoaderTextureList::mapped_type({ type, { index } }));
-                return;
+                TextureList->insert_or_assign(s, LoaderTextureList::mapped_type({ aiTextureType(type + i * (AI_TEXTURE_TYPE_MAX + 1)), { index } }));
+                return true;
             }
 
             TextureList->at(s).second.push_back(index);
+            return true;
         };
 
-        AddTexture(aiTextureType::aiTextureType_DIFFUSE);
+        printf_s("-------------\n");
 
+        AddTexture(aiTextureType_DIFFUSE  ); // Albedo
+        AddTexture(aiTextureType_SHININESS); // Roughness
+        AddTexture(aiTextureType_LIGHTMAP ); // Ambient Occlusion / Lightmap
+        AddTexture(aiTextureType_EMISSIVE ); // Emission
+        AddTexture(aiTextureType_UNKNOWN  ); // Metall Roughness
+
+        // Normals
+        if( !AddTexture(aiTextureType_HEIGHT) )
+            AddTexture(aiTextureType_NORMALS);
+
+        AddTexture(aiTextureType_OPACITY);
+
+        /*AddTexture(aiTextureType_DISPLACEMENT);
+        AddTexture(aiTextureType_AMBIENT);
+        AddTexture(aiTextureType_SPECULAR);
+        AddTexture(aiTextureType_REFLECTION);
+
+        AddTexture(aiTextureType_BASE_COLOR);
+        AddTexture(aiTextureType_NORMAL_CAMERA);
+        AddTexture(aiTextureType_EMISSION_COLOR);
+        AddTexture(aiTextureType_METALNESS);
+        AddTexture(aiTextureType_DIFFUSE_ROUGHNESS);
+        AddTexture(aiTextureType_AMBIENT_OCCLUSION);
+
+        AddTexture(aiTextureType_DIFFUSE, 1);*/
 
         // Create buffers
         mesh.mIndexBuffer = new IndexBuffer();
@@ -440,6 +481,13 @@ private:
         mesh.mVBNormal    = new VertexBuffer();
         mesh.mVBTangent   = new VertexBuffer();
         mesh.mReferenced  = false;
+
+        mesh.mVBPosition->SetSRV(mMeshSRV);
+        mesh.mVBTexcoord->SetSRV(mMeshSRV);
+        mesh.mVBTangent->SetSRV(mMeshSRV);
+        mesh.mVBNormal->SetSRV(mMeshSRV);
+
+        mesh.mIndexBuffer->SetSRV(mMeshSRV);
 
         mesh.mVBPosition->CreateDefault(Position.size(), sizeof(float3), &Position[0]);
         mesh.mVBTexcoord->CreateDefault(Texcoord.size(), sizeof(float2), &Texcoord[0]);
@@ -741,22 +789,25 @@ public:
         }
     }
 
-    EntityHandleList LoadModelStatic(const char* fname) {
+    inline void SetMeshSRV(bool SRV) { mMeshSRV = SRV; };
+    inline bool GetMeshSRV() const { return mMeshSRV; };
+
+    EntityHandleList LoadModelStatic(const char* fname, ECS* ecs, uint32_t flags=0u) {
         std::string_view ext = path_ext(fname);
 
-        if( ext == "obj" || ext == "dae" || ext == "fbx" ) {
-            return LoadModelExternalStatic(fname);
+        if( ext == "obj" || ext == "dae" || ext == "fbx" || ext == "gltf" ) {
+            return LoadModelExternalStatic(fname, ecs, flags);
         }
 
         // Other file types
-        printf_s("[Scene::LoadModel]: Unsupported model format %s", ext.data());
+        printf_s("[Scene::LoadModel]: Unsupported model format %s\n", ext.data());
         return {};
     }
 
-    EntityHandleList LoadModelStaticOpaque(const char* fname, 
+    EntityHandleList LoadModelStaticOpaque(const char* fname, uint32_t flags=0u, 
                                            void(*Operator)(EntityHandle e, uint32_t index)
-                                           =[](EntityHandle e, uint32_t index)->void{}) {
-        EntityHandleList list = LoadModelStatic(fname);
+                                           =[](EntityHandle e, uint32_t index)->void{}, ECS* ecs=nullptr) {
+        EntityHandleList list = LoadModelStatic(fname, !ecs ? &mECS : ecs, flags);
         
         uint32_t i = 0;
         for( auto e : list ) Operator(e, i++);
@@ -765,11 +816,10 @@ public:
         return list;
     }
     
-    EntityHandleList LoadModelStaticTransparent(const char* fname) {
-        EntityHandleList list = LoadModelStatic(fname);
+    EntityHandleList LoadModelStaticTransparent(const char* fname, uint32_t flags=0u) {
+        EntityHandleList list = LoadModelStatic(fname, &mECS, flags);
         AddTransparent(list);
         return list;
-
     }
 
     inline ECS* GetECS() { return &mECS; };

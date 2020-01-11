@@ -63,6 +63,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shParticles3DCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shSDFGenCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shSSAOCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
