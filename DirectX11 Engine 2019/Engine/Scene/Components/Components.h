@@ -214,7 +214,7 @@ struct InputControl {
     inline InputControl& OrientationUpdate() { bOrientationUpdate ^= true; return *this; }
 };
 
-struct MovementControlComponent: public ECSComponent<MovementControlComponent> {
+struct MovementControlComponent: ECSComponent<MovementControlComponent> {
     std::vector<InputControl> mAssignedControls;
 };
 

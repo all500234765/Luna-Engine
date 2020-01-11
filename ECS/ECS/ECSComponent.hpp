@@ -43,10 +43,10 @@ struct ECSComponent: public BaseECSComponent {
     static const size_t _SIZE;
     static const size_t _SERIALIZED_SIZE;
 
-    virtual void Serialize(uint8_t* out) const;
-    virtual std::vector<uint8_t>&& Serialize() const;
-
-    virtual bool Deserialize(uint8_t* in);
+    void Serialize(uint8_t* out) const;
+    std::vector<uint8_t>&& Serialize() const;
+    
+    bool Deserialize(uint8_t* in);
 };
 
 template<typename Component>
@@ -117,7 +117,7 @@ template<typename T>
 const size_t ECSComponent<T>::_SIZE(sizeof(T));
 
 template<typename T>
-const size_t ECSComponent<T>::_SERIALIZED_SIZE(sizeof(T) - sizeof() + sizeof(ECSComponentSearializeHeader));
+const size_t ECSComponent<T>::_SERIALIZED_SIZE(sizeof(T) - sizeof(BaseECSComponent) + sizeof(ECSComponentSearializeHeader));
 
 template<typename T>
 const ECSComponentCreateFunc ECSComponent<T>::_CREATE(ECSComponentCreate<T>);

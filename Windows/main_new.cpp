@@ -24,12 +24,12 @@ bool g_bMouseHUD{};
 float g_fAvgMS{};
 
 // SDF Example
-Texture g_tSDF;
-ECS gCustomECS;
-Shader shSDFGen;
-EntityHandleList g_eSDF;
-ConstantBuffer cb;
-std::array<ID3D11ShaderResourceView*, 3> srv;
+//Texture g_tSDF;
+//ECS gCustomECS;
+//Shader shSDFGen;
+//EntityHandleList g_eSDF;
+//ConstantBuffer cb;
+//std::array<ID3D11ShaderResourceView*, 3> srv;
 
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
@@ -235,9 +235,9 @@ struct cbSDFDims {
 };
 
 void _DirectX::CreateResources() {
-    gCustomECS = ECS();
-    g_tSDF = Texture(tf_dim_3 | tf_UAV, DXGI_FORMAT_R16_FLOAT, 15, 15, 15, 1u, "SDF");
-    cb.CreateDefault(sizeof(cbSDFDims));
+    //gCustomECS = ECS();
+    //g_tSDF = Texture(tf_dim_3 | tf_UAV, DXGI_FORMAT_R16_FLOAT, 15, 15, 15, 1u, "SDF");
+    //cb.CreateDefault(sizeof(cbSDFDims));
     
     // Create renderer's resources
     gRenderer->Init();
@@ -262,9 +262,9 @@ void _DirectX::CreateResources() {
     shSkybox->LoadFile("shSkyboxVS.cso", Shader::Vertex);
     shSkybox->LoadFile("shSkyboxPS.cso", Shader::Pixel);
 
-    shSDFGen.LoadFile("shSDFGenCS.cso", Shader::Compute);
+    //shSDFGen.LoadFile("shSDFGenCS.cso", Shader::Compute);
 
-    shSDFGen.ReleaseBlobs();
+    //shSDFGen.ReleaseBlobs();
     shSkybox->ReleaseBlobs();
     shTerrain->ReleaseBlobs();
     shTerrainDepth->ReleaseBlobs();
@@ -293,8 +293,8 @@ void _DirectX::CreateResources() {
     });*/
 
 
-    g_eTerrain = gMainScene->LoadModelStaticOpaque("../Models/teapot.obj", 0u,
-                                                   [](EntityHandle e, uint32_t index) {
+    /*gMainScene->LoadModelStaticOpaque("../Models/teapot.obj", 0u,
+                                      [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
         MeshStaticComponent *mesh = gMainScene->GetComponent<MeshStaticComponent>(e);
@@ -303,23 +303,7 @@ void _DirectX::CreateResources() {
         transf->vScale = float3(1.f, 1.f, 1.f);
         //transf->vScale = float3(5.f, 5.f, 5.f);
         transf->Build();
-
-        uint8_t* buff = new uint8_t[MaterialComponent::_SERIALIZED_SIZE]{};
-
-        mat->Serialize(buff);
-
-        std::ofstream file(std::string("../teapot") + std::to_string(index) + std::string(".buff"), std::ios::binary);
-
-        //file.read((char*)buff, MaterialComponent::_SERIALIZED_SIZE);
-        file.write((char*)buff, MaterialComponent::_SERIALIZED_SIZE);
-        file.close();
-
-        //if( !mat->Deserialize(buff) ) {
-        //    printf_s("[ECS]: Failed to deserialize MaterialComponent! Wrong ID or SIZE!\n");
-        //}
-
-        delete buff;
-    });
+    });*/
 
     gMainScene->LoadModelStaticOpaque("../Models/SponzaRed/SponzaRed.obj", 0u, 
                                                    [](EntityHandle e, uint32_t index) {
@@ -378,7 +362,7 @@ void _DirectX::CreateResources() {
     // TODO: Try DefaultTexture.png
 
     // Load test model into gCustomECS
-    gMainScene->SetMeshSRV(true);
+    /*gMainScene->SetMeshSRV(true);
     g_eSDF = gMainScene->LoadModelStaticOpaque("../Models/Plane.obj", 0u, [](EntityHandle, uint32_t) {}, &gCustomECS);
     gMainScene->SetMeshSRV(false);
 
@@ -401,7 +385,7 @@ void _DirectX::CreateResources() {
         srv[1] = comp->mVBNormal->GetSRV();
         srv[2] = comp->mIndexBuffer->GetSRV();
 
-    }
+    }*/
 }
 
 void _DirectX::InitGameData() {
@@ -412,7 +396,7 @@ void _DirectX::InitGameData() {
 
     // Create input controller for player camera
     float fSpeed = 50.f;
-    MovementControlComponent lMovementControlComp;
+    MovementControlComponent lMovementControlComp{};
     lMovementControlComp.mAssignedControls = {
         InputControl(VK_A, GamepadButtonState::_StickL).SetValue(0.f, 0.f, -fSpeed).OrientationDependent(),
         InputControl(VK_D, GamepadButtonState::_StickL).SetValue(0.f, 0.f, +fSpeed).OrientationDependent(),
@@ -430,6 +414,7 @@ void _DirectX::InitGameData() {
 
     // Add controls to main camera
     gMainScene->AddComponent(gMainScene->GetActiveCameraHandle(), &lMovementControlComp);
+
 }
 
 void _DirectX::FreeResources() {
@@ -442,10 +427,10 @@ void _DirectX::FreeResources() {
 
     // Release component resources
     // TODO: Must!
-    shSDFGen.Release();
+    /*shSDFGen.Release();
     gCustomECS.~ECS();
     g_tSDF.Release();
-    cb.Release();
+    cb.Release();*/
 
     // TODO: Must!
     //gMainScene->ReleaseResources();
