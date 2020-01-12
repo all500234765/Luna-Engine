@@ -13,14 +13,14 @@ public:
 
     inline ID3D11ShaderResourceView* GetSRV() const { return pSRV; }
 
-    void CreateDefault(UINT Num, void* indices) {
+    void CreateDefault(UINT Num, void* indices, bool staging=false) {
         // Create default index buffer
         D3D11_BUFFER_DESC desc;
-        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.Usage = staging ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
         desc.ByteWidth = sizeof(unsigned long) * Num;
-        desc.BindFlags = D3D11_BIND_INDEX_BUFFER | (bSRV ? D3D11_BIND_SHADER_RESOURCE : 0);
-        desc.CPUAccessFlags = 0;
-        desc.MiscFlags = (bSRV ? D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS : 0);
+        desc.BindFlags = staging ? 0 : (D3D11_BIND_INDEX_BUFFER | (bSRV ? D3D11_BIND_SHADER_RESOURCE : 0));
+        desc.CPUAccessFlags = staging ? D3D11_CPU_ACCESS_READ : 0;
+        desc.MiscFlags = staging ? 0 : (bSRV ? D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS : 0);
         desc.StructureByteStride = 0;
 
         D3D11_SUBRESOURCE_DATA data;

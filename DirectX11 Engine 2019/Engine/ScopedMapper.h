@@ -6,6 +6,8 @@
 extern _DirectX* gDirectX;
 
 #include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/DirectX/VertexBuffer.h"
+#include "Engine/DirectX/IndexBuffer.h"
 
 template<typename T, class S>
 class ScopedMap {
@@ -53,13 +55,40 @@ public:
     ~ScopedMapCopy() { obj->Unmap(); };
 };
 
+////////////////////////////////////////////////////////////////////////////
+// Constant buffer
+////////////////////////////////////////////////////////////////////////////
 // Map CB & Unmap at the end of scope
 template<typename T>
-using ScopeMapConstantBuffer     = ScopedMap<T, ConstantBuffer>;
+using ScopeMapConstantBuffer = ScopedMap<T, ConstantBuffer>;
 
 // Copy data to CB & unmap at the end of scope
 template<typename T>
 using ScopeMapConstantBufferCopy = ScopedMapCopy<T, ConstantBuffer>;
+
+////////////////////////////////////////////////////////////////////////////
+// Vertex Buffer
+////////////////////////////////////////////////////////////////////////////
+// Copy data to VB & unmap at the end of scope
+template<typename T>
+using ScopeMapVertexBuffer = ScopedMap<T, VertexBuffer>;
+
+// Copy data to VB & unmap at the end of scope
+template<typename T>
+using ScopeMapVertexBufferCopy = ScopedMapCopy<T, VertexBuffer>;
+
+////////////////////////////////////////////////////////////////////////////
+// Index Buffer
+////////////////////////////////////////////////////////////////////////////
+// Copy data to IB & unmap at the end of scope
+using ScopeMapIndexBuffer = ScopedMap<uint, IndexBuffer>;
+
+// Copy data to IB & unmap at the end of scope
+using ScopeMapIndexBufferCopy = ScopedMapCopy<uint, IndexBuffer>;
+
+////////////////////////////////////////////////////////////////////////////
+// 
+////////////////////////////////////////////////////////////////////////////
 
 //template<typename T, typename Type>
 //using ScopeMapStructuredBuffer = ScopedMap<T, class StructuredBuffer<Type>>;

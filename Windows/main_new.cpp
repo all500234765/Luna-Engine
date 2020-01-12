@@ -16,20 +16,10 @@ HighLevel gHighLevel;
 RendererBase *gRenderer;
 Scene *gMainScene;
 
-Shader *shTerrain{}, *shTerrainDepth{}, *shSkybox{};
-
-EntityHandleList g_eTerrain{};
+Shader *shSkybox{};
 
 bool g_bMouseHUD{};
 float g_fAvgMS{};
-
-// SDF Example
-//Texture g_tSDF;
-//ECS gCustomECS;
-//Shader shSDFGen;
-//EntityHandleList g_eSDF;
-//ConstantBuffer cb;
-//std::array<ID3D11ShaderResourceView*, 3> srv;
 
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
@@ -137,12 +127,6 @@ bool _DirectX::Render() {
         g_fAvgMS = 0.f;
     }
 
-    //cb.Bind(Shader::Compute, 0);
-    //gContext->CSSetShaderResources(0, 3, srv.data());
-    //g_tSDF.Bind(Shader::Compute, 0, true);
-    //
-    //shSDFGen.Dispatch(g_tSDF.GetWidth(), g_tSDF.GetHeight(), g_tSDF.GetDepth());
-
     // Handle present event
     Present(1, 0);
 
@@ -235,39 +219,17 @@ struct cbSDFDims {
 };
 
 void _DirectX::CreateResources() {
-    //gCustomECS = ECS();
-    //g_tSDF = Texture(tf_dim_3 | tf_UAV, DXGI_FORMAT_R16_FLOAT, 15, 15, 15, 1u, "SDF");
-    //cb.CreateDefault(sizeof(cbSDFDims));
-    
     // Create renderer's resources
     gRenderer->Init();
 
     // Load Terrain shaders
-    shTerrainDepth = new Shader();
-    shTerrainDepth->SetLayoutGenerator(LayoutGenerator::LgMesh);
-    shTerrainDepth->LoadFile("shTerrainVS.cso", Shader::Vertex);
-    shTerrainDepth->LoadFile("shTerrainHS.cso", Shader::Hull);
-    shTerrainDepth->LoadFile("shTerrainDS.cso", Shader::Domain);
-    shTerrainDepth->SetNullShader(Shader::Pixel);
-
-    shTerrain = new Shader();
-    shTerrain->SetLayoutGenerator(LayoutGenerator::LgMesh);
-    shTerrain->AttachShader(shTerrainDepth, Shader::Vertex);
-    shTerrain->AttachShader(shTerrainDepth, Shader::Hull);
-    shTerrain->AttachShader(shTerrainDepth, Shader::Domain);
-    shTerrain->LoadFile("shTerrainPS.cso", Shader::Pixel);
-
     shSkybox = new Shader();
     shSkybox->SetLayoutGenerator(LgMesh);
     shSkybox->LoadFile("shSkyboxVS.cso", Shader::Vertex);
     shSkybox->LoadFile("shSkyboxPS.cso", Shader::Pixel);
 
-    //shSDFGen.LoadFile("shSDFGenCS.cso", Shader::Compute);
-
     //shSDFGen.ReleaseBlobs();
     shSkybox->ReleaseBlobs();
-    shTerrain->ReleaseBlobs();
-    shTerrainDepth->ReleaseBlobs();
 
     // Add models
     gMainScene->SetSkybox("../Textures/Cubemap default.dds");
@@ -360,32 +322,6 @@ void _DirectX::CreateResources() {
     });
 
     // TODO: Try DefaultTexture.png
-
-    // Load test model into gCustomECS
-    /*gMainScene->SetMeshSRV(true);
-    g_eSDF = gMainScene->LoadModelStaticOpaque("../Models/Plane.obj", 0u, [](EntityHandle, uint32_t) {}, &gCustomECS);
-    gMainScene->SetMeshSRV(false);
-
-    
-    {
-        MeshStaticComponent* comp = gCustomECS.GetComponent<MeshStaticComponent>(g_eSDF[0]);
-
-        {
-            ScopeMapConstantBuffer<cbSDFDims> q(&cb);
-
-            q.data->_Depth  = g_tSDF.GetDepth();
-            q.data->_Width  = g_tSDF.GetWidth();
-            q.data->_Height = g_tSDF.GetHeight();
-            q.data->_IndexCount  = comp->mIndexBuffer->GetNumber();
-            q.data->_VertexCount = comp->mVBPosition->GetNumber();
-            q.data->_Spread      = 10.f;
-        }
-
-        srv[0] = comp->mVBPosition->GetSRV();
-        srv[1] = comp->mVBNormal->GetSRV();
-        srv[2] = comp->mIndexBuffer->GetSRV();
-
-    }*/
 }
 
 void _DirectX::InitGameData() {
@@ -411,6 +347,7 @@ void _DirectX::InitGameData() {
     gMainScene->SetActiveCamera(0);
     gMainScene->UpdateMadeCameras();
     gMainScene->GetCamera(0)->cTransf->vPosition = float3(0.f, 10.f, 0.f);
+    //gMainScene->AmbientLight({ .4f, .5f, .8f }, .1f);
 
     // Add controls to main camera
     gMainScene->AddComponent(gMainScene->GetActiveCameraHandle(), &lMovementControlComp);
@@ -420,17 +357,10 @@ void _DirectX::InitGameData() {
 void _DirectX::FreeResources() {
     // Cleanup
     SAFE_RELEASE(shSkybox);
-    SAFE_RELEASE(shTerrain);
-    SAFE_RELEASE(shTerrainDepth);
 
     gRenderer->Release();
 
     // Release component resources
-    // TODO: Must!
-    /*shSDFGen.Release();
-    gCustomECS.~ECS();
-    g_tSDF.Release();
-    cb.Release();*/
 
     // TODO: Must!
     //gMainScene->ReleaseResources();

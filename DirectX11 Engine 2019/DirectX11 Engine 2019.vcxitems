@@ -91,6 +91,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)pc.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BSP\BSPBuilder.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Effects\EffectBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\ConstantBuffer.cpp" />
@@ -149,5 +150,8 @@
       <ExcludedFromBuild>
       </ExcludedFromBuild>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="$(MSBuildThisFileDirectory)BSP\shBSPBuildCS.hlsl" />
   </ItemGroup>
 </Project>
