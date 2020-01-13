@@ -301,19 +301,14 @@ Vendor/Vendor/Ansel/
 Vendor/Vendor/Bullet3/
 
 # Some compilation dirs
-Compiled/Windows_Build/Intermediate/
-Compiled/WindowsGame1_Build/Intermediate/
-Compiled/ParticlesTest_Build/Intermediate/
-Compiled/SnowTest_Build/Intermediate/
-Compiled/Target_Windows_Build/Intermediate/
-Compiled/PBRTest_Build/Intermediate/
-Compiled/AVC Build/Intermediate/
-Compiled/BVH Builder_Build/Intermediate/
+Compiled/**/Intermediate/
+Compiled/**/Paid/
+Compiled/**/_Capture/
 
 # (un)Paid resources
-Compiled/Windows_Build/Sounds/Paid/
-Compiled/Windows_Build/Music/Paid/
-Compiled/Windows_Build/Textures/Paid/
+#Compiled/Windows_Build/Sounds/Paid/
+#Compiled/Windows_Build/Music/Paid/
+#Compiled/Windows_Build/Textures/Paid/
 
 # Projects
 Compiled/Pixel Stars 2_Build/

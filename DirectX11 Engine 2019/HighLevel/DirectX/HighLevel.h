@@ -7,6 +7,7 @@
 #include "Engine/Extensions/Safe.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/RenderTarget/RenderTarget.h"
+#include "Integration/RenderDocManager.h"
 
 //#include "Enums.h"
 #include "Defines.h"
@@ -20,6 +21,7 @@ private:
     Input  *gInput;
     _DirectX *gDirectX;
     AudioDevice *gAudioDevice;
+    RenderDocManager *gRenderDoc;
 
 public:
     // int main() {
@@ -37,6 +39,9 @@ public:
     }
 
     _DirectX* InitDirectX(DirectXConfig cfg) {
+        // Init RenderDoc before DX creation
+        gRenderDoc = new RenderDocManager(gWindow->GetHWND(), "../_Capture/Cpt");
+
         gDirectX = new _DirectX();
 
         if( gDirectX->ShowError(gDirectX->Create(cfg)) ) { return nullptr; }
@@ -105,11 +110,20 @@ public:
 
         RenderTarget2DColor1::GlobalRelease();
 
+        SAFE_DELETE(gRenderDoc);
         gWindow->Destroy();
         gDirectX->Unload();
+
+        delete gWindow;
+        delete gDirectX;
     }
 
     // }
+
+    void RenderDocCaptureBegin() { gRenderDoc->StartFrameCapture(); }
+    void RenderDocCaptureEnd() { gRenderDoc->EndFrameCapture(); }
+    void RenderDocLaunchUI() { gRenderDoc->LaunchUI(); };
+    bool RenderDocGetUI() { return gRenderDoc->GetUI(); }
 
     // 
     virtual WindowConfig DefaultResize() {

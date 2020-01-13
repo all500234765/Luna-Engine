@@ -82,8 +82,6 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     gHighLevel.AppLoop();
 
     // 
-    SAFE_DELETE(gWindow);
-    SAFE_DELETE(gDirectX);
     SAFE_DELETE_N(gGamepad, NUM_GAMEPAD);
     SAFE_DELETE(gInput);
     SAFE_RELEASE(gAudioDevice);
@@ -136,6 +134,9 @@ bool _DirectX::Render() {
 }
 
 void _DirectX::Tick(float fDeltaTime) {
+    if( gKeyboard->IsPressed(VK_F10) ) { gHighLevel.RenderDocLaunchUI(); }
+    if( gHighLevel.RenderDocGetUI() ) return;
+    
     static uint64_t g_iTickFrame = 0;
     if( (g_iTickFrame % 240) == 0 ) {
         g_fAvgMS /= 240.f;
@@ -206,17 +207,6 @@ void _DirectX::Resize() {
 }
 
 void _DirectX::PostCreateResources(bool Recreated) {};
-
-struct cbSDFDims {
-    uint _VertexCount;
-    uint _IndexCount;
-    uint _Width;
-    uint _Height;
-    
-    uint _Depth;
-    uint _Spread;
-    uint2 _Align;
-};
 
 void _DirectX::CreateResources() {
     // Create renderer's resources

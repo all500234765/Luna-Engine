@@ -80,6 +80,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\Window.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\HighLevel.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)HighLevel\DirectX\Utlities.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Integration\RenderDocManager.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Integration\renderdoc_app.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\Console.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\CPUID.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\DrawCall.h" />
@@ -91,7 +93,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)pc.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)BSP\BSPBuilder.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Effects\EffectBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Camera\Camera.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\DirectX\ConstantBuffer.cpp" />
@@ -133,6 +134,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Vertices.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\SplashScreen.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Engine\Window\Window.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Integration\RenderDocManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\CPUID.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\DrawCall.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Other\FileSystem.cpp" />
@@ -150,8 +152,5 @@
       <ExcludedFromBuild>
       </ExcludedFromBuild>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="$(MSBuildThisFileDirectory)BSP\shBSPBuildCS.hlsl" />
   </ItemGroup>
 </Project>
