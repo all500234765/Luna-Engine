@@ -72,6 +72,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shVerticalFilterCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shVolumetricLightCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shHemisphereDS.hlsl">
       <ShaderType>Domain</ShaderType>
     </FxCompile>

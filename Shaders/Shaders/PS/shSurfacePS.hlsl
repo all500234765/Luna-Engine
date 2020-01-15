@@ -161,7 +161,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     Rougness *= _RoughnessMul;
     
     // Ambient light
-    float3 Ambient; // = _AmbientLightColor * _AmbientLightStrengh;
+    float3 Ambient = _AmbientLightColor * _AmbientLightStrengh;
     
     // Direct light
     float3 Direct = 1.f;
@@ -207,7 +207,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     float3 Diffuse    = Irradiance * Albedo.rgb;
     float3 AmbientIBL = KD * Diffuse;
     
-    Ambient = AmbientIBL;
+    Ambient *= AmbientIBL;
     Direct = Ambient;
     //Direct = Metallic;
     //Direct = MR.b;

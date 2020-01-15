@@ -30,6 +30,9 @@ void RendererDeferred::Init() {
     shSimpleGUI->LoadFile("shTexturedQuadAutoVS.cso", Shader::Vertex);
     shSimpleGUI->AttachShader(shGUI, Shader::Pixel);
 
+    shVolumetricLight = new Shader();
+    shVolumetricLight->LoadFile("shVolumetricLightCS.cso", Shader::Compute);
+
     // Release blobs
     shSurface->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
@@ -37,6 +40,7 @@ void RendererDeferred::Init() {
     shCombinationPass->ReleaseBlobs();
     shSimpleGUI->ReleaseBlobs();
     shGUI->ReleaseBlobs();
+    shVolumetricLight->ReleaseBlobs();
 #pragma endregion
 
 #pragma region Render Targets
@@ -236,6 +240,14 @@ void RendererDeferred::Init() {
     }
 #pragma endregion
     
+    // Volumetric Light
+    mVolumetricLightAccum = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R16G16B16A16_FLOAT, 
+                                        ceil(Width() / 2.f), ceil(Height() / 2.f), 1u, 1u, "Volumetric Light Accumulation");
+
+    cbVolumetricSettings = new ConstantBuffer();
+    cbVolumetricSettings->CreateDefault(sizeof(VolumetricSettings));
+    
+    // Default CSM Settings
     gCSMArgs._Antiflicker = true;
     gCSMArgs._CascadeNum = 3;
     gCSMArgs._Resolution = 2048;
@@ -246,6 +258,7 @@ void RendererDeferred::Init() {
     gCSMArgs._CascadeRange[2] = 25.f;
     gCSMArgs._CascadeRange[3] = 100.f;
 
+    // Deferred
     cbDeferredGlobal = new ConstantBuffer();
     cbDeferredGlobal->CreateDefault(sizeof(DeferredGlobal));
     cbDeferredGlobal->SetName("[Deferred::CB]: Deferred Global");
@@ -253,7 +266,8 @@ void RendererDeferred::Init() {
     cbTransform = new ConstantBuffer();
     cbTransform->CreateDefault(sizeof(TransformBuff));
     cbTransform->SetName("[Deferred::CB]: Transform");
-
+    
+    // Default Identity Transformation Component for internal use
     IdentityTransf = new TransformComponent;
     IdentityTransf->fAcceleration = 0.f;
     IdentityTransf->fVelocity     = 0.f;
@@ -303,6 +317,7 @@ void RendererDeferred::Render() {
         SSLF();
         FSSSSS();
         Deferred();
+        VolumetricLight();
 
         // Combination pass
         s_states.depth.norw->Bind();
@@ -345,16 +360,17 @@ void RendererDeferred::FinalScreen() {
 
 void RendererDeferred::Resize() {
     // Resize RTs
-    rtCombinedGBuffer->Resize(Width(), Height(), 1);
-    rtTransparency->Resize(Width(), Height(), 1);
-    rtFinalPass->Resize(Width(), Height(), 1);
-    rtDeferred->Resize(Width(), Height(), 1);
-    rtGBuffer->Resize(Width(), Height(), 1);
+    rtCombinedGBuffer->Resize(Width(), Height(), 1u);
+    rtTransparency->Resize(Width(), Height(), 1u);
+    rtFinalPass->Resize(Width(), Height(), 1u);
+    rtDeferred->Resize(Width(), Height(), 1u);
+    rtGBuffer->Resize(Width(), Height(), 1u);
+    mVolumetricLightAccum->Resize(ceil(Width() / gVolumetricSettings._Scaling.x), ceil(Height() / gVolumetricSettings._Scaling.y), 1u);
 
     EffectBase::ResizeGlobal(Width(), Height()); // TODO: EffectBase::ResizeGlobal
     gHDRPostProcess->Resize(Width(), Height());
     gSSAOPostProcess->Resize(Width(), Height());
-    gSSLRPostProcess->Resize(Width(), Height());
+    //gSSLRPostProcess->Resize(Width(), Height());
     gOrderIndendentTransparency->Resize(Width(), Height());
 }
 
@@ -366,6 +382,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(shCombinationPass);
     SAFE_RELEASE(shGUI);
     SAFE_RELEASE(shSimpleGUI);
+    SAFE_RELEASE(shVolumetricLight);
 
     // Render Targets
     SAFE_RELEASE(rtTransparency);
@@ -382,6 +399,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(s_material.ti.tex.black);
     SAFE_RELEASE(s_material.ti.tex.white);
     SAFE_RELEASE(s_material.mCubemap);
+    SAFE_RELEASE(mVolumetricLightAccum);
 
     // Samplers
     SAFE_RELEASE(s_material.sampl.point      );
@@ -512,6 +530,13 @@ void RendererDeferred::ImGui() {
         }
     }
 
+    // Volumetric Light
+    static float gVLGScattering = .1f;
+    static float gVLScaling     = 2.f;
+
+    ImGui::Text("Volumetric Light Settings");
+    ImGui::SliderFloat("G Scattering", &gVLGScattering, -1.f, 1.f);
+
     // OIT
     static float gMinFadeDist = 30.f;
     static float gMaxFadeDist = 30.f;
@@ -589,9 +614,14 @@ void RendererDeferred::ImGui() {
 
     // 
     CameraComponent* cam = mScene->GetCamera(0)->cCam;
+    CameraComponent* l_cam = mScene->GetCamera(1)->cCam;
     float fNear = cam->fNear;
     float fFar = cam->fFar;
     float fQ = fFar / (fNear - fFar);
+
+    float l_fNear = l_cam->fNear;
+    float l_fFar = l_cam->fFar;
+    float l_fQ = l_fFar / (l_fNear - l_fFar);
 
     // Update constant buffers
     FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
@@ -648,6 +678,17 @@ void RendererDeferred::ImGui() {
     gOITSettings.fMaxFadeDist = gMaxFadeDist;
     gOITSettings.fMinFadeDist = gMinFadeDist;
 
+    float4x4 mProjF;
+    DirectX::XMStoreFloat4x4(&mProjF, cam->mProj);
+
+    float4x4 mProj2F;
+    DirectX::XMStoreFloat4x4(&mProj2F, l_cam->mProj);
+
+    gVolumetricSettings._GScattering = gVLGScattering;
+    gVolumetricSettings._Scaling     = { gVLScaling, gVLScaling };
+    gVolumetricSettings._ProjValues  = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
+    gVolumetricSettings._ProjValues2 = { l_fNear * l_fQ, l_fQ, 1.f / mProj2F.m[0][0], 1.f / mProj2F.m[1][1] };
+
     // 
     ImGui::End();
     ImGui::Render();
@@ -665,18 +706,18 @@ void RendererDeferred::DebugHUD() {
     ScopedRangeProfiler s0(L"Debug HUD");
 
     std::vector<ID3D11ShaderResourceView*> surfaces = {
-        rtTransparency->GetBufferSRV<0>(),
-        rtGBuffer->GetBufferSRV<1>(),
-        rtGBuffer->GetBufferSRV<0>(),
-        rtGBuffer->GetBufferSRV<2>(),
-        rtCombinedGBuffer->GetBufferSRV<0>()
-
+        //rtTransparency->GetBufferSRV<0>(),
+        //rtGBuffer->GetBufferSRV<1>(),
+        //rtGBuffer->GetBufferSRV<0>(),
+        //rtGBuffer->GetBufferSRV<2>(),
+        rtCombinedGBuffer->GetBufferSRV<0>(), 
+        mVolumetricLightAccum->GetSRV()
     };
 
     TransformComponent transf{};
 
-    float w = Width() / surfaces.size() * .5f;
-    float h = w * .5f;
+    float w = (surfaces.size() == 1) ? Width()  : (Width() / surfaces.size() * .5f);
+    float h = (surfaces.size() == 1) ? Height() : (w * .5f);
 
     // Bind "persistant" states
     shSimpleGUI->Bind();
@@ -883,7 +924,7 @@ void RendererDeferred::Deferred() {
         mfloat4x4 mInvView = cam->mInvView;
 
         float4x4 mProjF;
-        DirectX::XMStoreFloat4x4(&mProjF, DirectX::XMMatrixTranspose(mProj));
+        DirectX::XMStoreFloat4x4(&mProjF, mProj);
 
         // Bind data
         {
@@ -1035,6 +1076,38 @@ void RendererDeferred::Combine() {
 
 void RendererDeferred::HDR() {
     gHDRPostProcess->Begin(rtGBuffer);
+}
+
+void RendererDeferred::VolumetricLight() {
+    ScopedRangeProfiler q(L"Volumetric Light");
+
+    // Update constant buffer
+    {
+        ScopeMapConstantBufferCopy<VolumetricSettings> q(cbVolumetricSettings, &gVolumetricSettings._ProjValues.x);
+    }
+
+    TransformComponent* l_transf = mScene->GetCamera(1)->cTransf;
+
+    // Bind resources
+    mVolumetricLightAccum->Bind(Shader::Compute, 0u, true); // UAV
+    l_transf->Bind(cbTransform, Shader::Compute, 0u);       // CB
+    mScene->BindCamera(1,       Shader::Compute, 1u);       // CB
+    mScene->BindCamera(0,       Shader::Compute, 2u);       // CB
+    mScene->BindWorldLight(     Shader::Compute, 3u);       // CB
+    cbVolumetricSettings->Bind( Shader::Compute, 4u);       // CB
+    rtDepth->Bind(0u,           Shader::Compute, 0u);       // SRV
+    rtGBuffer->Bind(0u,         Shader::Compute, 1u);       // SRV
+
+    // Dispatch
+    uint X = mVolumetricLightAccum->GetWidth();
+    uint Y = mVolumetricLightAccum->GetHeight();
+    
+    shVolumetricLight->Dispatch(X, Y, 1u);
+
+    // Discard
+    LunaEngine::CSDiscardUAV<1>();
+    LunaEngine::CSDiscardSRV<2>();
+    LunaEngine::CSDiscardCB<5>();
 }
 
 void RendererDeferred::Final() {

@@ -191,9 +191,10 @@ private:
 
     std::array<CameraData*, SCENE_MAX_CAMERA_COUNT> mCameraData{};
     std::array<ConstantBuffer*, SCENE_MAX_CAMERA_COUNT> cbCameraData{};
-    ConstantBuffer* cbTransform = nullptr;
-    ConstantBuffer* cbMaterial = nullptr;
+    ConstantBuffer* cbTransform    = nullptr;
+    ConstantBuffer* cbMaterial     = nullptr;
     ConstantBuffer* cbAmbientLight = nullptr;
+    ConstantBuffer* cbWorldLight   = nullptr;
 
     EntityHandle mAmbientLight{};
     EntityHandle mWorldLight{};
@@ -582,6 +583,10 @@ public:
         cbTransform->CreateDefault(sizeof(TransformBuff));
         cbTransform->SetName("[Scene::MeshTransform]: ConstantBuffer");
 
+        cbWorldLight = new ConstantBuffer();
+        cbWorldLight->CreateDefault(sizeof(WorldLightBuff));
+        cbWorldLight->SetName("[Scene::WorldLight]: ConstantBuffer");
+
         gVelocityIntegrationSystem        = new VelocityIntegrationSystem;
         gAnimatedMeshRenderSystem         = new AnimatedMeshRenderSystem;
         gStaticMeshRenderSystem           = new StaticMeshRenderSystem;
@@ -607,6 +612,7 @@ public:
         SAFE_RELEASE(cbTransform);
         SAFE_RELEASE(cbMaterial);
         SAFE_RELEASE(cbAmbientLight);
+        SAFE_RELEASE(cbWorldLight);
 
         //SAFE_DELETE_N(mCameraData, SCENE_MAX_CAMERA_COUNT);
         SAFE_DELETE(gVelocityIntegrationSystem);
@@ -743,13 +749,44 @@ public:
         comp->_AmbientLightStrengh = strengh;
     }
 
-    void BindAmbientLight(Shader::ShaderType type, UINT slot=1) {
+    void WorldLight(float3 Pos, float3 Dir, float3 Color) {
+        // Update
+        TransformComponent *td = GetCamera(1)->cTransf;
+        td->vPosition = Pos;
+        td->vRotation = Dir;
+
+        // Re-build view matrix
+        GetCamera(1)->BuildView();
+
+        // Get direction
+        mfloat4x4 mInvView = GetCamera(1)->cCam->mInvView;
+        float4x4 mInvViewF;
+        DirectX::XMStoreFloat4x4(&mInvViewF, mInvView);
+
+        // TODO: Get Rid of Roll Pitch Yaw
+        WorldLightComponent* comp  = GetComponent<WorldLightComponent>(mWorldLight);
+        comp->_WorldLightPosition  = Pos;
+        comp->_WorldLightDirection = { mInvViewF.m[2][0], mInvViewF.m[2][1], mInvViewF.m[2][2] };
+        comp->_WorldLightColor     = Color;
+
+    }
+
+    void BindAmbientLight(Shader::ShaderType type, UINT slot=1u) {
         AmbientLightComponent* comp = GetComponent<AmbientLightComponent>(mAmbientLight);
         {
             ScopeMapConstantBufferCopy<AmbientLightBuff> q(cbAmbientLight, &comp->_AmbientLightColor);
         }
         
         cbAmbientLight->Bind(type, slot);
+    }
+
+    void BindWorldLight(Shader::ShaderType type, UINT slot=1u) {
+        WorldLightComponent* comp = GetComponent<WorldLightComponent>(mWorldLight);
+        {
+            ScopeMapConstantBufferCopy<WorldLightBuff> q(cbWorldLight, &comp->_WorldLightPosition.x);
+        }
+
+        cbWorldLight->Bind(type, slot);
     }
 
     // TODO: 

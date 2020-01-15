@@ -10,7 +10,7 @@
 
 class RenderDocManager {
 public:
-    RenderDocManager(HWND p_Handle, LPCSTR pCapturePath);
+    RenderDocManager(HWND p_Handle, LPCSTR pCapturePath, bool bRenderDoc);
     ~RenderDocManager(void);
     void StartFrameCapture();
     void EndFrameCapture();

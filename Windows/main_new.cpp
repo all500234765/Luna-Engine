@@ -76,7 +76,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     dxCFG.Ansel = USE_ANSEL;
 
     // Init DirectX
-    gDirectX = gHighLevel.InitDirectX(dxCFG);
+    gDirectX = gHighLevel.InitDirectX(dxCFG, true);
 
     // Main Loop
     gHighLevel.AppLoop();
@@ -158,12 +158,8 @@ void _DirectX::Tick(float fDeltaTime) {
     if( gKeyboard->IsPressed(VK_SPACE) ) {
         gMainScene->UpdateCameraData(1);
 
-        TransformComponent *td = gMainScene->GetCamera(1)->cTransf;
         TransformComponent *ts = gMainScene->GetCamera(0)->cTransf;
-        td->vPosition = ts->vPosition;
-        td->vRotation = ts->vRotation;
-
-        gMainScene->GetCamera(1)->BuildView();
+        gMainScene->WorldLight(ts->vPosition, ts->vRotation, { .7f, .6f, .3f });
     }
 
     if( !g_bMouseHUD ) {
@@ -257,8 +253,9 @@ void _DirectX::CreateResources() {
         transf->Build();
     });*/
 
-    gMainScene->LoadModelStaticOpaque("../Models/SponzaRed/SponzaRed.obj", 0u, 
-                                                   [](EntityHandle e, uint32_t index) {
+    gMainScene->LoadModelStaticOpaque("../Models/SponzaRed/SponzaRed.obj", 
+                                        //"../Models/TestSceneCurve.obj", 
+                                      0u, [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
         MeshStaticComponent *mesh  = gMainScene->GetComponent<MeshStaticComponent>(e);
@@ -333,7 +330,7 @@ void _DirectX::InitGameData() {
 
     // Create cameras
     gMainScene->MakeCameraFOVH(0, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Player
-    gMainScene->MakeCameraFOVH(1, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Light
+    gMainScene->MakeCameraFOVH(1, .2f, 10000.f, 2048.f, 2048.f, 70.f); // Light
     gMainScene->SetActiveCamera(0);
     gMainScene->UpdateMadeCameras();
     gMainScene->GetCamera(0)->cTransf->vPosition = float3(0.f, 10.f, 0.f);

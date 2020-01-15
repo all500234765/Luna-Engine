@@ -81,6 +81,17 @@ private:
 
     CounterStructuredBuffer<DeferredLight> *sbDeferredLight;
 
+    // Voolumetric lights
+    ConstantBuffer *cbVolumetricSettings;
+    struct VolumetricSettings {
+        //                              fQ = fFar / (fNear - fFar);
+        float4 _ProjValues;  // fNear * fQ, fQ, 1 / m[0][0], 1 / m[1][1] // Player
+        float4 _ProjValues2; //                                          // Light
+        float _GScattering;  // [-1; 1]
+        float2 _Scaling;     // Width, Height / Downscaling Factor
+        float _MaxDistance;  // 0 - Light Far?
+    };
+
     // Effects
     HDRPostProcess                 *gHDRPostProcess{};
     SSAOPostProcess                *gSSAOPostProcess{};
@@ -95,6 +106,7 @@ private:
     CSMArgs     gCSMArgs{};
     //CBuffArgs   gCBuffArgs{};
     OITSettings gOITSettings{};
+    VolumetricSettings gVolumetricSettings{};
 
     // Resources
     RenderTarget2DDepthMSAA       *rtDepth{};
@@ -103,21 +115,24 @@ private:
     RenderTarget2DColor1          *rtFinalPass{};
     RenderTarget2DColor2MSAA      *rtDeferred{};
 
+    Texture *mVolumetricLightAccum{};
+
     Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
     Shader *shDeferredPointLights{};
+    Shader *shVolumetricLight;
     Shader *shSimpleGUI{};
 
     // Local
     Scene *mScene{};
 
-    // 
+    // Transformation
     TransformComponent *IdentityTransf;
     ConstantBuffer *cbTransform;
 
     // Geometry Passes
     void Shadows();             // Done
     void GBuffer();             // Done
-    void OIT();                 // Done
+    void OIT();                 // Done; Optimize sorting; Fix MSAA
 
     // Occlusion tests
     void CoverageBuffer();
@@ -132,6 +147,7 @@ private:
     void FSSSSS();
     void Combine();
     void HDR();
+    void VolumetricLight();
 
     // Final Passes
     void Final();

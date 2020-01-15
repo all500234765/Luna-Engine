@@ -38,9 +38,9 @@ public:
         return gInput;
     }
 
-    _DirectX* InitDirectX(DirectXConfig cfg) {
+    _DirectX* InitDirectX(DirectXConfig cfg, bool bRenderDoc) {
         // Init RenderDoc before DX creation
-        gRenderDoc = new RenderDocManager(gWindow->GetHWND(), "../_Capture/Cpt");
+        gRenderDoc = new RenderDocManager(gWindow->GetHWND(), "../_Capture/Cpt", bRenderDoc);
 
         gDirectX = new _DirectX();
 

@@ -1,7 +1,8 @@
 #include "pc.h"
 #include "RenderDocManager.h"
 
-RenderDocManager::RenderDocManager(HWND p_Handle, LPCSTR pCapturePath) {
+RenderDocManager::RenderDocManager(HWND p_Handle, LPCSTR pCapturePath, bool bRenderDoc) {
+    if( !bRenderDoc ) { return; }
     m_Handle = p_Handle;
     m_CaptureStarted = false;
 
@@ -32,7 +33,7 @@ RenderDocManager::RenderDocManager(HWND p_Handle, LPCSTR pCapturePath) {
 
     int major, minor, patch;
     m_API->GetAPIVersion(&major, &minor, &patch);
-    printf_s("[RenderDoc]: Loaded API %d.%d.%d", major, minor, patch);
+    printf_s("[RenderDoc]: Loaded API %d.%d.%d\n", major, minor, patch);
 
     // Set default settings
     m_API->SetCaptureOptionU32(eRENDERDOC_Option_AllowFullscreen, 1u);
