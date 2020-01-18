@@ -343,6 +343,8 @@ void RendererDeferred::Render() {
         // Unbind for further use
         gSSAOPostProcess->End();
     }
+
+    gFrameIndex++;
 }
 
 void RendererDeferred::FinalScreen() {
@@ -534,10 +536,12 @@ void RendererDeferred::ImGui() {
     static float gVLGScattering = .1f;
     static float gVLScaling     = 2.f;
     static float gVLMaxDistance = 13000.f;
+    static int   gVLInterleaved = 0u;
 
     ImGui::Text("Volumetric Light Settings");
     ImGui::SliderFloat("G Scattering", &gVLGScattering, -1.f, 1.f);
     ImGui::SliderFloat("Max Distance", &gVLMaxDistance, .1f, 1300.f);
+    ImGui::SliderInt  ("Interleaved" , &gVLInterleaved, 0u, 3u);
 
     // OIT
     static float gMinFadeDist = 30.f;
@@ -691,6 +695,8 @@ void RendererDeferred::ImGui() {
     gVolumetricSettings._ProjValues  = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
     gVolumetricSettings._ProjValues2 = { l_fNear * l_fQ, l_fQ, 1.f / mProj2F.m[0][0], 1.f / mProj2F.m[1][1] };
     gVolumetricSettings._MaxDistance = gVLMaxDistance;
+    gVolumetricSettings._Interleaved = pow(2, gVLInterleaved);
+    gVolumetricSettings._FrameIndex  = gFrameIndex % gVolumetricSettings._Interleaved;
 
     // 
     ImGui::End();

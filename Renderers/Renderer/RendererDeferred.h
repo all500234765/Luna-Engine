@@ -90,6 +90,9 @@ private:
         float2 _Scaling;     // Width, Height / Downscaling Factor
         float _GScattering;  // [-1; 1]
         float _MaxDistance;  // 0 - Light Far?
+        uint _FrameIndex;    // 0 -> Interleaved; based on frame index
+        uint _Interleaved;   // pow(2, n)
+        uint2 _Padding;
     };
 
     // Effects
@@ -128,6 +131,9 @@ private:
     // Transformation
     TransformComponent *IdentityTransf;
     ConstantBuffer *cbTransform;
+
+    // 
+    uint gFrameIndex{};
 
     // Geometry Passes
     void Shadows();             // Done

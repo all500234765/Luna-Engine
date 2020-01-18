@@ -21,6 +21,9 @@ cbuffer Settings : register(b4) {
     float2 _Scaling;     // Width, Height / Downscaling Factor
     float _GScattering;  // [-1; 1]
     float _MaxDistance;  // 0 - Light Far?
+    uint _FrameIndex;    // 0 -> Interleaved; based on frame index
+    uint _Interleaved;   // pow(2, n)
+    uint2 _Padding;
 };
 
 Texture2D<float> _LightDepth : register(t0);
@@ -60,6 +63,10 @@ float Scattering(float LdotV) {
 void main(uint3 dtid : SV_DispatchThreadID) {
     uint StepID = dtid.z * DIVS;
     
+    // Interleaved rendering
+    [flatten] if( _Interleaved > 1u )
+        [flatten] if( (fmod(dtid.x + dtid.y, _Interleaved) == _FrameIndex) ) { return; }
+    
     float2 uv = float2(dtid.xy) / float2(fWidth0, fHeight0) * _Scaling;
     uint2 iuv = dtid.xy * _Scaling;
     
@@ -86,15 +93,17 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     float3 rDir    = Vec / rLen;
     float StepL    = rLen / STEPS;
     float3 Step    = rDir * StepL;
-    float3 Current = WorldPos1;
+    float3 Start   = Camera;
+    float3 Current;
     
     // 
-    for( int i = 1; i < STEPS; i++ ) {
+    for( int i = 0; i < STEPS; i++ ) {
         float4 LightSpace = mul(mProj0, mul(mView0, float4(Current, 1.f)));
         LightSpace /= LightSpace.w;
-        LightSpace.z -= 1.f / 2048.f;
+        //LightSpace.z -= 1.f / 2048.f;
+        LightSpace.z -= 1.f / 65536.f; // Bias
 		
-        Current = Camera + (float)i * Step;
+        Current += Step;
 		
 		float2 proj_uv = float2(+LightSpace.x * .5f + .5f, 
 							    -LightSpace.y * .5f + .5f);
