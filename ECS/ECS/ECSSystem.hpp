@@ -10,7 +10,12 @@ private:
 
 public:
     enum Flags {
+        // If entity doesn't has such component -> we don't even care
         Optional = 1, 
+
+        // If entity has this component -> entity is invalid for this system
+        Exclude = 2, 
+
     };
 
     BaseECSSystem() {};

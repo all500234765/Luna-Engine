@@ -41,6 +41,7 @@ Texture2D<float4> _BlurTexture      : register(t6);
 Texture2D<float1> _DepthTexture     : register(t7);
 Texture2D<float1> _AmbientOcclusion : register(t8);
 Texture2D<float4> _OITransparencyCl : register(t9);
+Texture2D<float4> _VolumetricLights : register(t10);
 
 SamplerState _LinearSampler : register(s5);
 
@@ -199,6 +200,9 @@ half4 main(PS In): SV_Target0 {
         }
     }
 
+    // Volumetric
+    Diff.rgb += _VolumetricLights.Sample(_LinearSampler, In.Texcoord).rgb;
+    
     // Order Independent Transparency
     //float4 OIT = _OITransparencyCl.Sample(_Sampler, In.Texcoord);
     //Diff.rgb += OIT.rgb;// * OIT.a;

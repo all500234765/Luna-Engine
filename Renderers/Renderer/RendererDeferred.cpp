@@ -533,9 +533,11 @@ void RendererDeferred::ImGui() {
     // Volumetric Light
     static float gVLGScattering = .1f;
     static float gVLScaling     = 2.f;
+    static float gVLMaxDistance = 13000.f;
 
     ImGui::Text("Volumetric Light Settings");
     ImGui::SliderFloat("G Scattering", &gVLGScattering, -1.f, 1.f);
+    ImGui::SliderFloat("Max Distance", &gVLMaxDistance, .1f, 1300.f);
 
     // OIT
     static float gMinFadeDist = 30.f;
@@ -688,6 +690,7 @@ void RendererDeferred::ImGui() {
     gVolumetricSettings._Scaling     = { gVLScaling, gVLScaling };
     gVolumetricSettings._ProjValues  = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
     gVolumetricSettings._ProjValues2 = { l_fNear * l_fQ, l_fQ, 1.f / mProj2F.m[0][0], 1.f / mProj2F.m[1][1] };
+    gVolumetricSettings._MaxDistance = gVLMaxDistance;
 
     // 
     ImGui::End();
@@ -1099,8 +1102,8 @@ void RendererDeferred::VolumetricLight() {
     rtGBuffer->Bind(0u,         Shader::Compute, 1u);       // SRV
 
     // Dispatch
-    uint X = mVolumetricLightAccum->GetWidth();
-    uint Y = mVolumetricLightAccum->GetHeight();
+    uint X = ceil(mVolumetricLightAccum->GetWidth() / 4.f + .5f);
+    uint Y = ceil(mVolumetricLightAccum->GetHeight() / 4.f + .5f);
     
     shVolumetricLight->Dispatch(X, Y, 1u);
 
@@ -1147,6 +1150,9 @@ void RendererDeferred::Final() {
     // Deferred
     //gContext->PSSetShaderResources(3, 1, &_ColorD->pSRV);
     //sPoint->Bind(Shader::Pixel, 3);
+
+    // Volumetric
+    mVolumetricLightAccum->Bind(Shader::Pixel, 10u, false);
 
     DXDraw(6, 0);
 

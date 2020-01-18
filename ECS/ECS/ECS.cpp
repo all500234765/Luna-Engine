@@ -97,12 +97,26 @@ void ECS::UpdateMultiComponentSystem(float dt, uint32 index, const std::vector<u
 
         bool bIsValid = true;
         for( uint32 j = 0; j < compTypes.size(); j++ ) {
-            if( j == minSzIndex ) { continue; }
+            if( j == minSzIndex ) {
+                // If entity has this component -> entity is invalid for this system
+                if( compFlags[j] & BaseECSSystem::Flags::Exclude ) { bIsValid = false; }
+                continue;
+            }
 
             compParam[j] = GetComponentInternal(eComp, *compArrays[j], compTypes[j]);
-            if( compParam[j] == NULL_HANDLE && ((compFlags[j] & BaseECSSystem::Flags::Optional) == 0) ) {
-                bIsValid = false;
-                break;
+            if( compParam[j] == NULL_HANDLE ) {
+                // Must have component // We do care if this entity doesn't have this component
+                if( (compFlags[j] & BaseECSSystem::Flags::Optional) == 0
+                 && (compFlags[j] & BaseECSSystem::Flags::Exclude ) == 0) {
+                    bIsValid = false;
+                    break;
+                }
+            } else {
+                // If entity has this component -> entity is invalid for this system
+                if( compFlags[j] & BaseECSSystem::Flags::Exclude ) {
+                    bIsValid = false;
+                    break;
+                }
             }
         }
 

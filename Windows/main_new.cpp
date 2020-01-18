@@ -309,6 +309,7 @@ void _DirectX::CreateResources() {
     });
 
     // TODO: Try DefaultTexture.png
+    
 }
 
 void _DirectX::InitGameData() {

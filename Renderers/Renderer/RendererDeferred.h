@@ -87,8 +87,8 @@ private:
         //                              fQ = fFar / (fNear - fFar);
         float4 _ProjValues;  // fNear * fQ, fQ, 1 / m[0][0], 1 / m[1][1] // Player
         float4 _ProjValues2; //                                          // Light
-        float _GScattering;  // [-1; 1]
         float2 _Scaling;     // Width, Height / Downscaling Factor
+        float _GScattering;  // [-1; 1]
         float _MaxDistance;  // 0 - Light Far?
     };
 
