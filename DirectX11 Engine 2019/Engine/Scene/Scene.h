@@ -146,6 +146,30 @@ public:
     void UpdateComponents(float dt, BaseECSComponent** comp) override;
 };
 
+// Place holders
+class SpotLightShadowVolumeRenderSystem: public BaseECSSystem {
+public:
+    SpotLightShadowVolumeRenderSystem();
+
+    void UpdateComponents(float dt, BaseECSComponent** comp) override;
+
+};
+
+class SpotLightFogVolumeRenderSystem: public BaseECSSystem {
+public:
+    SpotLightFogVolumeRenderSystem();
+
+    void UpdateComponents(float dt, BaseECSComponent** comp) override;
+
+};
+
+class WorldLightVolumeRenderSystem: public BaseECSSystem {
+public:
+    WorldLightVolumeRenderSystem();
+
+    void UpdateComponents(float dt, BaseECSComponent** comp) override;
+};
+
 typedef std::vector<EntityHandle> EntityHandleList;
 
 //struct CameraInstance {
@@ -163,7 +187,7 @@ typedef std::vector<EntityHandle> EntityHandleList;
 //  5 - For further use (TBD)
 // 
 // The rest is free to use
-// Max value is 32
+// Max recommended value is 32
 #define SCENE_MAX_CAMERA_COUNT 8
 class Scene: public PipelineState<Scene> {
 private:
@@ -695,8 +719,8 @@ public:
             // Copy components & instantiate new Entity
             MeshStaticComponent* static_mesh_ref = GetComponent<MeshStaticComponent>(e);
             MeshAnimatedComponent* anim_mesh_ref = GetComponent<MeshAnimatedComponent>(e);
-            TransformComponent transf_ref        = *GetComponent<TransformComponent>(e);
-            MaterialComponent mat_ref            = *GetComponent<MaterialComponent>(e);
+            TransformComponent* transf_ref       = GetComponent<TransformComponent>(e);
+            MaterialComponent* mat_ref           = GetComponent<MaterialComponent>(e);
 
             MeshStaticComponent static_mesh{};
             MeshAnimatedComponent anim_mesh{};
@@ -704,11 +728,11 @@ public:
             MaterialComponent mat{};
 
             // Copy transform data
-            memcpy((void*)&transf.mWorld, (void*)&transf_ref.mWorld, sizeof(TransformBuff));
+            memcpy((void*)&transf.mWorld, (void*)&transf_ref->mWorld, sizeof(TransformBuff));
 
             // Copy material data
-            memcpy((void*)&mat._IsTransparent, (void*)&mat_ref._IsTransparent, sizeof(MaterialBuff));
-            memcpy((void*)&mat._AlbedoTex, (void*)&mat_ref._AlbedoTex, sizeof(uint64_t) * 6 * 2);
+            memcpy((void*)&mat._IsTransparent, (void*)&mat_ref->_IsTransparent, sizeof(MaterialBuff));
+            memcpy((void*)&mat._AlbedoTex, (void*)&mat_ref->_AlbedoTex, sizeof(uint64_t) * 8 * 2);
 
             EntityHandle ent = NULL_HANDLE;
             if( static_mesh_ref != NULL_HANDLE ) {
@@ -735,8 +759,8 @@ public:
 
             if( ent != NULL_HANDLE ) {
                 new_list.push_back(ent);
-                if( mat_ref._IsTransparent ) mTransparent.push_back(ent);
-                else                         mOpaque.push_back(ent);
+                if( mat_ref->_IsTransparent ) mTransparent.push_back(ent);
+                else                          mOpaque.push_back(ent);
             }
         }
 

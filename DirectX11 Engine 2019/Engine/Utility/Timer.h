@@ -30,7 +30,7 @@ public:
 
         auto dur = end - start;
         
-        mOnEnd((float)dur);
+        if( mOnEnd ) mOnEnd((float)dur);
         if( mPrint ) Log(mName, dur);
     }
 

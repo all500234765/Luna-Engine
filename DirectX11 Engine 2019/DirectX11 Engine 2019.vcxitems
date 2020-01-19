@@ -35,6 +35,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Default.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Extensions\Safe.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Scene\Components\BasicFog.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Scene\Components\SpotLight.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Scene\Texture.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Window\SplashScreen.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Engine\Input\Gamepad.h">

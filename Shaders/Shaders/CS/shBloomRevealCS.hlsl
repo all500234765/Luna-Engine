@@ -49,11 +49,12 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
     uint2 CurPixel = uint2(dispatchThreadID.x % _Res.x, dispatchThreadID.x / _Res.x);
 
     if( CurPixel.y < _Res.y ) {
-        float depth = 1.f - _Depth[CurPixel];
+        float depth = _Depth[CurPixel];
         
+        // Ignore sky
         if( depth > 0.f ) {
             // Convert depth to linear space
-            depth = Depth2Linear(depth);
+            depth = Depth2Linear(1.f - depth);
 
             // Calculate circle of consusion
             float CoC = CircleOfConfusion(depth);

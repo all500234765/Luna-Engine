@@ -253,7 +253,7 @@ void _DirectX::CreateResources() {
         transf->Build();
     });*/
 
-    gMainScene->LoadModelStaticOpaque("../Models/SponzaRed/SponzaRed.obj", 
+    /*gMainScene->LoadModelStaticOpaque("../Models/SponzaRed/SponzaRed.obj", 
                                         //"../Models/TestSceneCurve.obj", 
                                       0u, [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
@@ -285,8 +285,58 @@ void _DirectX::CreateResources() {
         mat->_MatBindingShader = Shader::Domain << (32 - Shader::Count);
         mat->_MatTopology      = D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
 
-        mesh->mInstanceCount = 4;*/
+        mesh->mInstanceCount = 4;* /
+    });*/
+
+    /*gMainScene->LoadModelStaticOpaque("../Models/Sponza/sponza.obj", 
+                                      //"../Models/cube.obj",
+                                      0u, [](EntityHandle e, uint32_t index) {
+        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
+        MaterialComponent *mat     = gMainScene->GetComponent<MaterialComponent>(e);
+        MeshStaticComponent *mesh  = gMainScene->GetComponent<MeshStaticComponent>(e);
+
+        transf->vPosition = { 0.f,  0.f, 0.f };
+        transf->vRotation = { 0.f,  0.f, 0.f };
+        transf->vScale    = float3(.0625f, .0625f, .0625f);
+        //transf->vScale    = float3(500.f, 500.f, 500.f);
+        transf->Build();
+
+        //mat->_Alb       = true;
+        //mat->_AlbedoTex = new Texture("../Textures/DarkPixel.png", 0u, "Black plane");
+    });*/
+
+    EntityHandleList elist = gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj",
+                                                               0u, [](EntityHandle e, uint32_t index) {
+        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
+        MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
+        MeshStaticComponent *mesh = gMainScene->GetComponent<MeshStaticComponent>(e);
+
+        transf->vRotation = float3(270.f, 0.f, 0.f);
+        //transf->vScale    = float3(.125, .125, .125);
+        transf->vPosition = float3(-50.f, 0.f, 50.f);
+
+        //transf->vPosition = { 0.f, 0.f, 0.f };
+        //transf->vRotation = { 0.f, 0.f, 0.f };
+        //transf->vScale = float3(16.f, 16.f, 16.f);
+        transf->Build();
     });
+
+    auto Move = [](EntityHandleList list) {
+        for( EntityHandle e : list ) {
+            TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
+
+            transf->vPosition.z += 50.f * 16.f / 20.f;
+            transf->Build();
+        }
+
+        return list;
+    };
+
+    // Instantiate single model several times
+    /*elist = Move(gMainScene->Instantiate(elist));
+    elist = Move(gMainScene->Instantiate(elist));
+    elist = Move(gMainScene->Instantiate(elist));
+    elist = Move(gMainScene->Instantiate(elist));*/
 
     gMainScene->LoadModelStaticOpaque("../Models/UVMappedUnitSphere.obj", 0u, 
                                       [](EntityHandle e, uint32_t index) {
@@ -301,10 +351,10 @@ void _DirectX::CreateResources() {
         mat->_ShadowCaster = 0.f;
         mat->_ShadowReceiver = 0.f;
 
-        mat->_Shader = shSkybox;
+        //mat->_Shader = shSkybox;
 
-        //mat->_Alb = true;
-        //mat->_AlbedoTex = new Texture("../Textures/Cubemap default.dds", 0u, "Env Cubemap");
+        mat->_Alb = true;
+        mat->_AlbedoTex = new Texture("../Textures/DarkPixel.png", 0u, "Env Cubemap");
 
     });
 
@@ -319,7 +369,7 @@ void _DirectX::InitGameData() {
     gMainScene->SetAsActive(); // Bind current scene as active
 
     // Create input controller for player camera
-    float fSpeed = 50.f;
+    float fSpeed = 2.f*50.f;
     MovementControlComponent lMovementControlComp{};
     lMovementControlComp.mAssignedControls = {
         InputControl(VK_A, GamepadButtonState::_StickL).SetValue(0.f, 0.f, -fSpeed).OrientationDependent(),

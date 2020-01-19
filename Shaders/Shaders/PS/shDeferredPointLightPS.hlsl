@@ -38,7 +38,7 @@ float Depth2Linear(float z) {
 }
 
 float3 GetWorldPos(float2 ClipSpace, float z) {
-    return mul(_mInvView, mul(_mInvProj, float4(ClipSpace * _ProjValues.zw * z, -z, 1.))).xyz;
+    return mul(_mInvView, float4(ClipSpace * _ProjValues.zw * z, z, 1.)).xyz;
 }
 
 struct PS {
@@ -74,5 +74,5 @@ half4 main(PS In) : SV_Target0 {
 
 
 
-    return half4(half3(In.Texcoord, 0.f) + 0*Normal + 0*Final.rgb + 0*(WorldPos), 1.f);
+    return half4(half3(In.Texcoord, 0.f)*0 + 0*Normal + 1*Final.rgb + 0*(WorldPos), 1.f);
 }

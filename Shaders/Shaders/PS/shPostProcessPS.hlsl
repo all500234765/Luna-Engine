@@ -201,7 +201,7 @@ half4 main(PS In): SV_Target0 {
     }
 
     // Volumetric
-    Diff.rgb += _VolumetricLights.Sample(_LinearSampler, In.Texcoord).rgb;
+    Diff.rgb += pow(_VolumetricLights.Sample(_LinearSampler, In.Texcoord).rgb, 2.2f);
     
     // Order Independent Transparency
     //float4 OIT = _OITransparencyCl.Sample(_Sampler, In.Texcoord);

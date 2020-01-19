@@ -39,6 +39,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shHorizontalFilterCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shHorizontalFilterDepthCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shLumDownscale1CS.hlsl">
       <FileType>Document</FileType>
       <ShaderType>Compute</ShaderType>
@@ -72,10 +75,16 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shVerticalFilterCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shVerticalFilterDepthCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shVolumetricLightCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shHemisphereDS.hlsl">
+      <ShaderType>Domain</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shSpotLightDS.hlsl">
       <ShaderType>Domain</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\DS\shTerrainDS.hlsl">
@@ -223,12 +232,6 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shSurfacePS.hlsl">
       <ShaderType>Pixel</ShaderType>
       <FileType>Document</FileType>
-    </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTest.hlsl">
-      <ShaderType>Pixel</ShaderType>
-      <AssemblerOutput>AssemblyCodeAndHex</AssemblerOutput>
-      <AssemblerOutputFile>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).asm</AssemblerOutputFile>
-      <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTextEffectsPS.hlsl">
       <ShaderType>Pixel</ShaderType>

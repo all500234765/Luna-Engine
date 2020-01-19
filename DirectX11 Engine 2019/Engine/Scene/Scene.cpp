@@ -233,3 +233,32 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
         }
     }
 }
+
+SpotLightShadowVolumeRenderSystem::SpotLightShadowVolumeRenderSystem() {
+    AddComponentType(SpotLightComponent::_ID      ); // 0
+    AddComponentType(ShadowLightComponent::_ID    ); // 1
+    AddComponentType(VolumetricLightComponent::_ID); // 2
+}
+
+void SpotLightShadowVolumeRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp) {
+
+}
+
+SpotLightFogVolumeRenderSystem::SpotLightFogVolumeRenderSystem() {
+    AddComponentType(SpotLightComponent::_ID                          ); // 0
+    AddComponentType(VolumetricLightComponent::_ID                    ); // 1
+    AddComponentType(ShadowLightComponent::_ID, BaseECSSystem::Exclude); // 2; NULL
+}
+
+void SpotLightFogVolumeRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp) {
+
+}
+
+WorldLightVolumeRenderSystem::WorldLightVolumeRenderSystem() {
+    AddComponentType(WorldLightComponent::_ID     ); // 0
+    AddComponentType(VolumetricLightComponent::_ID); // 1
+}
+
+void WorldLightVolumeRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp) {
+
+}

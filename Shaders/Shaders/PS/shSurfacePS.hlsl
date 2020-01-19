@@ -34,9 +34,9 @@ struct PS {
     float3   ViewDir  : TEXCOORD7;
 };
 
-float SampleShadow(float4 lpos) {
+float SampleShadow(float4 lpos, float NdotL) {
     const float _ShadowMapTexel = 1.f / 2048.f;
-    const float bias = -.000005; // +_ShadowMapTexel;
+    const float bias = clamp(NdotL * .005f * tan(acos(NdotL)), 0.f, .01f); //-.000005; // +_ShadowMapTexel;
     const float _Far = 10000.f;
 
     float3 projCoords = float3(.5 + (lpos.x / lpos.w) * .5,
@@ -220,7 +220,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     // Shadow mapping
     //float S = SampleShadow(In.LightPos) * s + (1. - s); // lerp(a, b, x) = a + (b - a) * x;
     const float s = .5f;
-    float S = lerp(1.f - s, 1.f, SampleShadow(In.LightPos));
+    float S = lerp(1.f - s, 1.f, SampleShadow(In.LightPos, NdotL));
     Direct *= S;
     
     // Final result

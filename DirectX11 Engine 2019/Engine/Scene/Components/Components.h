@@ -34,6 +34,23 @@ struct BasicFogBuff {
 #include "Engine/DirectX/VertexBuffer.h"
 #include "Engine/DirectX/IndexBuffer.h"
 
+struct VolumetricLightComponent: ECSComponent<VolumetricLightComponent> {
+    uint32_t mEnabled = true;
+};
+
+struct ShadowLightComponent: ECSComponent<ShadowLightComponent> {};
+struct SpotLightComponent: ECSComponent<SpotLightComponent> {
+    #include "SpotLight.h"
+};
+
+struct PointLightComponent: ECSComponent<PointLightComponent> {
+    //#include "PointLight.h"
+};
+
+struct AreaLightComponent: ECSComponent<AreaLightComponent> {
+    //#include "AreaLight.h"
+};
+
 struct AmbientLightComponent: ECSComponent<AmbientLightComponent> {
     #include "AmbientLight.h"
 

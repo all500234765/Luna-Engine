@@ -33,6 +33,12 @@ void RendererDeferred::Init() {
     shVolumetricLight = new Shader();
     shVolumetricLight->LoadFile("shVolumetricLightCS.cso", Shader::Compute);
 
+    shHorizontalFilterDepth = new Shader();
+    shHorizontalFilterDepth->LoadFile("shHorizontalFilterDepthCS.cso", Shader::Compute);
+
+    shVerticalFilterDepth = new Shader();
+    shVerticalFilterDepth->LoadFile("shVerticalFilterDepthCS.cso", Shader::Compute);
+
     // Release blobs
     shSurface->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
@@ -41,6 +47,8 @@ void RendererDeferred::Init() {
     shSimpleGUI->ReleaseBlobs();
     shGUI->ReleaseBlobs();
     shVolumetricLight->ReleaseBlobs();
+    shVerticalFilterDepth->ReleaseBlobs();
+    shHorizontalFilterDepth->ReleaseBlobs();
 #pragma endregion
 
 #pragma region Render Targets
@@ -240,6 +248,52 @@ void RendererDeferred::Init() {
     }
 #pragma endregion
     
+    // ImGui
+    mRenderDocTex = new Texture("Engine/RenderDoc.png");
+    mRenderDocImageID = (void*)mRenderDocTex->GetSRV();
+
+#define ___LITIMG(x, y) \
+    mLitImageTex[x] = new Texture("Engine/" y "Cube.png"); \
+    mLitImageID[x] = (void*)mLitImageTex[x]->GetSRV();
+
+    ___LITIMG(0, "Lit");
+    ___LITIMG(1, "Unlit");
+    ___LITIMG(2, "AO");
+    ___LITIMG(3, "Indirect");
+    ___LITIMG(4, "Indirect"); // Volumetric
+
+#undef ___LITIMG
+
+    // Edit ImGui style
+    {
+        ImGuiStyle &style = ImGui::GetStyle();
+
+        style.WindowRounding   = 6.f;
+        style.FrameRounding    = style.WindowRounding;
+        style.PopupRounding    = style.WindowRounding;
+        style.WindowBorderSize = 0.f;
+        style.PopupBorderSize  = 0.f;
+        style.FrameBorderSize  = 0.f;
+        
+        style.Colors[ImGuiCol_MenuBarBg]     = ImVec4(0.f, 0.f, 0.f, .5f);
+        style.Colors[ImGuiCol_Button]        = ImVec4(0.f, 0.f, 0.f, .5f);
+        style.Colors[ImGuiCol_ButtonHovered] = ImVec4(.1f, .1f, .1f, .5f);
+        style.Colors[ImGuiCol_ButtonActive]  = ImVec4(.2f, .2f, .2f, .5f);
+        style.Colors[ImGuiCol_HeaderHovered] = ImVec4(.1f, .1f, .1f, .5f);
+        style.Colors[ImGuiCol_HeaderActive]  = ImVec4(.2f, .2f, .2f, .5f);
+        style.Colors[ImGuiCol_PopupBg]       = ImVec4(0.f, 0.f, 0.f, 1.f);
+        style.Colors[ImGuiCol_Border]        = ImVec4(0.f, 0.f, 0.f, 0.f);
+
+    }
+
+    // Blur filter
+    cbBlurFilter = new ConstantBuffer();
+    cbBlurFilter->CreateDefault(sizeof(BlurFilter));
+
+    // Shadow mapping
+    mDepthI = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, rtDepth->GetWidth() / 4.f, rtDepth->GetHeight() / 4.f, 1u, 1u, "Blurred Light Buffer I");
+    mDepth2 = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, rtDepth->GetWidth() / 4.f, rtDepth->GetHeight() / 4.f, 1u, 1u, "Blurred Light Buffer");
+
     // Volumetric Light
     mVolumetricLightAccum = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R16G16B16A16_FLOAT, 
                                         ceil(Width() / 2.f), ceil(Height() / 2.f), 1u, 1u, "Volumetric Light Accumulation");
@@ -352,7 +406,15 @@ void RendererDeferred::FinalScreen() {
 
     // Bind resources
     s_material.sampl.point->Bind(Shader::Pixel);
-    rtFinalPass->Bind(0u, Shader::Pixel, 0, false);
+    
+    switch( (LitIndex)mLitIndex ) {
+        case LitIndex::Lit       : rtFinalPass->Bind(0u, Shader::Pixel, 0, false); break;
+        case LitIndex::Unlit     : rtGBuffer->Bind(1u, Shader::Pixel, 0, false); break;
+        case LitIndex::AO        : gSSAOPostProcess->BindAO(Shader::Pixel, 0); break;
+        case LitIndex::Volumetric: mVolumetricLightAccum->Bind(Shader::Pixel, 0, false); break;
+
+    }
+    
 
     BindOrtho();
 
@@ -385,6 +447,8 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(shGUI);
     SAFE_RELEASE(shSimpleGUI);
     SAFE_RELEASE(shVolumetricLight);
+    SAFE_RELEASE(shVerticalFilterDepth);
+    SAFE_RELEASE(shHorizontalFilterDepth);
 
     // Render Targets
     SAFE_RELEASE(rtTransparency);
@@ -402,6 +466,10 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(s_material.ti.tex.white);
     SAFE_RELEASE(s_material.mCubemap);
     SAFE_RELEASE(mVolumetricLightAccum);
+    SAFE_RELEASE_N(mLitImageTex, 5);
+    SAFE_RELEASE(mRenderDocTex);
+    SAFE_RELEASE(mDepth2);
+    SAFE_RELEASE(mDepthI);
 
     // Samplers
     SAFE_RELEASE(s_material.sampl.point      );
@@ -430,6 +498,10 @@ void RendererDeferred::Release() {
     // Buffers
     SAFE_RELEASE(cbTransform);
     SAFE_RELEASE(cbDeferredGlobal);
+    SAFE_RELEASE(sbDeferredLight);
+    SAFE_RELEASE(cbDeferredLight);
+    SAFE_RELEASE(cbVolumetricSettings);
+    SAFE_RELEASE(cbBlurFilter);
 
     // Other
     SAFE_DELETE(IdentityTransf);
@@ -444,8 +516,109 @@ void RendererDeferred::ImGui() {
     ImGui::NewFrame();
 
     // Create debug window
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration    | ImGuiWindowFlags_NoNav
+                           | ImGuiWindowFlags_NoMove
+                           | ImGuiWindowFlags_NoBackground;
+    bool open = true;
+    ImGui::Begin("0", &open, flags | ImGuiWindowFlags_AlwaysAutoResize);
+
+    {
+        static const std::vector<std::vector<const char*>> items = {
+            {
+                "Save", 
+                "Load", 
+                "Import", 
+                "Export", 
+                "Exit"
+            }, 
+            {
+                "MSAA",
+                "HDR",
+                "Environment", 
+                "Volumetric Light",
+                "OIT",
+                "CSM",
+                "SSLR",
+                "SSAO"
+            }
+        };
+        
+        if( ImGui::BeginMenuBar() ) {
+            if( ImGui::BeginMenu("File") ) {
+                for( uint32_t i = 0; i < items[0].size(); i++ ) ImGui::MenuItem(items[0][i]);
+                ImGui::EndMenu();
+            }
+
+            if( ImGui::BeginMenu("Options") ) {
+                for( uint32_t i = 0; i < items[1].size(); i++ ) ImGui::MenuItem(items[1][i]);
+                ImGui::EndMenu();
+            }
+
+            /*if( ImGui::BeginMenu("Windows") ) {
+                for( uint32_t i = 0; i < items[2].size(); i++ ) ImGui::MenuItem(items[2][i]);
+                ImGui::EndMenu();
+            }*/
+
+            ImGui::EndMenuBar();
+        }
+    }
+
+    ImGui::End();
+    
+    {
+        static const std::vector<std::vector<const char*>> items = {
+            {
+                "Capture",
+                "Open UI"
+            },
+            {
+                "Lit",
+                "Unlit",
+                "AO",
+                "Indirect",
+                "Volumetric"
+            }
+        };
+
+
+        open = true;
+        ImGui::Begin("1", &open, flags);
+            mRenderDoc = ImGui::ImageButton(mRenderDocImageID, ImVec2(24.f, 24.f));
+            if( mRenderDoc ) {
+
+            }
+        ImGui::End();
+
+        open = true;
+        ImGui::Begin("2", &open, flags);
+            
+            mLit ^= ImGui::ImageButton(mLitImageID[mLitIndex], ImVec2(24.f, 24.f));
+            ImGui::SameLine(48.f);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.f);
+            ImGui::Text(items[1][mLitIndex]);
+
+            if( mLit ) {
+                for( uint32_t i = 0; i < ARRAYSIZE(mLitImageID); i++ ) {
+                    bool b = ImGui::ImageButton(mLitImageID[i], ImVec2(24.f, 24.f));
+                    ImGui::SameLine(48.f);
+                    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.f);
+                    ImGui::Text(items[1][i]);
+                    
+                    if( b ) {
+                        mLitIndex = i;
+                        mLit = false;
+                    }
+                }
+            }
+        ImGui::End();
+
+
+    }
+
+
     ImGui::Begin("Debug");
 
+    {
     // GPU Memory usage
     DXGI_QUERY_VIDEO_MEMORY_INFO MemoryUsage = gDirectX->GPUUsage();
 
@@ -534,14 +707,21 @@ void RendererDeferred::ImGui() {
 
     // Volumetric Light
     static float gVLGScattering = .1f;
-    static float gVLScaling     = 2.f;
+    static int   gVLScaling     = 1u;
     static float gVLMaxDistance = 13000.f;
     static int   gVLInterleaved = 0u;
+    static float gVLExposure    = 15.f;
 
     ImGui::Text("Volumetric Light Settings");
     ImGui::SliderFloat("G Scattering", &gVLGScattering, -1.f, 1.f);
     ImGui::SliderFloat("Max Distance", &gVLMaxDistance, .1f, 1300.f);
     ImGui::SliderInt  ("Interleaved" , &gVLInterleaved, 0u, 3u);
+    ImGui::SliderFloat("Exposure"    , &gVLExposure   , 1.f, 30.f);
+    if( ImGui::SliderInt("Scaling"   , &gVLScaling    , 0u, 3u) ) {
+        // Re-scale texture
+        float scale = pow(2.f, gVLScaling);
+        mVolumetricLightAccum->Resize(Width() / scale, Height() / scale, 1u);
+    }
 
     // OIT
     static float gMinFadeDist = 30.f;
@@ -691,12 +871,14 @@ void RendererDeferred::ImGui() {
     DirectX::XMStoreFloat4x4(&mProj2F, l_cam->mProj);
 
     gVolumetricSettings._GScattering = gVLGScattering;
-    gVolumetricSettings._Scaling     = { gVLScaling, gVLScaling };
+    gVolumetricSettings._Scaling     = { pow(2.f, gVLScaling), pow(2.f, gVLScaling) };
     gVolumetricSettings._ProjValues  = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
     gVolumetricSettings._ProjValues2 = { l_fNear * l_fQ, l_fQ, 1.f / mProj2F.m[0][0], 1.f / mProj2F.m[1][1] };
     gVolumetricSettings._MaxDistance = gVLMaxDistance;
     gVolumetricSettings._Interleaved = pow(2, gVLInterleaved);
     gVolumetricSettings._FrameIndex  = gFrameIndex % gVolumetricSettings._Interleaved;
+    gVolumetricSettings._Exposure    = gVLExposure;
+    }
 
     // 
     ImGui::End();
@@ -720,7 +902,8 @@ void RendererDeferred::DebugHUD() {
         //rtGBuffer->GetBufferSRV<0>(),
         //rtGBuffer->GetBufferSRV<2>(),
         rtCombinedGBuffer->GetBufferSRV<0>(), 
-        mVolumetricLightAccum->GetSRV()
+        mVolumetricLightAccum->GetSRV(), 
+        mDepth2->GetSRV()
     };
 
     TransformComponent transf{};
@@ -794,6 +977,47 @@ void RendererDeferred::Shadows() {
         }
 
         mScene->SetActiveCamera(old);
+
+        //////////////////////////// Shadow map Blur ////////////////////////////
+        // TODO: Add RT Unbind
+        /*ID3D11RenderTargetView *empty_rtv = {};
+        gDirectX->gContext->OMSetRenderTargets(1, &empty_rtv, nullptr);
+
+        float fWidth  = rtDepth->GetWidth();
+        float fHeight = rtDepth->GetHeight();
+        
+        gBlurFilter._Res       = { uint32_t(fWidth / 1.f), uint32_t(fHeight / 1.f) };
+        gBlurFilter._Domain    = gBlurFilter._Res.x * gBlurFilter._Res.y;
+        gBlurFilter._GroupSize = gBlurFilter._Domain / 1024.f;
+
+        // Copy data
+        {
+            ScopeMapConstantBufferCopy<BlurFilter> q(cbBlurFilter, &gBlurFilter._Res.x);
+        }
+
+        // Horizontal pass
+        cbBlurFilter->Bind(Shader::Compute, 0);   // CB
+        rtDepth->Bind(0u, Shader::Compute, 0u);   // Texture2D; _Input
+        mDepthI->Bind(Shader::Compute, 0u, true); // RWTexture2D; _Output
+
+        shHorizontalFilterDepth->Dispatch((UINT)ceil(fWidth / (4.f * (128.f - 12.f))), (UINT)ceil(fHeight / 4.f), 1);
+
+        // Unbind slots
+        LunaEngine::CSDiscardUAV<1>();
+        LunaEngine::CSDiscardSRV<1>();
+        //LunaEngine::CSDiscardCB <1>();
+
+        // Vertical pass
+        //cbDownScale->Bind(Shader::Compute, 0);   // CB
+        mDepthI->Bind(Shader::Compute, 0u);      // Texture2D; _Input
+        mDepth2->Bind(Shader::Compute, 0, true); // RWTexture2D; _Output
+
+        shVerticalFilterDepth->Dispatch((UINT)ceil(fWidth / 4.f), (UINT)ceil(fHeight / (4.f * (128.f - 12.f))), 1);
+
+        // Unbind slots
+        LunaEngine::CSDiscardUAV<1>();
+        LunaEngine::CSDiscardSRV<1>();
+        //LunaEngine::CSDiscardCB <1>();*/
     }
 }
 
@@ -830,6 +1054,7 @@ void RendererDeferred::GBuffer() {
 
     // Bind depth buffer
     rtDepth->Bind(0u, Shader::Pixel, 8);
+    //mDepth2->Bind(Shader::Pixel, 8u);
     s_material.sampl.linear_comp->Bind(Shader::Pixel, 8);
 
     // Bind noise texture
@@ -1104,14 +1329,18 @@ void RendererDeferred::VolumetricLight() {
     mScene->BindCamera(0,       Shader::Compute, 2u);       // CB
     mScene->BindWorldLight(     Shader::Compute, 3u);       // CB
     cbVolumetricSettings->Bind( Shader::Compute, 4u);       // CB
+    //mDepth2->Bind(              Shader::Compute, 0u);       // SRV
     rtDepth->Bind(0u,           Shader::Compute, 0u);       // SRV
     rtGBuffer->Bind(0u,         Shader::Compute, 1u);       // SRV
 
     // Dispatch
-    uint X = ceil(mVolumetricLightAccum->GetWidth() / 4.f + .5f);
+    uint X = ceil(mVolumetricLightAccum->GetWidth()  / 8.f + .5f);
     uint Y = ceil(mVolumetricLightAccum->GetHeight() / 4.f + .5f);
     
-    shVolumetricLight->Dispatch(X, Y, 1u);
+    {
+        if( gFrameIndex % 240 == 0 ) Timer t;
+        shVolumetricLight->Dispatch(X, Y, 1u);
+    }
 
     // Discard
     LunaEngine::CSDiscardUAV<1>();

@@ -22,6 +22,7 @@ private:
     _DirectX *gDirectX;
     AudioDevice *gAudioDevice;
     RenderDocManager *gRenderDoc;
+    TimerLog* gTimerLog;
 
 public:
     // int main() {
@@ -41,7 +42,7 @@ public:
     _DirectX* InitDirectX(DirectXConfig cfg, bool bRenderDoc) {
         // Init RenderDoc before DX creation
         gRenderDoc = new RenderDocManager(gWindow->GetHWND(), "../_Capture/Cpt", bRenderDoc);
-
+        
         gDirectX = new _DirectX();
 
         if( gDirectX->ShowError(gDirectX->Create(cfg)) ) { return nullptr; }
@@ -90,6 +91,9 @@ public:
     }
 
     void AppLoop() {
+        gTimerLog = new TimerLog;
+        TimerLog::SetTimerLog(gTimerLog);
+
         // Load game data
         gDirectX->Load();
 
@@ -98,6 +102,8 @@ public:
 
         // Unload
         AppEnd();
+
+        delete gTimerLog;
     }
 
     void AppEnd() {

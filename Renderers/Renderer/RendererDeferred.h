@@ -81,7 +81,7 @@ private:
 
     CounterStructuredBuffer<DeferredLight> *sbDeferredLight;
 
-    // Voolumetric lights
+    // Volumetric lights
     ConstantBuffer *cbVolumetricSettings;
     struct VolumetricSettings {
         //                              fQ = fFar / (fNear - fFar);
@@ -92,8 +92,25 @@ private:
         float _MaxDistance;  // 0 - Light Far?
         uint _FrameIndex;    // 0 -> Interleaved; based on frame index
         uint _Interleaved;   // pow(2, n)
-        uint2 _Padding;
+        float _Exposure;     // Default: 10.f
+        uint _Padding;
     };
+
+    // Blur filter
+    ConstantBuffer *cbBlurFilter;
+    struct BlurFilter {
+        // Res of downscaled target: x - width, y - height
+        uint2 _Res; // Backbuffer / 4
+
+        // Total pixels in the downscaled img
+        uint _Domain; // Res.x * Res.y
+
+        // Number of groups dispatched on 1st pass
+        uint _GroupSize; // Domain / 1024
+
+        // 
+        float4 _Alignment;
+    } gBlurFilter{};
 
     // Effects
     HDRPostProcess                 *gHDRPostProcess{};
@@ -119,11 +136,13 @@ private:
     RenderTarget2DColor2MSAA      *rtDeferred{};
 
     Texture *mVolumetricLightAccum{};
+    Texture *mDepth2{}, *mDepthI{}; // Main depth buffer & Intermidiate
 
     Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
     Shader *shDeferredPointLights{};
     Shader *shVolumetricLight;
     Shader *shSimpleGUI{};
+    Shader *shHorizontalFilterDepth{}, *shVerticalFilterDepth{};
 
     // Local
     Scene *mScene{};
@@ -134,6 +153,23 @@ private:
 
     // 
     uint gFrameIndex{};
+
+    // ImGui
+    bool mRenderDoc{};
+    ImTextureID mRenderDocImageID{};
+    Texture *mRenderDocTex{};
+
+    enum class LitIndex {
+        Lit, Unlit, 
+        AO, Indirect, 
+        Volumetric
+
+    };
+
+    bool mLit{};
+    uint32_t mLitIndex{};
+    ImTextureID mLitImageID[5]{};
+    Texture *mLitImageTex[5]{};
 
     // Geometry Passes
     void Shadows();             // Done
