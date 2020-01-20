@@ -305,15 +305,17 @@ void _DirectX::CreateResources() {
         //mat->_AlbedoTex = new Texture("../Textures/DarkPixel.png", 0u, "Black plane");
     });*/
 
-    EntityHandleList elist = gMainScene->LoadModelStaticOpaque("../Models/LevelModelOBJ.obj",
-                                                               0u, [](EntityHandle e, uint32_t index) {
+    EntityHandleList elist = gMainScene->LoadModelStaticOpaque("../Models/Sketchfab/ch basement a/scene.gltf", //"../Models/Sponza/SponzaPBR.gltf",
+                                                               aiProcess_FlipUVs, [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
         MeshStaticComponent *mesh = gMainScene->GetComponent<MeshStaticComponent>(e);
 
-        transf->vRotation = float3(270.f, 0.f, 0.f);
+        //transf->vRotation = float3(270.f, 0.f, 0.f);
+        //transf->vRotation = float3(90.f, 0.f, 0.f);
+        //transf->vScale = float3(100.f, 100.f, 100.f);
         //transf->vScale    = float3(.125, .125, .125);
-        transf->vPosition = float3(-50.f, 0.f, 50.f);
+        //transf->vPosition = float3(-50.f, 0.f, 50.f);
 
         //transf->vPosition = { 0.f, 0.f, 0.f };
         //transf->vRotation = { 0.f, 0.f, 0.f };
@@ -351,15 +353,14 @@ void _DirectX::CreateResources() {
         mat->_ShadowCaster = 0.f;
         mat->_ShadowReceiver = 0.f;
 
-        //mat->_Shader = shSkybox;
+        mat->_Shader = shSkybox;
 
-        mat->_Alb = true;
-        mat->_AlbedoTex = new Texture("../Textures/DarkPixel.png", 0u, "Env Cubemap");
+        //mat->_Alb = true;
+        //mat->_AlbedoTex = new Texture("../Textures/DarkPixel.png", 0u, "Env Cubemap");
 
     });
 
     // TODO: Try DefaultTexture.png
-    
 }
 
 void _DirectX::InitGameData() {
@@ -369,7 +370,7 @@ void _DirectX::InitGameData() {
     gMainScene->SetAsActive(); // Bind current scene as active
 
     // Create input controller for player camera
-    float fSpeed = 2.f*50.f;
+    float fSpeed = 4.f*50.f;
     MovementControlComponent lMovementControlComp{};
     lMovementControlComp.mAssignedControls = {
         InputControl(VK_A, GamepadButtonState::_StickL).SetValue(0.f, 0.f, -fSpeed).OrientationDependent(),

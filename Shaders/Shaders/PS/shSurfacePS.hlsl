@@ -143,17 +143,18 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     
     // Sample PBR textures
     float3 Albedo   = pow(_AlbedoTex.Sample(_AlbedoSampl, In.Texcoord).rgb, 2.2f) * _AlbedoMul;
-    float1 AOccl    = _AmbientOcclusionTex.Sample(_AmbientOcclusionSampl, In.Texcoord).r * _AmbientOcclusionMul;
-    float3 MR       = _MetallicTex.Sample(_MetallicSampl, In.Texcoord).rgb;
+    //float1 AOccl    = _AmbientOcclusionTex.Sample(_AmbientOcclusionSampl, In.Texcoord).r * _AmbientOcclusionMul;
+    float3 ORM      = _MetallicTex.Sample(_MetallicSampl, In.Texcoord).rgb;
     
-    float1 Metallic, Rougness;
+    float1 AOccl = 1.f, Metallic, Rougness;
     [branch] if( _Metal & 4 ) {
         // Combined
-        Rougness = MR.g;
-        Metallic = MR.b;
+        AOccl    = ORM.r;
+        Rougness = ORM.g;
+        Metallic = ORM.b;
     } else {
         // Simple case
-        Metallic = MR.r;
+        Metallic = ORM.r;
         Rougness = _RoughnessTex.Sample(_RoughnessSampl, In.Texcoord).r;
     }
     
@@ -207,7 +208,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     float3 Diffuse    = Irradiance * Albedo.rgb;
     float3 AmbientIBL = KD * Diffuse;
     
-    Ambient *= AmbientIBL;
+    Ambient *= AmbientIBL * AOccl;
     Direct = Ambient;
     //Direct = Metallic;
     //Direct = MR.b;

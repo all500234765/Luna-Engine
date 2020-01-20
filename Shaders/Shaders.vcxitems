@@ -33,6 +33,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shDownscaleDepthNormalCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shDSSDOAccumulateCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shHDRTonemap.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>

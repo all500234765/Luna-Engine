@@ -57,7 +57,7 @@ float Scattering(float LdotV) {
     return r;
 }
 
-#define STEPS (16*4)
+#define STEPS (16*2)
 #define DIVS (1)
 
 static const float DitherPattern[4][4] = { { .0f   , .5f   , .125f , .625f },
@@ -98,7 +98,8 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     // Ray march
     [unroll(STEPS)]
     for( uint i = 1; i < STEPS; i++ ) {
-        float4 LightSpace = mul(mProj0, mul(mView0, float4(Current, 1.f)));
+        float Dither = DitherPattern[(iuv.x + i / 4) % 4][(iuv.y + i) % 4];
+        float4 LightSpace = mul(mProj0, mul(mView0, float4(Current + Dither, 1.f)));
         LightSpace /= LightSpace.w;
         
         // Apply bias

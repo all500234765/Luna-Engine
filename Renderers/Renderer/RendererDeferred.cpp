@@ -39,6 +39,9 @@ void RendererDeferred::Init() {
     shVerticalFilterDepth = new Shader();
     shVerticalFilterDepth->LoadFile("shVerticalFilterDepthCS.cso", Shader::Compute);
 
+    shDSSDOAccumulate = new Shader();
+    shDSSDOAccumulate->LoadFile("shDSSDOAccumulateCS.cso", Shader::Compute);
+
     // Release blobs
     shSurface->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
@@ -49,6 +52,7 @@ void RendererDeferred::Init() {
     shVolumetricLight->ReleaseBlobs();
     shVerticalFilterDepth->ReleaseBlobs();
     shHorizontalFilterDepth->ReleaseBlobs();
+    shDSSDOAccumulate->ReleaseBlobs();
 #pragma endregion
 
 #pragma region Render Targets
@@ -261,6 +265,8 @@ void RendererDeferred::Init() {
     ___LITIMG(2, "AO");
     ___LITIMG(3, "Indirect");
     ___LITIMG(4, "Indirect"); // Volumetric
+    ___LITIMG(5, "Indirect"); // SSDO
+    ___LITIMG(6, "Normal");
 
 #undef ___LITIMG
 
@@ -301,6 +307,12 @@ void RendererDeferred::Init() {
     cbVolumetricSettings = new ConstantBuffer();
     cbVolumetricSettings->CreateDefault(sizeof(VolumetricSettings));
     
+    // DSSDO
+    mDSSDOAccumulation = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R16G16B16A16_FLOAT, Width(), Height(), 1u, 1u, "DSSDO Accumulation");
+
+    cbDSSDOSettings = new ConstantBuffer();
+    cbDSSDOSettings->CreateDefault(sizeof(DSSDOSettings));
+
     // Default CSM Settings
     gCSMArgs._Antiflicker = true;
     gCSMArgs._CascadeNum = 3;
@@ -372,6 +384,7 @@ void RendererDeferred::Render() {
         FSSSSS();
         Deferred();
         VolumetricLight();
+        DSSDO();
 
         // Combination pass
         s_states.depth.norw->Bind();
@@ -412,10 +425,10 @@ void RendererDeferred::FinalScreen() {
         case LitIndex::Unlit     : rtGBuffer->Bind(1u, Shader::Pixel, 0, false); break;
         case LitIndex::AO        : gSSAOPostProcess->BindAO(Shader::Pixel, 0); break;
         case LitIndex::Volumetric: mVolumetricLightAccum->Bind(Shader::Pixel, 0, false); break;
-
+        case LitIndex::SSDO      : mDSSDOAccumulation->Bind(Shader::Pixel, 0, false); break;
+        case LitIndex::Normal    : rtGBuffer->Bind(2u, Shader::Pixel, 0, false); break;
     }
     
-
     BindOrtho();
 
     // 
@@ -449,6 +462,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(shVolumetricLight);
     SAFE_RELEASE(shVerticalFilterDepth);
     SAFE_RELEASE(shHorizontalFilterDepth);
+    SAFE_RELEASE(shDSSDOAccumulate);
 
     // Render Targets
     SAFE_RELEASE(rtTransparency);
@@ -466,10 +480,11 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(s_material.ti.tex.white);
     SAFE_RELEASE(s_material.mCubemap);
     SAFE_RELEASE(mVolumetricLightAccum);
-    SAFE_RELEASE_N(mLitImageTex, 5);
+    SAFE_RELEASE_N(mLitImageTex, ARRAYSIZE(mLitImageTex));
     SAFE_RELEASE(mRenderDocTex);
     SAFE_RELEASE(mDepth2);
     SAFE_RELEASE(mDepthI);
+    SAFE_RELEASE(mDSSDOAccumulation);
 
     // Samplers
     SAFE_RELEASE(s_material.sampl.point      );
@@ -502,6 +517,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(cbDeferredLight);
     SAFE_RELEASE(cbVolumetricSettings);
     SAFE_RELEASE(cbBlurFilter);
+    SAFE_RELEASE(cbDSSDOSettings);
 
     // Other
     SAFE_DELETE(IdentityTransf);
@@ -576,7 +592,9 @@ void RendererDeferred::ImGui() {
                 "Unlit",
                 "AO",
                 "Indirect",
-                "Volumetric"
+                "Volumetric",
+                "SSDO",
+                "Normal"
             }
         };
 
@@ -705,6 +723,11 @@ void RendererDeferred::ImGui() {
         }
     }
 
+    static float gDORadius = .27971f;
+    static float gDOMaxDistance = .63942f;
+    ImGui::SliderFloat("Radius", &gDORadius, .1f, 20000.f);
+    ImGui::SliderFloat("Max distance", &gDOMaxDistance, .1f, 1.f);
+
     // Volumetric Light
     static float gVLGScattering = .1f;
     static int   gVLScaling     = 1u;
@@ -717,7 +740,7 @@ void RendererDeferred::ImGui() {
     ImGui::SliderFloat("Max Distance", &gVLMaxDistance, .1f, 1300.f);
     ImGui::SliderInt  ("Interleaved" , &gVLInterleaved, 0u, 3u);
     ImGui::SliderFloat("Exposure"    , &gVLExposure   , 1.f, 30.f);
-    if( ImGui::SliderInt("Scaling"   , &gVLScaling    , 0u, 3u) ) {
+    if( ImGui::SliderInt("Scaling"   , &gVLScaling    , -3, 3) ) {
         // Re-scale texture
         float scale = pow(2.f, gVLScaling);
         mVolumetricLightAccum->Resize(Width() / scale, Height() / scale, 1u);
@@ -857,6 +880,7 @@ void RendererDeferred::ImGui() {
     //           View Proj
     // Inv       View Proj
 
+    // OIT
     mfloat4x4 mInvViewProj = cam->mView * cam->mProj;
     mInvViewProj = DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(mInvViewProj), mInvViewProj);
 
@@ -864,6 +888,7 @@ void RendererDeferred::ImGui() {
     gOITSettings.fMaxFadeDist = gMaxFadeDist;
     gOITSettings.fMinFadeDist = gMinFadeDist;
 
+    // Volumetric Light
     float4x4 mProjF;
     DirectX::XMStoreFloat4x4(&mProjF, cam->mProj);
 
@@ -878,6 +903,15 @@ void RendererDeferred::ImGui() {
     gVolumetricSettings._Interleaved = pow(2, gVLInterleaved);
     gVolumetricSettings._FrameIndex  = gFrameIndex % gVolumetricSettings._Interleaved;
     gVolumetricSettings._Exposure    = gVLExposure;
+
+    // SSDO
+    gDSSDOSettings._OcclusionMaxDistance = gDOMaxDistance;
+    gDSSDOSettings._OcclusionRadius = gDORadius;
+    gDSSDOSettings._ProjValues = gVolumetricSettings._ProjValues;
+    gDSSDOSettings._Scaling = { 1.f, 1.f };
+    gDSSDOSettings._Interleaved = pow(2, 0.f);
+    gDSSDOSettings._FrameIndex = gFrameIndex % gDSSDOSettings._Interleaved;
+
     }
 
     // 
@@ -1338,7 +1372,7 @@ void RendererDeferred::VolumetricLight() {
     uint Y = ceil(mVolumetricLightAccum->GetHeight() / 4.f + .5f);
     
     {
-        if( gFrameIndex % 240 == 0 ) Timer t;
+        if( gFrameIndex % 240 == 0 ) Timer t("Volumetric Light");
         shVolumetricLight->Dispatch(X, Y, 1u);
     }
 
@@ -1346,6 +1380,36 @@ void RendererDeferred::VolumetricLight() {
     LunaEngine::CSDiscardUAV<1>();
     LunaEngine::CSDiscardSRV<2>();
     LunaEngine::CSDiscardCB<5>();
+}
+
+void RendererDeferred::DSSDO() {
+    ScopedRangeProfiler q(L"SSDO");
+
+    // Update constant buffer
+    {
+        ScopeMapConstantBufferCopy<DSSDOSettings> q(cbDSSDOSettings, &gDSSDOSettings._ProjValues.x);
+    }
+
+    // Bind resources
+    mDSSDOAccumulation->Bind(Shader::Compute, 0u, true); // UAV
+    cbDSSDOSettings->Bind(Shader::Compute, 1u);          // CB
+    mScene->BindCamera(0, Shader::Compute, 0u);          // CB
+    rtGBuffer->Bind(0u, Shader::Compute, 0u);            // SRV
+    rtGBuffer->Bind(2u, Shader::Compute, 1u);            // SRV
+
+    // Dispatch
+    uint X = ceil(mDSSDOAccumulation->GetWidth() / 8.f + .5f);
+    uint Y = ceil(mDSSDOAccumulation->GetHeight() / 4.f + .5f);
+
+    {
+        if( gFrameIndex % 240 == 0 ) Timer t("SSDO");
+        shDSSDOAccumulate->Dispatch(X, Y, 1u);
+    }
+
+    // Discard
+    LunaEngine::CSDiscardUAV<1>();
+    LunaEngine::CSDiscardSRV<2>();
+    LunaEngine::CSDiscardCB<2>();
 }
 
 void RendererDeferred::Final() {

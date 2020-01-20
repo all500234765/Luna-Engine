@@ -74,7 +74,7 @@ public:
     ID3D11DeviceContext1 *gContextN;
     
     // Deferred context
-    ID3D11DeviceContext1 *gContextImm;
+    ID3D11DeviceContext1 *gContextDeferred;
 
 #ifdef _DEBUG
     ID3D11Debug *gDebug;

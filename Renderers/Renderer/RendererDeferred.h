@@ -112,6 +112,19 @@ private:
         float4 _Alignment;
     } gBlurFilter{};
 
+    // DSSDO
+    ConstantBuffer *cbDSSDOSettings;
+    struct DSSDOSettings {
+        //                              fQ = fFar / (fNear - fFar);
+        float4 _ProjValues;  // fNear * fQ, fQ, 1 / m[0][0], 1 / m[1][1] // Player
+        float2 _Scaling;     // Width, Height / Downscaling Factor
+        uint _FrameIndex;    // 0 -> Interleaved; based on frame index
+        uint _Interleaved;   // pow(2, n)
+        float _OcclusionRadius;
+        float _OcclusionMaxDistance;
+        uint2 _Padding;
+    };
+
     // Effects
     HDRPostProcess                 *gHDRPostProcess{};
     SSAOPostProcess                *gSSAOPostProcess{};
@@ -127,6 +140,7 @@ private:
     //CBuffArgs   gCBuffArgs{};
     OITSettings gOITSettings{};
     VolumetricSettings gVolumetricSettings{};
+    DSSDOSettings gDSSDOSettings{};
 
     // Resources
     RenderTarget2DDepthMSAA       *rtDepth{};
@@ -137,13 +151,15 @@ private:
 
     Texture *mVolumetricLightAccum{};
     Texture *mDepth2{}, *mDepthI{}; // Main depth buffer & Intermidiate
+    Texture *mDSSDOAccumulation{};
 
     Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
     Shader *shDeferredPointLights{};
     Shader *shVolumetricLight;
     Shader *shSimpleGUI{};
     Shader *shHorizontalFilterDepth{}, *shVerticalFilterDepth{};
-
+    Shader *shDSSDOAccumulate{};
+    
     // Local
     Scene *mScene{};
 
@@ -162,14 +178,18 @@ private:
     enum class LitIndex {
         Lit, Unlit, 
         AO, Indirect, 
-        Volumetric
+        Volumetric,
+        SSDO,
+        Normal,
+        //Material,
 
+        Count
     };
 
     bool mLit{};
     uint32_t mLitIndex{};
-    ImTextureID mLitImageID[5]{};
-    Texture *mLitImageTex[5]{};
+    ImTextureID mLitImageID[(uint)LitIndex::Count]{};
+    Texture *mLitImageTex[(uint)LitIndex::Count]{};
 
     // Geometry Passes
     void Shadows();             // Done
@@ -190,6 +210,7 @@ private:
     void Combine();
     void HDR();
     void VolumetricLight();
+    void DSSDO();
 
     // Final Passes
     void Final();
