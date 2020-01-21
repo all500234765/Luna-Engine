@@ -52,6 +52,7 @@ private:
         struct {
             BlendState *normal;
             BlendState *add;
+            BlendState *no_blend;
         } blend;
 
         struct {
@@ -144,8 +145,8 @@ private:
 
     // Resources
     RenderTarget2DDepthMSAA       *rtDepth{};
-    RenderTarget2DColor4DepthMSAA *rtGBuffer{}, *rtCombinedGBuffer{};
-    RenderTarget2DColor4DepthMSAA *rtTransparency{};
+    RenderTarget2DColor5DepthMSAA *rtGBuffer{};
+    RenderTarget2DColor4DepthMSAA *rtTransparency{}, *rtCombinedGBuffer{};
     RenderTarget2DColor1          *rtFinalPass{};
     RenderTarget2DColor2MSAA      *rtDeferred{};
 
@@ -181,6 +182,7 @@ private:
         Volumetric,
         SSDO,
         Normal,
+        Deferred, 
         //Material,
 
         Count

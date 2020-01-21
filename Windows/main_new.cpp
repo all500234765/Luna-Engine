@@ -219,6 +219,16 @@ void _DirectX::CreateResources() {
 
     // Add models
     gMainScene->SetSkybox("../Textures/Cubemap default.dds");
+    
+    // Add lights
+    {
+        PointLightBuff light{};
+        light._LightColor    = float3(.7f, .9f, 0.f);
+        light._LightPosition = float3(0.f, 0.f, 100.f);
+        light._LightPower    = 1.f;
+        light._LightRadius   = 128.f;
+        gMainScene->InsertPointLight(light);
+    }
 
     /*gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
                                       [](EntityHandle e, uint32_t index) {

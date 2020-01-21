@@ -36,7 +36,7 @@ bool Shader::LoadFile(std::string fname, ShaderType type, D3D11_SO_DECLARATION_E
     // Read blob
     hr = D3DReadFileToBlob(std::wstring(fname.begin(), fname.end()).c_str(), &ShaderBuffer);
     if( FAILED(hr) ) {
-        std::cout << "Can't read shader to blob! (" << type << ")" << std::endl;
+        printf_s("[Shader::LoadFile::%s]: Failed read shader to blob. [%s]\n", gcShaderName[(int)log2((int)type)], fname.c_str());
         return 1;
     }
 
@@ -55,7 +55,7 @@ bool Shader::LoadFile(std::string fname, ShaderType type, D3D11_SO_DECLARATION_E
     if( FAILED(hr) ) {
         ShaderBuffer->Release();
         ShaderBuffer = 0;
-        std::cout << "Can't create shader! (" << gcShaderName[(int)log2((int)type)] << ")" << std::endl;
+        printf_s("[Shader::LoadFile::%s]: Failed create shader. [%s]\n", gcShaderName[(int)log2((int)type)], fname.c_str());
         return 1;
     }
 

@@ -91,6 +91,27 @@ public:
         }
     }
 
+    void* Map() {
+        if( !pBuff ) { return nullptr; }
+
+        D3D11_MAPPED_SUBRESOURCE res;
+        HRESULT hr;
+
+        // Try to get mapped resource
+        hr = gDirectX->gContext->Map(pBuff, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &res);
+        if( FAILED(hr) ) {
+            std::cout << "Can't map StructuredBuffer." << std::endl;
+            return NULL;
+        }
+
+        return res.pData;
+    }
+
+    void Unmap() {
+        if( !pBuff ) { return; }
+        gDirectX->gContext->Unmap(pBuff, 0);
+    }
+
     void Release() {
         if( pUAV ) pUAV->Release();
         if( pSRV ) pSRV->Release();

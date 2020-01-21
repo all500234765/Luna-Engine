@@ -1,5 +1,5 @@
 cbuffer cbGlobal : register(b0) {
-    #include "Global.h"
+    #include "Deferred/Global.h"
 }
 
 cbuffer cbLightData : register(b1) {

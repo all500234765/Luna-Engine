@@ -24,6 +24,14 @@ struct AmbientLightBuff {
     #include "AmbientLight.h"
 };
 
+struct SpotLightBuff {
+    #include "SpotLight.h"
+};
+
+struct PointLightBuff {
+    #include "PointLight.h"
+};
+
 struct BasicFogBuff {
     #include "BasicFog.h"
 };
@@ -44,7 +52,26 @@ struct SpotLightComponent: ECSComponent<SpotLightComponent> {
 };
 
 struct PointLightComponent: ECSComponent<PointLightComponent> {
-    //#include "PointLight.h"
+    #include "PointLight.h"
+
+    PointLightComponent(const PointLightBuff& buff) {
+        memcpy((void*)&this->_LightColor.x, &buff._LightColor.x, sizeof(PointLightBuff));
+    }
+
+    PointLightBuff GetBuff() const {
+        PointLightBuff b{};
+            memcpy(&b._LightColor.x, (void*)&this->_LightColor.x, sizeof(PointLightBuff));
+        return b;
+    }
+
+    void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot) const {
+        {
+            // Update CB
+            ScopeMapConstantBufferCopy<PointLightBuff> q(cb, (void*)&this->_LightColor.x);
+        }
+
+        cb->Bind(types, slot);
+    }
 };
 
 struct AreaLightComponent: ECSComponent<AreaLightComponent> {

@@ -74,6 +74,7 @@ struct GBuffer {
     half4 Normal   : SV_Target1;
     half4 Shading  : SV_Target2;
     half4 Emission : SV_Target3;
+    half4 Indirect : SV_Target4;
 };
 
 // https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
@@ -226,10 +227,11 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     
     // Final result
     GBuffer Out;
-        Out.Direct    = float4(pow(Direct, 1.f / 2.2f), 1.f);
-        Out.Shading   = float4(Metallic, Rougness, 1.f - AOccl, 1.f);
-        Out.Normal    = half4(EncodeNormal(N), 0., 1.);
-        Out.Emission  = _EmissionTex.Sample(_EmissionSampl, In.Texcoord) * _EmissionMul;
+        Out.Direct   = float4(pow(Albedo, 1.f / 2.2f), S);
+        Out.Shading  = float4(Metallic, Rougness, AOccl, 1.f);
+        Out.Normal   = float4(EncodeNormal(N), 0., 1.);
+        Out.Emission = float4(_EmissionTex.Sample(_EmissionSampl, In.Texcoord).rgb * _EmissionMul, 1.f);
+        Out.Indirect = float4(Irradiance.rgb, 1.f);
     return Out;
 }
 

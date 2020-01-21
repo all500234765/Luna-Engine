@@ -851,6 +851,14 @@ public:
         return BPP2DepthFormat(std::get<UINT>(mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->mFormat));
     };
 
+    template<bool noMSAA=true>
+    inline ID3D11ShaderResourceView* GetBufferSRV(UINT index) const {
+        if constexpr( !BufferNum ) return nullptr;
+        return mRenderTargets[mOffset + index + noMSAA * mMSAA * BufferNum]->pSRV;
+    }
+
+    inline UINT GetBufferNum() const { return BufferNum; }
+
     // Bind resource
     void Bind(implRenderTarget* rt, Shader::ShaderType type, UINT slot=0, bool UAV=false) const {
         switch( type ) {

@@ -1,12 +1,5 @@
 cbuffer bGlobal : register(b0) {
-    float2 _TanAspect;  // dtan(fov * .5) * aspect, - dtan(fov / 2)
-    float2 _Texel;      // 1 / target width, 1 / target height
-    float1 _Far;        // Far
-    float1 PADDING0;    // 
-    float4 _ProjValues; // 1 / m[0][0], 1 / m[1][1], m[3][2], -m[2][2]
-    float4x4 _mInvView; // 
-    float4x4 _mInvProj; // 
-    float4 vCameraPos;  // Camera position
+    #include "Deferred/Global.h"
 }
 
 cbuffer bLightData : register(b1) {
@@ -16,11 +9,11 @@ cbuffer bLightData : register(b1) {
     float4 vPosition; // Light pos, w - unused
 };
 
-Texture2D<half2> _NormalTexture : register(t0);
-SamplerState _NormalSampler     : register(s0);
+Texture2D<float> _DepthTexture : register(t0);
+SamplerState _DepthSampler     : register(s0);
 
-Texture2D<float> _DepthTexture : register(t1);
-SamplerState _DepthSampler     : register(s1);
+Texture2D<half2> _NormalTexture : register(t1);
+SamplerState _NormalSampler     : register(s1);
 
 // https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
 // Spherical Coordinates
@@ -45,12 +38,13 @@ struct PS {
     float4 Position : SV_Position0;
     float2 Texcoord : TEXCOORD0;
     float4 LightPos : TEXCOORD1;
-    
+	float4 Color    : TEXCOORD2;
+    uint InstanceID : TEXCOORD3;
 };
 
-half3 PointLight(float3 p, float3 n) {
-    float3 lDir = vPosition.xyz  - p;
-    float3 eyeD = vCameraPos.xyz - p;
+half3 PointLight(float3 p, float3 n, float3 lpos) {
+    float3 lDir = lpos                   - p;
+    float3 eyeD = _mInvView._m03_m13_m23 - p;
     float dist = length(lDir);
 
     // Lambertian
@@ -61,18 +55,22 @@ half3 PointLight(float3 p, float3 n) {
 }
 
 half4 main(PS In) : SV_Target0 {
+    // Clip if 
+    clip(In.LightPos.w < 1.f ? -1.f : 1.f); // Too small
+    clip(((int)_LightCount - 1) - In.InstanceID); // Exceeds the limit
+    
     // Unpack GBuffer
     float LinDepth = Depth2Linear(1.f - _DepthTexture.Sample(_DepthSampler, In.Texcoord));
     //half4 Diffuse = ;
     half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
 
     // Reconstruct world position
-    float3 WorldPos = GetWorldPos(In.Texcoord, LinDepth);
+    float3 WorldPos = GetWorldPos(float2(In.Texcoord.x, 1.f - In.Texcoord.y) * 2.f - 1.f, LinDepth);
 
     // Calculate point light
-    half4 Final = half4(PointLight(In.Position.xyz, Normal), 1.);
+    half4 Final = half4(In.Color.rgb * PointLight(In.Position.xyz, Normal, In.LightPos.xyz), 1.);
 
 
-
+    return In.InstanceID / 10.f;
     return half4(half3(In.Texcoord, 0.f)*0 + 0*Normal + 1*Final.rgb + 0*(WorldPos), 1.f);
 }

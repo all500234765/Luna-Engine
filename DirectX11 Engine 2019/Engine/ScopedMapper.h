@@ -55,6 +55,22 @@ public:
     ~ScopedMapCopy() { obj->Unmap(); };
 };
 
+template<typename T, class S>
+class ScopedMapCopy—ount {
+private:
+    S* obj;
+
+public:
+    T* data;
+
+    template<typename T2>
+    ScopedMapCopy—ount(S* o, T2  * src, uint32_t count): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], (void*)&src[0], sizeof(T) * count); }
+    ScopedMapCopy—ount(S* o, void* src, uint32_t count): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], &((T*)src)[0], sizeof(T) * count); }
+    ScopedMapCopy—ount(S* o, T   * src, uint32_t count): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], &src[0], sizeof(T) * count); }
+
+    ~ScopedMapCopy—ount() { obj->Unmap(); };
+};
+
 ////////////////////////////////////////////////////////////////////////////
 // Constant buffer
 ////////////////////////////////////////////////////////////////////////////

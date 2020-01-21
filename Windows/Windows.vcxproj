@@ -129,7 +129,7 @@
       <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
       <AdditionalOptions>/Gfp %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\Deferred\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -156,7 +156,7 @@
       <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
       <AdditionalOptions>/Gfp %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\Deferred\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

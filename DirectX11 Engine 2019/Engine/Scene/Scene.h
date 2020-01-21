@@ -17,6 +17,7 @@
 #include "Engine/States/PipelineState.h"
 #include "Engine/Scene/Texture.h"
 #include "Engine/Scene/Sampler.h"
+#include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/DirectX/ConstantBuffer.h"
 #include "Engine/DirectX/VertexBuffer.h"
 #include "Engine/DirectX/IndexBuffer.h"
@@ -230,6 +231,10 @@ private:
     Texture *mSkybox;
 
     uint32_t mMaterialLayerStates = 0xFFFFFFFF;
+
+    EntityHandleList mPointLightList;
+    StructuredBuffer<PointLightBuff>* sbPointLightBuffer;
+    uint mPointLightListUpdate = true;
 
     bool mMeshSRV{};
 
@@ -616,6 +621,9 @@ public:
         gStaticMeshRenderSystem           = new StaticMeshRenderSystem;
         gMovementControlIntegrationSystem = new MovementControlIntegrationSystem;
 
+        sbPointLightBuffer = new StructuredBuffer<PointLightBuff>();
+        sbPointLightBuffer->CreateDefault(1024, nullptr, false, D3D11_CPU_ACCESS_WRITE);
+
         // 
         ResetLists();
     }
@@ -811,6 +819,41 @@ public:
         }
 
         cbWorldLight->Bind(type, slot);
+    }
+
+    uint GetPointLightCount() const { return mPointLightList.size(); };
+
+    EntityHandle InsertPointLight(PointLightBuff light) {
+        PointLightComponent L{ light };
+        EntityHandle E = mECS.MakeEntity(L);
+        mPointLightList.push_back(E);
+        return E;
+    }
+
+    StructuredBuffer<PointLightBuff>* ListPointLightBuffer() {
+        if( !mPointLightListUpdate ) return sbPointLightBuffer;
+
+        // Collect data
+        std::vector<PointLightBuff> lights;
+        lights.reserve(mPointLightList.size());
+        
+        uint32_t i = 0;
+        for( EntityHandle light : mPointLightList ) {
+            lights.push_back(GetComponent<PointLightComponent>(light)->GetBuff());
+            i++;
+        }
+
+        // Fill rest with empties
+        for( uint32_t j = i; j < sbPointLightBuffer->GetNumber(); j++ )
+            lights.push_back({});
+
+        // Send new data
+        {
+            ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightBuffer, lights.data(), lights.size());
+        }
+
+        mPointLightListUpdate = false;
+        return sbPointLightBuffer;
     }
 
     // TODO: 

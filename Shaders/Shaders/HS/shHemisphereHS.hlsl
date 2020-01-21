@@ -4,7 +4,7 @@ struct ConstantOut {
 };
 
 ConstantOut HemisphereConst() {
-    const float fTessFactor = 18.f;
+    const float fTessFactor = 4.f;
 
     ConstantOut Out;
         Out.Edges[0] = Out.Edges[1] = Out.Edges[2] = Out.Edges[3] = fTessFactor;
@@ -18,6 +18,11 @@ static const float3 HemiDir[2] = {
 
 struct HS {
     float3 Position : POSITION0;
+    uint Instance   : SV_InstanceID;
+};
+
+struct VS {
+    uint InstanceID : TEXCOORD0;
 };
 
 [domain("quad")]
@@ -25,8 +30,9 @@ struct HS {
 [outputtopology("triangle_ccw")]
 [outputcontrolpoints(4)]
 [patchconstantfunc("HemisphereConst")]
-HS main(uint PatchID : SV_PrimitiveID) {
+HS main(in InputPatch<VS, 1> patch, in uint PatchID : SV_PrimitiveID) {
     HS Out;
         Out.Position = HemiDir[PatchID];
+        Out.Instance = patch[0].InstanceID;
     return Out;
 }

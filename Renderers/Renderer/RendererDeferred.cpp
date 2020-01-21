@@ -42,6 +42,13 @@ void RendererDeferred::Init() {
     shDSSDOAccumulate = new Shader();
     shDSSDOAccumulate->LoadFile("shDSSDOAccumulateCS.cso", Shader::Compute);
 
+    shDeferredPointLights = new Shader();
+    shDeferredPointLights->LoadFile("shNullVertexVS.cso"        , Shader::Vertex );
+    shDeferredPointLights->LoadFile("shHemisphereHS.cso"        , Shader::Hull   );
+    shDeferredPointLights->LoadFile("shHemisphereDS.cso"        , Shader::Domain );
+    shDeferredPointLights->LoadFile("shDeferredPointLightPS.cso", Shader::Pixel  );
+    shDeferredPointLights->LoadFile("shDeferredPointLightCS.cso", Shader::Compute);
+
     // Release blobs
     shSurface->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
@@ -53,15 +60,17 @@ void RendererDeferred::Init() {
     shVerticalFilterDepth->ReleaseBlobs();
     shHorizontalFilterDepth->ReleaseBlobs();
     shDSSDOAccumulate->ReleaseBlobs();
+    shDeferredPointLights->ReleaseBlobs();
 #pragma endregion
 
 #pragma region Render Targets
-    rtGBuffer = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "[RT]: GBuffer");
+    rtGBuffer = new RenderTarget2DColor5DepthMSAA(Width(), Height(), 1, "[RT]: GBuffer");
     rtGBuffer->Create(32);                                     // Depth
-    rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // Direct
+    rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // Direct, Shadow
                              DXGI_FORMAT_R16G16B16A16_FLOAT,   // Normals
-                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // Ambient
-                             DXGI_FORMAT_R16G16B16A16_FLOAT);  // Emission
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // Shading
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // Emission
+                             DXGI_FORMAT_R16G16B16A16_FLOAT);  // Indirect
     
     rtCombinedGBuffer = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "[RT]: GBuffer combined");
     rtCombinedGBuffer->Create(32);                                     // Depth
@@ -77,7 +86,8 @@ void RendererDeferred::Init() {
     rtFinalPass->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM);
 
     rtDeferred = new RenderTarget2DColor2MSAA(Width(), Height(), 1, "[RT]: Deferred");
-    rtDeferred->CreateList(0, DXGI_FORMAT_R11G11B10_FLOAT, DXGI_FORMAT_R11G11B10_FLOAT);
+    rtDeferred->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT);
+    //DXGI_FORMAT_R11G11B10_FLOAT, DXGI_FORMAT_R11G11B10_FLOAT);
 
     rtTransparency = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "[RT]: Transparency");
     rtTransparency->Create(32);                                     // Depth
@@ -153,8 +163,9 @@ void RendererDeferred::Init() {
 #pragma endregion
 
 #pragma region Blend states
-    s_states.blend.normal  = new BlendState;
-    s_states.blend.add     = new BlendState;
+    s_states.blend.normal   = new BlendState;
+    s_states.blend.add      = new BlendState;
+    s_states.blend.no_blend = new BlendState;
 
     {
         D3D11_BLEND_DESC pDesc;
@@ -174,6 +185,24 @@ void RendererDeferred::Init() {
         pDesc.IndependentBlendEnable = false;
 
         s_states.blend.normal->Create(pDesc, { 1.f, 1.f, 1.f, 1.f });
+        
+        // 
+        pDesc.RenderTarget[0].BlendEnable           = false;
+        pDesc.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
+        pDesc.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
+
+        pDesc.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
+        pDesc.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
+        
+        pDesc.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_INV_SRC_ALPHA;
+        pDesc.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_SRC_ALPHA;
+        
+        pDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+        pDesc.AlphaToCoverageEnable  = false;
+        pDesc.IndependentBlendEnable = false;
+
+        s_states.blend.no_blend->Create(pDesc, { 1.f, 1.f, 1.f, 1.f });
 
         // 
 
@@ -267,6 +296,7 @@ void RendererDeferred::Init() {
     ___LITIMG(4, "Indirect"); // Volumetric
     ___LITIMG(5, "Indirect"); // SSDO
     ___LITIMG(6, "Normal");
+    ___LITIMG(7, "Indirect"); // Deferred
 
 #undef ___LITIMG
 
@@ -281,15 +311,16 @@ void RendererDeferred::Init() {
         style.PopupBorderSize  = 0.f;
         style.FrameBorderSize  = 0.f;
         
-        style.Colors[ImGuiCol_MenuBarBg]     = ImVec4(0.f, 0.f, 0.f, .5f);
-        style.Colors[ImGuiCol_Button]        = ImVec4(0.f, 0.f, 0.f, .5f);
-        style.Colors[ImGuiCol_ButtonHovered] = ImVec4(.1f, .1f, .1f, .5f);
-        style.Colors[ImGuiCol_ButtonActive]  = ImVec4(.2f, .2f, .2f, .5f);
-        style.Colors[ImGuiCol_HeaderHovered] = ImVec4(.1f, .1f, .1f, .5f);
-        style.Colors[ImGuiCol_HeaderActive]  = ImVec4(.2f, .2f, .2f, .5f);
-        style.Colors[ImGuiCol_PopupBg]       = ImVec4(0.f, 0.f, 0.f, 1.f);
-        style.Colors[ImGuiCol_Border]        = ImVec4(0.f, 0.f, 0.f, 0.f);
-
+        style.Colors[ImGuiCol_MenuBarBg]      = ImVec4(0.f, 0.f, 0.f, .5f);
+        style.Colors[ImGuiCol_Button]         = ImVec4(0.f, 0.f, 0.f, .5f);
+        style.Colors[ImGuiCol_ButtonHovered]  = ImVec4(.1f, .1f, .1f, .5f);
+        style.Colors[ImGuiCol_ButtonActive]   = ImVec4(.2f, .2f, .2f, .5f);
+        style.Colors[ImGuiCol_HeaderHovered]  = ImVec4(.1f, .1f, .1f, .5f);
+        style.Colors[ImGuiCol_HeaderActive]   = ImVec4(.2f, .2f, .2f, .5f);
+        style.Colors[ImGuiCol_PopupBg]        = ImVec4(0.f, 0.f, 0.f, .75f);
+        style.Colors[ImGuiCol_Border]         = ImVec4(0.f, 0.f, 0.f, .5f);
+        style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(.1f, .1f, .1f, .5f);
+        style.Colors[ImGuiCol_FrameBgActive]  = ImVec4(.2f, .2f, .2f, .5f);
     }
 
     // Blur filter
@@ -360,7 +391,8 @@ void RendererDeferred::Render() {
 
     {
         ScopedRangeProfiler q(L"Geometry rendering");
-        s_states.blend.normal->Bind();
+        //s_states.blend.normal->Bind();
+        s_states.blend.no_blend->Bind();
         s_states.depth.normal->Bind();
 
         Shadows();
@@ -370,7 +402,11 @@ void RendererDeferred::Render() {
         
         GBuffer();
 
+        s_states.blend.normal->Bind();
+
         OIT();
+
+        s_states.blend.normal->Bind();
         s_states.raster.normal->Bind();
     }
 
@@ -384,7 +420,7 @@ void RendererDeferred::Render() {
         FSSSSS();
         Deferred();
         VolumetricLight();
-        DSSDO();
+        //DSSDO();
 
         // Combination pass
         s_states.depth.norw->Bind();
@@ -427,6 +463,8 @@ void RendererDeferred::FinalScreen() {
         case LitIndex::Volumetric: mVolumetricLightAccum->Bind(Shader::Pixel, 0, false); break;
         case LitIndex::SSDO      : mDSSDOAccumulation->Bind(Shader::Pixel, 0, false); break;
         case LitIndex::Normal    : rtGBuffer->Bind(2u, Shader::Pixel, 0, false); break;
+        case LitIndex::Indirect  : rtGBuffer->Bind(5u, Shader::Pixel, 0, false); break;
+        case LitIndex::Deferred  : rtDeferred->Bind(1u, Shader::Pixel, 0, false); break;
     }
     
     BindOrtho();
@@ -463,6 +501,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(shVerticalFilterDepth);
     SAFE_RELEASE(shHorizontalFilterDepth);
     SAFE_RELEASE(shDSSDOAccumulate);
+    SAFE_RELEASE(shDeferredPointLights);
 
     // Render Targets
     SAFE_RELEASE(rtTransparency);
@@ -536,7 +575,6 @@ void RendererDeferred::ImGui() {
                            | ImGuiWindowFlags_NoMove
                            | ImGuiWindowFlags_NoBackground;
     bool open = true;
-    ImGui::Begin("0", &open, flags | ImGuiWindowFlags_AlwaysAutoResize);
 
     {
         static const std::vector<std::vector<const char*>> items = {
@@ -559,28 +597,83 @@ void RendererDeferred::ImGui() {
             }
         };
         
-        if( ImGui::BeginMenuBar() ) {
-            if( ImGui::BeginMenu("File") ) {
-                for( uint32_t i = 0; i < items[0].size(); i++ ) ImGui::MenuItem(items[0][i]);
-                ImGui::EndMenu();
-            }
+        //if( ImGui::BeginMenuBar() ) 
+        {
+            open = true;
+            ImGui::Begin("0##0", &open, flags | ImGuiWindowFlags_AlwaysAutoResize);
+                if( ImGui::BeginMenu("File") ) {
+                    for( uint32_t i = 0; i < items[0].size(); i++ ) ImGui::MenuItem(items[0][i]);
+                    ImGui::EndMenu();
+                }
+            ImGui::End();
 
-            if( ImGui::BeginMenu("Options") ) {
-                for( uint32_t i = 0; i < items[1].size(); i++ ) ImGui::MenuItem(items[1][i]);
-                ImGui::EndMenu();
-            }
+            open = true;
+            ImGui::Begin("0##1", &open, flags | ImGuiWindowFlags_AlwaysAutoResize);
+                if( ImGui::BeginMenu("Options") ) {
+                    for( uint32_t i = 0; i < items[1].size(); i++ ) ImGui::MenuItem(items[1][i]);
+                    ImGui::EndMenu();
+                }
+            ImGui::End();
 
             /*if( ImGui::BeginMenu("Windows") ) {
                 for( uint32_t i = 0; i < items[2].size(); i++ ) ImGui::MenuItem(items[2][i]);
                 ImGui::EndMenu();
             }*/
 
-            ImGui::EndMenuBar();
+            //ImGui::EndMenuBar();
         }
     }
 
+    ImGui::Begin("Internal Texture Viewer", &open, flags);
+    {
+        ImVec2 v = ImVec2(128.f, 64.f);
+
+#define ____SHOW_RT_IMGUI(x, y) \
+        if( ImGui::CollapsingHeader(x) ) \
+        { \
+            for( UINT i = 0; i < y->GetBufferNum(); i++ ) { \
+                if( i % 2 ) ImGui::SameLine(); \
+                ImGui::Image(y->GetBufferSRV(i), v); \
+            } \
+        }
+        
+#define ____SHOW_TX_IMGUI(x, y) \
+        if( ImGui::CollapsingHeader(x) ) \
+        { \
+            ImGui::Image(y->GetSRV(), v); \
+        }
+
+        // TODO: Support for non 2D textures
+        /*for( UINT i = 0; i < y->GetArraySize(); i++ ) { \
+            if( i % 2 ) ImGui::SameLine(); \
+            ImGui::Image(y->GetSRV(i), v); \
+        } \*/
+        //mDSSDOAccumulation->GetArraySize();
+
+        if( ImGui::TreeNode("Render Targets") ) {
+            ____SHOW_RT_IMGUI("GBuffer"     , rtGBuffer     );
+            ____SHOW_RT_IMGUI("Transparency", rtTransparency);
+            ____SHOW_RT_IMGUI("Deferred"    , rtDeferred    );
+            ____SHOW_TX_IMGUI("mVolumetricLightAccum", mVolumetricLightAccum);
+            //____SHOW_TX_IMGUI("mDSSDOAccumulation", mDSSDOAccumulation);
+            ImGui::TreePop();
+        }
+
+        if( ImGui::TreeNode("Textures") ) {
+            ____SHOW_TX_IMGUI("checkboard", s_material.ti.tex.checkboard);
+            ____SHOW_TX_IMGUI("tile_normal", s_material.ti.tex.tile_normal);
+            ____SHOW_TX_IMGUI("bluenoise_rg_512", s_material.ti.tex.bluenoise_rg_512);
+            ImGui::TreePop();
+        }
+
+        //____SHOW_TX_IMGUI("mVolumetricLightAccum", mVolumetricLightAccum);
+        //____SHOW_TX_IMGUI("mVolumetricLightAccum", mVolumetricLightAccum);
+
+        // Prevent errors & misunderstanding from ever happening
+        LunaEngine::PSDiscardSRV<1>();
+    }
     ImGui::End();
-    
+
     {
         static const std::vector<std::vector<const char*>> items = {
             {
@@ -594,7 +687,8 @@ void RendererDeferred::ImGui() {
                 "Indirect",
                 "Volumetric",
                 "SSDO",
-                "Normal"
+                "Normal",
+                "Deferred"
             }
         };
 
@@ -723,24 +817,24 @@ void RendererDeferred::ImGui() {
         }
     }
 
-    static float gDORadius = .27971f;
-    static float gDOMaxDistance = .63942f;
-    ImGui::SliderFloat("Radius", &gDORadius, .1f, 20000.f);
-    ImGui::SliderFloat("Max distance", &gDOMaxDistance, .1f, 1.f);
+    //static float gDORadius = .27971f;
+    //static float gDOMaxDistance = .63942f;
+    //ImGui::SliderFloat("Radius", &gDORadius, .1f, 20000.f);
+    //ImGui::SliderFloat("Max distance", &gDOMaxDistance, .1f, 1.f);
 
     // Volumetric Light
     static float gVLGScattering = .1f;
     static int   gVLScaling     = 1u;
     static float gVLMaxDistance = 13000.f;
     static int   gVLInterleaved = 0u;
-    static float gVLExposure    = 15.f;
+    static float gVLExposure    = 7.f;
 
     ImGui::Text("Volumetric Light Settings");
     ImGui::SliderFloat("G Scattering", &gVLGScattering, -1.f, 1.f);
     ImGui::SliderFloat("Max Distance", &gVLMaxDistance, .1f, 1300.f);
     ImGui::SliderInt  ("Interleaved" , &gVLInterleaved, 0u, 3u);
     ImGui::SliderFloat("Exposure"    , &gVLExposure   , 1.f, 30.f);
-    if( ImGui::SliderInt("Scaling"   , &gVLScaling    , -3, 3) ) {
+    if( ImGui::SliderInt("Scaling"   , &gVLScaling    , 0u, 3u) ) {
         // Re-scale texture
         float scale = pow(2.f, gVLScaling);
         mVolumetricLightAccum->Resize(Width() / scale, Height() / scale, 1u);
@@ -905,12 +999,12 @@ void RendererDeferred::ImGui() {
     gVolumetricSettings._Exposure    = gVLExposure;
 
     // SSDO
-    gDSSDOSettings._OcclusionMaxDistance = gDOMaxDistance;
-    gDSSDOSettings._OcclusionRadius = gDORadius;
-    gDSSDOSettings._ProjValues = gVolumetricSettings._ProjValues;
-    gDSSDOSettings._Scaling = { 1.f, 1.f };
-    gDSSDOSettings._Interleaved = pow(2, 0.f);
-    gDSSDOSettings._FrameIndex = gFrameIndex % gDSSDOSettings._Interleaved;
+    //gDSSDOSettings._OcclusionMaxDistance = gDOMaxDistance;
+    //gDSSDOSettings._OcclusionRadius = gDORadius;
+    //gDSSDOSettings._ProjValues = gVolumetricSettings._ProjValues;
+    //gDSSDOSettings._Scaling = { 1.f, 1.f };
+    //gDSSDOSettings._Interleaved = pow(2, 0.f);
+    //gDSSDOSettings._FrameIndex = gFrameIndex % gDSSDOSettings._Interleaved;
 
     }
 
@@ -1174,6 +1268,7 @@ void RendererDeferred::Deferred() {
     {
         ScopedRangeProfiler s2(L"Lights");
         rtDeferred->Bind();
+        rtDeferred->Clear(s_clear.black_void2);
 
         // Store states
         STopologyState::Push();
@@ -1193,20 +1288,24 @@ void RendererDeferred::Deferred() {
 
         float4x4 mProjF;
         DirectX::XMStoreFloat4x4(&mProjF, mProj);
-
+        
         // Bind data
+        mScene->BindCamera(0, Shader::Domain, 0);
+
         {
             {
                 ScopeMapConstantBuffer<DeferredGlobal> map(cbDeferredGlobal);
-                map.data->_mInvView = mInvView;
-                map.data->_mInvProj = mInvProj;
-                map.data->_TanAspect = { fHalfTanFov * cam->fAspect, -fHalfTanFov };
-                map.data->_Texel = { 1.f / Width(), 1.f / Height() };
-                map.data->_Far = fFar;
+                map.data->_mInvView   = mInvView;
+                map.data->_mInvProj   = mInvProj;
+                map.data->_TanAspect  = { fHalfTanFov * cam->fAspect, -fHalfTanFov };
+                map.data->_Texel      = { 1.f / Width(), 1.f / Height() };
+                map.data->_Far        = fFar;
                 map.data->_ProjValues = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
+                map.data->_LightCount = mScene->GetPointLightCount();
             }
 
-            cbDeferredGlobal->Bind(Shader::Pixel, 0); // CB
+            cbDeferredGlobal->Bind(Shader::Pixel , 0); // CB
+            //cbDeferredGlobal->Bind(Shader::Domain, 1); // CB
 
             s_material.sampl.point->Bind(Shader::Pixel, 0); // Samplers
             s_material.sampl.point->Bind(Shader::Pixel, 1); // Samplers
@@ -1218,6 +1317,8 @@ void RendererDeferred::Deferred() {
 
             rtGBuffer->Bind(0u, Shader::Pixel, 0); // Opaque Depth Buffer
             rtGBuffer->Bind(2u, Shader::Pixel, 1); // Opaque Normal Buffer
+            rtGBuffer->Bind(3u, Shader::Pixel, 2); // Opaque Shading Buffer
+            rtGBuffer->Bind(4u, Shader::Pixel, 3); // Opaque Indirect Buffer
 
             //rtGBuffer->Bind(1u, Shader::Pixel, 2); // Direct light
             //rtGBuffer->Bind(3u, Shader::Pixel, 3); // Ambient light
@@ -1249,15 +1350,22 @@ void RendererDeferred::DeferredLights() {
     // Point lights
     {
         ScopedRangeProfiler s2(L"Point");
-        //shDeferredPointLights->Bind();
+        shDeferredPointLights->Bind();
 
+        // Update CB
         {
             //ScopeMapConstantBuffer<DeferredLight> map(cbDeferredLight);
-
-
         }
 
-        //DXDraw(2, 0);
+        // Update light list
+        StructuredBuffer<PointLightBuff>* mLights = mScene->ListPointLightBuffer();
+
+        // TODO: Frustum Culling with Compute Shader
+        mLights->Bind(Shader::Domain, 0u);        // SRV
+        //cbDeferredLight->Bind(Shader::Pixel, 1u); // CB
+
+        // TODO: Indirect Instanced
+        DXDrawInstanced(2, mLights->GetNumber(), 0, 0);
 
         // TODO: 
         //DXDrawInstanced(2, CulledLightCount, 0, 0);
