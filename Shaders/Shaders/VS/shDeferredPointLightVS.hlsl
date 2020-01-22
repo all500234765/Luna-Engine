@@ -21,7 +21,6 @@ struct PS {
 	float4 Color     : TEXCOORD2;
     uint InstanceID  : TEXCOORD3;
     float2 ClipSpace : TEXCOORD4;
-    float3 WorldPos  : TEXCOORD5;
 };
 
 PS main(VS In, uint Instance : SV_InstanceID) {
@@ -36,7 +35,6 @@ PS main(VS In, uint Instance : SV_InstanceID) {
         Out.LightPos   = float4(light._LightPosition, light._LightRadius);
         //Out.Texcoord   = In.Texcoord;
         
-        Out.WorldPos  = P.xyz;
         Out.ClipSpace = Out.Position.xy / Out.Position.w;
         Out.Texcoord  = Out.ClipSpace * .5f;
         Out.Texcoord.x += .5f;

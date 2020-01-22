@@ -43,7 +43,6 @@ struct PS {
 	float4 Color     : TEXCOORD2;
     uint InstanceID  : TEXCOORD3;
     float2 ClipSpace : TEXCOORD4;
-    float3 WorldPos  : TEXCOORD5;
 };
 
 half4 PointLight(float3 p, float3 n, float4 lpos, float4 color) {
@@ -90,5 +89,5 @@ half4 main(PS In, bool Front : SV_IsFrontFace) : SV_Target0 {
     float3 WorldPos = GetWorldPos(In.ClipSpace, LinDepth);
 	
     // Calculate point light
-    return PointLight(WorldPos, Normal, In.LightPos, In.Color, In.Texcoord);
+    return PointLight(WorldPos, Normal, In.LightPos, In.Color);
 }
