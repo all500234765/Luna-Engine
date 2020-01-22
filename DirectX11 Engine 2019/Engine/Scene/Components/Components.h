@@ -263,6 +263,11 @@ struct MovementControlComponent: ECSComponent<MovementControlComponent> {
 };
 
 // Mesh
+enum class MeshStaticFlags {
+    Dynamic = 1,  // Won't be used to bake Radiance
+
+};
+
 struct MeshComponent {
     VertexBuffer *mVBPosition;
     VertexBuffer *mVBTexcoord;
@@ -277,7 +282,8 @@ struct MeshComponent {
 };
 
 struct MeshStaticComponent: ECSComponent<MeshStaticComponent>, MeshComponent {
-
+    VertexBuffer *mIndirectLight; // TODO: GI Backing into vertex color
+    uint32_t mFlags{};            // MeshStaticFlags
 
     void Bind() {
         ID3D11Buffer *buffs[4] = { mVBPosition->GetBuffer(), mVBTexcoord->GetBuffer(), 

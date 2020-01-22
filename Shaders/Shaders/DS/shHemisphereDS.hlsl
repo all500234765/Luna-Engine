@@ -46,7 +46,7 @@ PS main(ConstantOut In, float2 uv : SV_DomainLocation, const OutputPatch<HS, 4> 
 
     // Generate final pos in clip space
     float3 nDir = normalize(float3(clip, len - 1.) * quad[0].Position);
-    float4 pos = float4(P.xyz + nDir * P.w * quad[0].Instance, 1.);
+    float4 pos = float4(P.xyz + nDir * P.w, 1.);
 
     // Transform to projected space and generate UVs
     PS Out;

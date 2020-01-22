@@ -232,10 +232,12 @@ private:
 
     uint32_t mMaterialLayerStates = 0xFFFFFFFF;
 
-    EntityHandleList mPointLightList;
-    StructuredBuffer<PointLightBuff>* sbPointLightBuffer;
-    uint mPointLightListUpdate = true;
+    // Lights
+    EntityHandleList mPointLightStaticList, mPointLightDynamicList;
+    StructuredBuffer<PointLightBuff> *sbPointLightStaticBuffer, *sbPointLightDynamicBuffer;
+    uint mPointLightListStaticUpdate = true;
 
+    // 
     bool mMeshSRV{};
 
     MaterialComponent DefaultMaterialComp() const {
@@ -379,7 +381,7 @@ private:
                            LoaderTextureList* TextureList,
                            uint32_t& index) {
         // Process meshes
-//#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(4)
         for( int32_t i = 0; i < node->mNumMeshes; i++ ) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             MeshList->push_back(ProcessMeshStatic(mesh, scene, MatList, TextureList, index));
@@ -621,14 +623,20 @@ public:
         gStaticMeshRenderSystem           = new StaticMeshRenderSystem;
         gMovementControlIntegrationSystem = new MovementControlIntegrationSystem;
 
-        sbPointLightBuffer = new StructuredBuffer<PointLightBuff>();
-        sbPointLightBuffer->CreateDefault(1024, nullptr, false, D3D11_CPU_ACCESS_WRITE);
+        sbPointLightStaticBuffer = new StructuredBuffer<PointLightBuff>();
+        sbPointLightStaticBuffer->CreateDefault(256, nullptr, false, D3D11_CPU_ACCESS_WRITE);
+
+        sbPointLightDynamicBuffer = new StructuredBuffer<PointLightBuff>();
+        sbPointLightDynamicBuffer->CreateDefault(256, nullptr, false, D3D11_CPU_ACCESS_WRITE);
 
         // 
         ResetLists();
     }
 
     ~Scene() {
+        SAFE_RELEASE(sbPointLightStaticBuffer);
+        SAFE_RELEASE(sbPointLightDynamicBuffer);
+
         for( auto cb : cbCameraData )
             if( cb ) {
                 cb->Release();
@@ -821,39 +829,72 @@ public:
         cbWorldLight->Bind(type, slot);
     }
 
-    uint GetPointLightCount() const { return mPointLightList.size(); };
+    uint GetStaticPointLightCount() const { return mPointLightStaticList.size(); };
+    uint GetDynamicPointLightCount() const { return mPointLightDynamicList.size(); };
 
-    EntityHandle InsertPointLight(PointLightBuff light) {
+    EntityHandle InsertStaticPointLight(PointLightBuff light) {
         PointLightComponent L{ light };
         EntityHandle E = mECS.MakeEntity(L);
-        mPointLightList.push_back(E);
+        mPointLightStaticList.push_back(E);
         return E;
     }
 
-    StructuredBuffer<PointLightBuff>* ListPointLightBuffer() {
-        if( !mPointLightListUpdate ) return sbPointLightBuffer;
+    EntityHandle InsertDynamicPointLight(PointLightBuff light) {
+        PointLightComponent L{ light };
+        EntityHandle E = mECS.MakeEntity(L);
+        mPointLightDynamicList.push_back(E);
+        return E;
+    }
+
+    StructuredBuffer<PointLightBuff>* ListPointLightDynamicBuffer() {
+        if( !mPointLightDynamicList.size() ) { return sbPointLightDynamicBuffer; }
 
         // Collect data
         std::vector<PointLightBuff> lights;
-        lights.reserve(mPointLightList.size());
-        
+        lights.reserve(mPointLightDynamicList.size());
+
         uint32_t i = 0;
-        for( EntityHandle light : mPointLightList ) {
+        for( EntityHandle light : mPointLightDynamicList ) {
             lights.push_back(GetComponent<PointLightComponent>(light)->GetBuff());
             i++;
         }
 
         // Fill rest with empties
-        for( uint32_t j = i; j < sbPointLightBuffer->GetNumber(); j++ )
-            lights.push_back({});
+        /*for( uint32_t j = i; j < sbPointLightDynamicBuffer->GetNumber(); j++ )
+            lights.push_back({});*/
 
         // Send new data
         {
-            ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightBuffer, lights.data(), lights.size());
+            ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightDynamicBuffer, lights.data(), lights.size());
         }
 
-        mPointLightListUpdate = false;
-        return sbPointLightBuffer;
+        return sbPointLightDynamicBuffer;
+    }
+
+    StructuredBuffer<PointLightBuff>* ListPointLightStaticBuffer() {
+        if( !mPointLightListStaticUpdate ) return sbPointLightStaticBuffer;
+
+        // Collect data
+        std::vector<PointLightBuff> lights;
+        lights.reserve(mPointLightStaticList.size());
+        
+        uint32_t i = 0;
+        for( EntityHandle light : mPointLightStaticList ) {
+            lights.push_back(GetComponent<PointLightComponent>(light)->GetBuff());
+            i++;
+        }
+
+        // Fill rest with empties
+        /*for( uint32_t j = i; j < sbPointLightStaticBuffer->GetNumber(); j++ )
+            lights.push_back({});*/
+
+        // Send new data
+        {
+            ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightStaticBuffer, lights.data(), lights.size());
+        }
+
+        mPointLightListStaticUpdate = false;
+        return sbPointLightStaticBuffer;
     }
 
     // TODO: 

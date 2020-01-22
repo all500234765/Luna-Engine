@@ -43,9 +43,9 @@ void RendererDeferred::Init() {
     shDSSDOAccumulate->LoadFile("shDSSDOAccumulateCS.cso", Shader::Compute);
 
     shDeferredPointLights = new Shader();
-    shDeferredPointLights->LoadFile("shNullVertexVS.cso"        , Shader::Vertex );
-    shDeferredPointLights->LoadFile("shHemisphereHS.cso"        , Shader::Hull   );
-    shDeferredPointLights->LoadFile("shHemisphereDS.cso"        , Shader::Domain );
+    shDeferredPointLights->LoadFile("shDeferredPointLightVS.cso", Shader::Vertex );
+    //shDeferredPointLights->LoadFile("shHemisphereHS.cso"        , Shader::Hull   );
+    //shDeferredPointLights->LoadFile("shHemisphereDS.cso"        , Shader::Domain );
     shDeferredPointLights->LoadFile("shDeferredPointLightPS.cso", Shader::Pixel  );
     shDeferredPointLights->LoadFile("shDeferredPointLightCS.cso", Shader::Compute);
 
@@ -85,7 +85,8 @@ void RendererDeferred::Init() {
     rtFinalPass = new RenderTarget2DColor1(Width(), Height(), 1, "[RT]: Final Pass");
     rtFinalPass->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM);
 
-    rtDeferred = new RenderTarget2DColor2MSAA(Width(), Height(), 1, "[RT]: Deferred");
+    rtDeferred = new RenderTarget2DColor2DepthMSAA(Width(), Height(), 1, "[RT]: Deferred");
+    rtDeferred->Create(32);                                     // Depth
     rtDeferred->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT);
     //DXGI_FORMAT_R11G11B10_FLOAT, DXGI_FORMAT_R11G11B10_FLOAT);
 
@@ -339,11 +340,14 @@ void RendererDeferred::Init() {
     cbVolumetricSettings->CreateDefault(sizeof(VolumetricSettings));
     
     // DSSDO
-    mDSSDOAccumulation = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R16G16B16A16_FLOAT, Width(), Height(), 1u, 1u, "DSSDO Accumulation");
+    //mDSSDOAccumulation = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R16G16B16A16_FLOAT, Width(), Height(), 1u, 1u, "DSSDO Accumulation");
+    //
+    //cbDSSDOSettings = new ConstantBuffer();
+    //cbDSSDOSettings->CreateDefault(sizeof(DSSDOSettings));
 
-    cbDSSDOSettings = new ConstantBuffer();
-    cbDSSDOSettings->CreateDefault(sizeof(DSSDOSettings));
-
+    // Load default models
+    s_mesh.unit_sphere = LoadModelExternal("../Models/UVMappedUnitSphere.obj", 0u)[0];
+    
     // Default CSM Settings
     gCSMArgs._Antiflicker = true;
     gCSMArgs._CascadeNum = 3;
@@ -557,6 +561,9 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(cbVolumetricSettings);
     SAFE_RELEASE(cbBlurFilter);
     SAFE_RELEASE(cbDSSDOSettings);
+    
+    // Meshes
+    s_mesh.Release();
 
     // Other
     SAFE_DELETE(IdentityTransf);
@@ -1265,14 +1272,19 @@ void RendererDeferred::Deferred() {
     ScopedRangeProfiler s1(L"Deferred pass");
 
     // Light pass
+    BlendState::Push();
+    s_states.blend.no_blend->Bind();
+
     {
         ScopedRangeProfiler s2(L"Lights");
         rtDeferred->Bind();
         rtDeferred->Clear(s_clear.black_void2);
+        rtDeferred->Clear(0.f, 0);
 
         // Store states
-        STopologyState::Push();
-        STopologyState::Bind(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+        //STopologyState::Push();
+        //STopologyState::Bind(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST);
+        //STopologyState::Bind(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         // Get camera info
         CameraComponent* cam = mScene->GetCamera(0)->cCam;
@@ -1290,7 +1302,7 @@ void RendererDeferred::Deferred() {
         DirectX::XMStoreFloat4x4(&mProjF, mProj);
         
         // Bind data
-        mScene->BindCamera(0, Shader::Domain, 0);
+        mScene->BindCamera(0, Shader::Vertex, 0);
 
         {
             {
@@ -1301,7 +1313,7 @@ void RendererDeferred::Deferred() {
                 map.data->_Texel      = { 1.f / Width(), 1.f / Height() };
                 map.data->_Far        = fFar;
                 map.data->_ProjValues = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
-                map.data->_LightCount = mScene->GetPointLightCount();
+                //map.data->_LightCount[0] = { mScene->GetStaticPointLightCount(), mScene->GetDynamicPointLightCount() };
             }
 
             cbDeferredGlobal->Bind(Shader::Pixel , 0); // CB
@@ -1323,7 +1335,18 @@ void RendererDeferred::Deferred() {
             //rtGBuffer->Bind(1u, Shader::Pixel, 2); // Direct light
             //rtGBuffer->Bind(3u, Shader::Pixel, 3); // Ambient light
 
-            DeferredLights();
+            // Static lights
+            LightDescriptor<PointLightBuff> point{};
+            point.num = mScene->GetStaticPointLightCount();
+            point.sb  = mScene->ListPointLightStaticBuffer();
+
+            DeferredLights(point);
+
+            // Dynamic lights
+            //point.num = mScene->GetDynamicPointLightCount();
+            //point.sb  = mScene->ListPointLightDynamicBuffer();
+            //
+            //DeferredLights(point);
         }
 
         if( mTransparencyAmount )
@@ -1336,36 +1359,36 @@ void RendererDeferred::Deferred() {
             //rtTransparency->Bind(1u, Shader::Pixel, 2); // Direct light
             //rtTransparency->Bind(3u, Shader::Pixel, 3); // Ambient light
 
-            DeferredLights();
+            //DeferredLights();
         }
 
-        LunaEngine::PSDiscardSRV<2>(); // TODO: Use defines
-        STopologyState::Pop();
+        LunaEngine::PSDiscardSRV<4>(); // TODO: Use defines
+        //STopologyState::Pop();
     }
-    
+
+    BlendState::Pop();
 
 }
 
-void RendererDeferred::DeferredLights() {
+void RendererDeferred::DeferredLights(const LightDescriptor<PointLightBuff>& point) {
     // Point lights
+    if( point.num > 0u )
     {
         ScopedRangeProfiler s2(L"Point");
         shDeferredPointLights->Bind();
+        s_mesh.Bind(s_mesh.unit_sphere);
 
         // Update CB
         {
             //ScopeMapConstantBuffer<DeferredLight> map(cbDeferredLight);
         }
 
-        // Update light list
-        StructuredBuffer<PointLightBuff>* mLights = mScene->ListPointLightBuffer();
-
         // TODO: Frustum Culling with Compute Shader
-        mLights->Bind(Shader::Domain, 0u);        // SRV
+        point.sb->Bind(Shader::Vertex, 0u);       // SRV
         //cbDeferredLight->Bind(Shader::Pixel, 1u); // CB
 
         // TODO: Indirect Instanced
-        DXDrawInstanced(2, mLights->GetNumber(), 0, 0);
+        DXDrawIndexedInstanced(s_mesh.unit_sphere.mIndexBuffer->GetNumber(), point.num, 0, 0, 0);
 
         // TODO: 
         //DXDrawInstanced(2, CulledLightCount, 0, 0);

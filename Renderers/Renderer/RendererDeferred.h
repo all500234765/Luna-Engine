@@ -43,7 +43,7 @@ private:
             SamplerState linear_comp{};
         } sampl{};
 
-        // TODO: Do clustered rendering
+        // TODO: Do clustered rendering?
         Texture *mCubemap{};
 
     } s_material{};
@@ -68,6 +68,29 @@ private:
             RasterState *wire_scissors;
         } raster;
     } s_states{};
+
+    struct {
+        MeshComponent unit_sphere;
+
+        void Release() {
+            SAFE_RELEASE(unit_sphere.mIndexBuffer);
+            SAFE_RELEASE(unit_sphere.mVBPosition );
+            SAFE_RELEASE(unit_sphere.mVBTangent  );
+            SAFE_RELEASE(unit_sphere.mVBTexcoord );
+        }
+
+        void Bind(const MeshComponent& mesh) {
+            ID3D11Buffer *buffs[4] = { mesh.mVBPosition->GetBuffer(), mesh.mVBTexcoord->GetBuffer(), 
+                                       mesh.mVBNormal->GetBuffer(),   mesh.mVBTangent->GetBuffer() };
+
+            UINT strides[4] = { mesh.mVBPosition->GetStride(), mesh.mVBTexcoord->GetStride(), 
+                                mesh.mVBNormal->GetStride(),   mesh.mVBTangent->GetStride() };
+            UINT offsets[4] = { 0, 0, 0, 0 };
+
+            gDirectX->gContext->IASetVertexBuffers(0, ARRAYSIZE(buffs), buffs, strides, offsets);
+            gDirectX->gContext->IASetIndexBuffer(mesh.mIndexBuffer->GetBuffer(), DXGI_FORMAT_R32_UINT, 0);
+        }
+    } s_mesh{};
 
     // Deferred renderer
     ConstantBuffer *cbDeferredGlobal;
@@ -148,7 +171,7 @@ private:
     RenderTarget2DColor5DepthMSAA *rtGBuffer{};
     RenderTarget2DColor4DepthMSAA *rtTransparency{}, *rtCombinedGBuffer{};
     RenderTarget2DColor1          *rtFinalPass{};
-    RenderTarget2DColor2MSAA      *rtDeferred{};
+    RenderTarget2DColor2DepthMSAA *rtDeferred{};
 
     Texture *mVolumetricLightAccum{};
     Texture *mDepth2{}, *mDepthI{}; // Main depth buffer & Intermidiate
@@ -193,6 +216,13 @@ private:
     ImTextureID mLitImageID[(uint)LitIndex::Count]{};
     Texture *mLitImageTex[(uint)LitIndex::Count]{};
 
+    // 
+    template<typename T>
+    struct LightDescriptor {
+        uint num;
+        StructuredBuffer<T>* sb;
+    };
+
     // Geometry Passes
     void Shadows();             // Done
     void GBuffer();             // Done
@@ -203,8 +233,8 @@ private:
 
     // Screen-Space Passes
     void Deferred();
-    void DeferredLights();
-
+    void DeferredLights(const LightDescriptor<PointLightBuff>& point);
+    
     void SSAO();
     void SSLR();
     void SSLF();
@@ -218,6 +248,282 @@ private:
     void Final();
 
     void BindOrtho();
+
+    // Internal mesh loading
+    
+    TransformComponent DefaultTransformComp() const {
+        TransformComponent transform{};
+        transform.mWorld    = DirectX::XMMatrixIdentity();
+        transform.vPosition = { 0.f, 0.f, 0.f };
+        transform.vRotation = { 0.f, 0.f, 0.f };
+        transform.vScale    = { 1.f, 1.f, 1.f };
+
+        return transform;
+    }
+
+    uint32_t mMeshSRV{};
+    std::vector<MeshComponent> LoadModelExternal(const char* fname, /*ECS* ecs, */uint32_t flags) {
+
+        TransformComponent transform = DefaultTransformComp();
+
+        // Load model
+        Assimp::Importer importer;
+        const aiScene *scene = importer.ReadFile(fname, aiProcess_Triangulate | aiProcess_CalcTangentSpace
+                                                      | (0*aiProcess_GenSmoothNormals) | flags);
+
+        if( !scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode ) {
+            std::cout << "[Scene::LoadModelExternal]: Can't load model! (" << fname << ")" << std::endl;
+            return {  };
+        }
+
+        // Process scene
+        std::vector<MeshComponent> mMeshList;
+        //std::vector<MaterialComponent> mMatList;
+        //LoaderTextureList mTextureFileList;
+
+        uint32_t index = 0u;
+        ProcessNodeStatic(scene->mRootNode, scene, &mMeshList, /*&mMatList, &mTextureFileList, */index);
+
+        // Get current model's directory
+        /*char drive[_MAX_DRIVE];
+        char dir[_MAX_DIR];
+        char fnm[_MAX_FNAME];
+        char ext[_MAX_EXT];
+
+        WCHAR cdir[_MAX_DIR];
+        GetCurrentDirectory(_MAX_DIR, cdir);
+        std::string ndir = narrow(cdir) + "/";
+
+        _splitpath((ndir + fname).c_str(), drive, dir, fnm, ext);
+
+        std::string path = "";
+        path = drive;
+        path += dir;
+
+        _splitpath((ndir + "../Textures/").c_str(), drive, dir, fnm, ext);
+        
+        std::string tpath = "";
+        tpath = drive;
+        tpath += dir;
+
+        // Load textures & attach to materials
+        for( LoaderTextureList::iterator e = mTextureFileList.begin(); e != mTextureFileList.end(); e++ ) {
+            LoaderTextureList::mapped_type data = e->second;
+            std::string fnme = e->first;
+            Texture *texture = 0;
+
+            // Build paths
+            std::string file1 = path + fnme;
+            std::string file2 = tpath + fnme;
+
+            // Search in current directory
+            bool flag = false;
+            if( file_exists(file1) ) {
+                texture = new Texture(file1, tf_MipMaps*1);
+                flag = true;
+            } else if( file_exists(file2) ) {
+                texture = new Texture(file2, tf_MipMaps*0);
+                flag = true;
+            }
+
+            if( flag ) {
+                // Assign texture
+                switch( data.first ) {
+#define MIND(type, tex, ts, v) case type: for( uint32_t mind : data.second ) { mMatList[mind].tex = texture; mMatList[mind].ts = v; } break;
+                    case aiTextureType_NORMALS: 
+                        MIND(aiTextureType_HEIGHT, _NormalTex, _Norm, 2);
+
+                    MIND(aiTextureType_DIFFUSE  , _AlbedoTex          , _Alb  , 2);
+                    MIND(aiTextureType_SHININESS, _RoughnessTex       , _Rough, 2);
+                    MIND(aiTextureType_LIGHTMAP , _AmbientOcclusionTex, _AO   , 2);
+                    MIND(aiTextureType_EMISSIVE , _EmissionTex        , _Emis , 2);
+                    MIND(aiTextureType_UNKNOWN  , _MetallicTex        , _Metal, 2 | 4);
+
+#undef MIND
+                }
+
+                printf_s("[Scene::ModelLoader]: Loaded texture. [%s]\n", fnme.c_str());
+            } else {
+                printf_s("[Scene::ModelLoader]: Failed to load texture! [%s]\n", fnme.c_str());
+            }
+        }*/
+
+        // Done
+        return mMeshList;
+
+        //if( mMeshList.size() == 1 ) {
+        //    return { ecs->MakeEntity(transform, mMeshList[0], mMatList[0]) };
+        //}
+        //
+        //// Return list of entites
+        //EntityHandleList list;
+        //list.reserve(mMeshList.size());
+        //for( uint32_t i = 0; i < mMeshList.size(); i++ ) {
+        //    list.push_back(ecs->MakeEntity(transform, mMeshList[i], mMatList[i]));
+        //}
+        //
+        //// Done
+        //return list;
+    }
+
+    void ProcessNodeStatic(aiNode* node, const aiScene* scene, std::vector<MeshComponent>* MeshList,
+                           //std::vector<MaterialComponent>* MatList, 
+                           //LoaderTextureList* TextureList,
+                           uint32_t& index) {
+        // Process meshes
+#pragma omp parallel for num_threads(4)
+        for( int32_t i = 0; i < node->mNumMeshes; i++ ) {
+            aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+            MeshList->push_back(ProcessMeshStatic(mesh, scene, /*MatList, TextureList, */index));
+            index++;
+        }
+
+        // Process children
+        for( size_t i = 0; i < node->mNumChildren; i++ ) {
+            ProcessNodeStatic(node->mChildren[i], scene, MeshList, /*MatList, TextureList, */index);
+        }
+    }
+
+    MeshComponent ProcessMeshStatic(aiMesh* inMesh, const aiScene* scene, 
+                           //std::vector<MaterialComponent>* MatList, 
+                           //LoaderTextureList* TextureList, 
+                           uint32_t index) {
+        //MaterialComponent mat = DefaultMaterialComp();
+        MeshComponent mesh{};
+
+        // 
+        std::vector<float3> Position;
+        std::vector<float2> Texcoord;
+        std::vector<float3> Normal;
+        std::vector<float3> Tangent;
+
+        std::vector<uint32_t> Index;
+        
+        // Process vertices
+        Position.reserve(inMesh->mNumVertices);
+        Texcoord.reserve(inMesh->mNumVertices);
+        Tangent.reserve( inMesh->mNumVertices);
+        Normal.reserve(  inMesh->mNumVertices);
+
+        for( size_t i = 0; i < inMesh->mNumVertices; i++ ) {
+            Position.push_back({ inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z });
+            Normal  .push_back({ inMesh->mNormals [i].x, inMesh->mNormals [i].y, inMesh->mNormals [i].z });
+            
+            if( inMesh->mTangents ) {
+                Tangent.push_back({ inMesh->mTangents[i].x, inMesh->mTangents[i].y, inMesh->mTangents[i].z });
+            } else {
+                Tangent.push_back({ 0, 0, 0 });
+            }
+
+            if( inMesh->mTextureCoords[0] ) {
+                Texcoord.push_back({ inMesh->mTextureCoords[0][i].x, inMesh->mTextureCoords[0][i].y });
+            } else {
+                Texcoord.push_back({ 0, 0 });
+            }
+        }
+
+        // Process indices
+        uint32_t IndexNum = 0;
+        Index.reserve(inMesh->mNumFaces * 3); // Assume that each face has at least 3 indices
+        for( size_t i = 0; i < inMesh->mNumFaces; i++ ) {
+            aiFace face = inMesh->mFaces[i];
+            IndexNum += face.mNumIndices;
+
+            for( size_t j = 0; j < face.mNumIndices; j++ ) {
+                Index.push_back(face.mIndices[j]);
+            }
+        }
+
+        // Material
+        /*uint32_t mat_index = inMesh->mMaterialIndex;
+        aiMaterial* m = scene->mMaterials[mat_index];
+
+        // Opacity
+        ai_real alpha;
+        m->Get(AI_MATKEY_OPACITY, alpha);
+        if( alpha < 0.f ) alpha = 1.f;
+        mat._Alpha = alpha;
+        if( mat._Alpha < 1.f ) { mat._IsTransparent = 1.f; }
+
+        // Gather material textures
+        auto AddTexture = [&TextureList, index, m](aiTextureType type, uint32_t i=0u) {
+            aiString fname;
+            m->GetTexture(type, i, &fname);
+            std::string s = fname.C_Str();
+            printf_s(" - %u:%u\n", type, m->GetTextureCount(type));
+
+            // No texture found
+            if( !strcmp(fname.C_Str(), "") ) return false;
+            LoaderTextureList::iterator it = TextureList->find(s);
+
+            if( it == TextureList->end() ) {
+                printf_s("%s; %u\n", s.c_str(), type);
+
+                // Add
+                TextureList->insert_or_assign(s, LoaderTextureList::mapped_type({ aiTextureType(type + i * (AI_TEXTURE_TYPE_MAX + 1)), { index } }));
+                return true;
+            }
+
+            TextureList->at(s).second.push_back(index);
+            return true;
+        };
+
+        printf_s("-------------\n");
+
+        /*AddTexture(aiTextureType_DIFFUSE  ); // Albedo
+        AddTexture(aiTextureType_SHININESS); // Roughness
+        AddTexture(aiTextureType_LIGHTMAP ); // Ambient Occlusion / Lightmap
+        AddTexture(aiTextureType_EMISSIVE ); // Emission
+        AddTexture(aiTextureType_UNKNOWN  ); // Metall Roughness
+
+        // Normals
+        if( !AddTexture(aiTextureType_HEIGHT) )
+            AddTexture(aiTextureType_NORMALS);
+
+        AddTexture(aiTextureType_OPACITY);
+
+        /*AddTexture(aiTextureType_DISPLACEMENT);
+        AddTexture(aiTextureType_AMBIENT);
+        AddTexture(aiTextureType_SPECULAR);
+        AddTexture(aiTextureType_REFLECTION);
+
+        AddTexture(aiTextureType_BASE_COLOR);
+        AddTexture(aiTextureType_NORMAL_CAMERA);
+        AddTexture(aiTextureType_EMISSION_COLOR);
+        AddTexture(aiTextureType_METALNESS);
+        AddTexture(aiTextureType_DIFFUSE_ROUGHNESS);
+        AddTexture(aiTextureType_AMBIENT_OCCLUSION);
+
+        AddTexture(aiTextureType_DIFFUSE, 1);*/
+
+        // Create buffers
+        mesh.mIndexBuffer = new IndexBuffer();
+        mesh.mVBPosition  = new VertexBuffer();
+        mesh.mVBTexcoord  = new VertexBuffer();
+        mesh.mVBNormal    = new VertexBuffer();
+        mesh.mVBTangent   = new VertexBuffer();
+        mesh.mReferenced  = false;
+
+        mesh.mVBPosition->SetSRV(mMeshSRV);
+        mesh.mVBTexcoord->SetSRV(mMeshSRV);
+        mesh.mVBTangent->SetSRV(mMeshSRV);
+        mesh.mVBNormal->SetSRV(mMeshSRV);
+
+        mesh.mIndexBuffer->SetSRV(mMeshSRV);
+
+        mesh.mVBPosition->CreateDefault(Position.size(), sizeof(float3), &Position[0]);
+        mesh.mVBTexcoord->CreateDefault(Texcoord.size(), sizeof(float2), &Texcoord[0]);
+        mesh.mVBTangent->CreateDefault( Tangent.size() , sizeof(float3), &Tangent [0]);
+        mesh.mVBNormal->CreateDefault(  Normal  .size(), sizeof(float3), &Normal  [0]);
+
+        mesh.mIndexBuffer->CreateDefault(IndexNum, &Index[0]);
+        
+        // Add material
+        //MatList->push_back(mat);
+
+        // Done
+        return mesh;
+    }
 
 public:
     RendererDeferred(): RendererBase() {};

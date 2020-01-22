@@ -4,7 +4,7 @@ struct ConstantOut {
 };
 
 ConstantOut HemisphereConst() {
-    const float fTessFactor = 4.f;
+    const float fTessFactor = 9.f; // 18.f
 
     ConstantOut Out;
         Out.Edges[0] = Out.Edges[1] = Out.Edges[2] = Out.Edges[3] = fTessFactor;

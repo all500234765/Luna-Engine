@@ -21,6 +21,8 @@ Shader *shSkybox{};
 bool g_bMouseHUD{};
 float g_fAvgMS{};
 
+EntityHandle gTestLight;
+
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
     // Create, redirect IO to, and hide console
@@ -134,14 +136,20 @@ bool _DirectX::Render() {
 }
 
 void _DirectX::Tick(float fDeltaTime) {
-    if( gKeyboard->IsPressed(VK_F10) ) { gHighLevel.RenderDocLaunchUI(); }
-    if( gHighLevel.RenderDocGetUI() ) return;
+    //if( gKeyboard->IsPressed(VK_F10) ) { gHighLevel.RenderDocLaunchUI(); }
+    //if( gHighLevel.RenderDocGetUI() ) return;
     
     static uint64_t g_iTickFrame = 0;
     if( (g_iTickFrame % 240) == 0 ) {
         g_fAvgMS /= 240.f;
     } else {
         g_fAvgMS += fDeltaTime;
+    }
+
+    {
+        PointLightComponent* p = gMainScene->GetComponent<PointLightComponent>(gTestLight);
+        p->_LightPosition.x += cosf(fDeltaTime);
+        p->_LightPosition.z += sinf(fDeltaTime);
     }
 
     gMainScene->Update(fDeltaTime);
@@ -222,12 +230,20 @@ void _DirectX::CreateResources() {
     
     // Add lights
     {
+        // Static
         PointLightBuff light{};
         light._LightColor    = float3(.7f, .9f, 0.f);
-        light._LightPosition = float3(0.f, 0.f, 100.f);
-        light._LightPower    = 1.f;
+        light._LightPosition = float3(0.f, 100.f, 0.f);
+        light._LightPower    = 100.f;
         light._LightRadius   = 128.f;
-        gMainScene->InsertPointLight(light);
+        gMainScene->InsertStaticPointLight(light);
+        
+        // Dynamic
+        light._LightColor    = float3(.4f, .3f, .6f);
+        light._LightPosition = float3(0.f, 100.f, 0.f);
+        light._LightPower    = 100.f;
+        light._LightRadius = 4.f * 1024.f;
+        gTestLight = gMainScene->InsertDynamicPointLight(light);
     }
 
     /*gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",

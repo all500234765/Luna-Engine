@@ -2,13 +2,6 @@ cbuffer bGlobal : register(b0) {
     #include "Deferred/Global.h"
 }
 
-cbuffer bLightData : register(b1) {
-    float3 _LightDiffuse;
-    float1 PADDING1;
-    float2 _LightData; // Empty, Intensity
-    float4 vPosition; // Light pos, w - unused
-};
-
 Texture2D<float> _DepthTexture : register(t0);
 SamplerState _DepthSampler     : register(s0);
 
@@ -35,42 +28,60 @@ float3 GetWorldPos(float2 ClipSpace, float z) {
 }
 
 struct PS {
-    float4 Position : SV_Position0;
-    float2 Texcoord : TEXCOORD0;
-    float4 LightPos : TEXCOORD1;
-	float4 Color    : TEXCOORD2;
-    uint InstanceID : TEXCOORD3;
+    float4 Position  : SV_Position0;
+    float2 Texcoord  : TEXCOORD0;
+    float4 LightPos  : TEXCOORD1;
+	float4 Color     : TEXCOORD2;
+    uint InstanceID  : TEXCOORD3;
+    float2 ClipSpace : TEXCOORD4;
+    float3 WorldPos  : TEXCOORD5;
 };
 
-half3 PointLight(float3 p, float3 n, float3 lpos) {
-    float3 lDir = lpos                   - p;
-    float3 eyeD = _mInvView._m03_m13_m23 - p;
-    float dist = length(lDir);
+half3 PointLight(float3 p, float3 n, float4 lpos, float4 color) {
+    float3 lDist = lpos.xyz               - p;
+    float3 eyeD  = _mInvView._m03_m13_m23 - p;
+    float1 dist  = length(lDist);
+	float3 lDir  = lDist / dist;
+	
+	// Final color
+	float3 final = color.rgb;
+
 
     // Lambertian
-    return dot(n, lDir / dist);// * _LightDiffuse * _LightData.y;
+    final *= saturate(dot(n, lDir));// * _LightDiffuse * _LightData.y;
+	
 
     // Specular
+    eyeD = normalize(eyeD);
+    float3 H = normalize(eyeD + lDir);
+    float NdotH = saturate(dot(H, n));
+    final += pow(NdotH, 10.f);
 
+	// Attenuation
+    float dist2norm = 1.f - saturate(dist * color.w / lpos.w);
+    float att = dist2norm * dist2norm;
+    //final *= att;
+	
+	return final;
 }
 
-half4 main(PS In) : SV_Target0 {
+half4 main(PS In, bool Front : SV_IsFrontFace) : SV_Target0 {
     // Clip if 
     clip(In.LightPos.w < 1.f ? -1.f : 1.f); // Too small
-    clip(((int)_LightCount - 1) - In.InstanceID); // Exceeds the limit
-    
+	
     // Unpack GBuffer
     float LinDepth = Depth2Linear(1.f - _DepthTexture.Sample(_DepthSampler, In.Texcoord));
     //half4 Diffuse = ;
     half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
-
+	Normal *= Front * 2.f - 1.f;
+    
     // Reconstruct world position
-    float3 WorldPos = GetWorldPos(float2(In.Texcoord.x, 1.f - In.Texcoord.y) * 2.f - 1.f, LinDepth);
-
+    float3 WorldPos = GetWorldPos(In.ClipSpace, LinDepth);
+	
     // Calculate point light
-    half4 Final = half4(In.Color.rgb * PointLight(In.Position.xyz, Normal, In.LightPos.xyz), 1.);
-
-
-    return In.InstanceID / 10.f;
-    return half4(half3(In.Texcoord, 0.f)*0 + 0*Normal + 1*Final.rgb + 0*(WorldPos), 1.f);
+    half3 Final = PointLight(In.WorldPos, Normal, In.LightPos, In.Color);
+	
+    //return half4(dot(Normal, ), 1.f);
+    return half4(Final, 1.f);
+    //return half4(half3(In.Texcoord, 0.f)*0 + 0*Normal + 1*Final.rgb + 0*(WorldPos), 1.f);
 }

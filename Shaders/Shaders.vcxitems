@@ -134,6 +134,10 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shCSMVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDeferredPointLightVS.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDepthAlphaVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
