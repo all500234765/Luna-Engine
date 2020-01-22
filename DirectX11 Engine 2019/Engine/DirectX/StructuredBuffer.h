@@ -98,7 +98,7 @@ public:
         HRESULT hr;
 
         // Try to get mapped resource
-        hr = gDirectX->gContext->Map(pBuff, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &res);
+        hr = gDirectX->gContext->Map(pBuff, 0, D3D11_MAP_WRITE, 0, &res);
         if( FAILED(hr) ) {
             std::cout << "Can't map StructuredBuffer." << std::endl;
             return NULL;

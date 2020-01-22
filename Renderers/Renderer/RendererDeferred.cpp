@@ -346,7 +346,7 @@ void RendererDeferred::Init() {
     //cbDSSDOSettings->CreateDefault(sizeof(DSSDOSettings));
 
     // Load default models
-    s_mesh.unit_sphere = LoadModelExternal("../Models/UVMappedUnitSphere.obj", 0u)[0];
+    s_mesh.unit_sphere = LoadModelExternal("../Models/UVUnitSphere.obj", 0u)[0];
     
     // Default CSM Settings
     gCSMArgs._Antiflicker = true;
@@ -1343,10 +1343,10 @@ void RendererDeferred::Deferred() {
             DeferredLights(point);
 
             // Dynamic lights
-            //point.num = mScene->GetDynamicPointLightCount();
-            //point.sb  = mScene->ListPointLightDynamicBuffer();
-            //
-            //DeferredLights(point);
+            point.num = mScene->GetDynamicPointLightCount();
+            point.sb  = mScene->ListPointLightDynamicBuffer();
+            
+            DeferredLights(point);
         }
 
         if( mTransparencyAmount )

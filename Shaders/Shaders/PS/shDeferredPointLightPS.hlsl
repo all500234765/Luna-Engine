@@ -8,6 +8,15 @@ SamplerState _DepthSampler     : register(s0);
 Texture2D<half2> _NormalTexture : register(t1);
 SamplerState _NormalSampler     : register(s1);
 
+Texture2D<half4> _ShadingTexture : register(t2);
+SamplerState _ShadingSampler     : register(s2);
+
+Texture2D<half3> _IndirectTexture : register(t3);
+SamplerState _IndirectSampler     : register(s3);
+
+Texture2D<half4> _AlbedoTexture : register(t4);
+SamplerState _AlbedoSampler     : register(s4);
+
 // https://aras-p.info/texts/CompactNormalStorage.html#method03spherical
 // Spherical Coordinates
 #define kPI 3.1415926536f
@@ -37,7 +46,7 @@ struct PS {
     float3 WorldPos  : TEXCOORD5;
 };
 
-half3 PointLight(float3 p, float3 n, float4 lpos, float4 color) {
+half4 PointLight(float3 p, float3 n, float4 lpos, float4 color) {
     float3 lDist = lpos.xyz               - p;
     float3 eyeD  = _mInvView._m03_m13_m23 - p;
     float1 dist  = length(lDist);
@@ -58,11 +67,11 @@ half3 PointLight(float3 p, float3 n, float4 lpos, float4 color) {
     final += pow(NdotH, 10.f);
 
 	// Attenuation
-    float dist2norm = 1.f - saturate(dist * color.w / lpos.w);
+    float dist2norm = 1.f - saturate(dist / lpos.w);
     float att = dist2norm * dist2norm;
-    //final *= att;
+    final *= att;
 	
-	return final;
+	return float4(final, att);
 }
 
 half4 main(PS In, bool Front : SV_IsFrontFace) : SV_Target0 {
@@ -70,18 +79,16 @@ half4 main(PS In, bool Front : SV_IsFrontFace) : SV_Target0 {
     clip(In.LightPos.w < 1.f ? -1.f : 1.f); // Too small
 	
     // Unpack GBuffer
-    float LinDepth = Depth2Linear(1.f - _DepthTexture.Sample(_DepthSampler, In.Texcoord));
     //half4 Diffuse = ;
+    float LinDepth = Depth2Linear(1.f - _DepthTexture.Sample(_DepthSampler, In.Texcoord));
     half3 Normal = NormalDecode(_NormalTexture.Sample(_NormalSampler, In.Texcoord));
-	Normal *= Front * 2.f - 1.f;
+    
+    // Flip normal if we outside
+	//Normal *= Front * 2.f - 1.f;
     
     // Reconstruct world position
     float3 WorldPos = GetWorldPos(In.ClipSpace, LinDepth);
 	
     // Calculate point light
-    half3 Final = PointLight(In.WorldPos, Normal, In.LightPos, In.Color);
-	
-    //return half4(dot(Normal, ), 1.f);
-    return half4(Final, 1.f);
-    //return half4(half3(In.Texcoord, 0.f)*0 + 0*Normal + 1*Final.rgb + 0*(WorldPos), 1.f);
+    return PointLight(WorldPos, Normal, In.LightPos, In.Color, In.Texcoord);
 }

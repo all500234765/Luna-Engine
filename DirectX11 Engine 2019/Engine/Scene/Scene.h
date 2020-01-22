@@ -864,6 +864,9 @@ public:
             lights.push_back({});*/
 
         // Send new data
+        if( gKeyboard->IsDown(VK_F11) ) 
+            printf_s("[SEGV]: LOVI SEGFAULT\n");
+        
         {
             ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightDynamicBuffer, lights.data(), lights.size());
         }

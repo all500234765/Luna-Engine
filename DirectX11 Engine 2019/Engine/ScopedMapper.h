@@ -18,7 +18,7 @@ public:
     T* data;
 
     ScopedMap(S* o): obj(o) { data = (T*)obj->Map(); }
-    ~ScopedMap() { obj->Unmap(); };
+    ~ScopedMap() { if( data ) obj->Unmap(); };
 };
 
 template<typename T>
@@ -48,11 +48,22 @@ public:
     T* data;
 
     template<typename T2>
-    ScopedMapCopy(S* o, T2  * src): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], (void*)&src [0], sizeof(T)); }
-    ScopedMapCopy(S* o, void* src): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], &((T*)  src)[0], sizeof(T)); }
-    ScopedMapCopy(S* o, T   * src): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], &       src [0], sizeof(T)); }
+    ScopedMapCopy(S* o, T2  * src): obj(o) {
+        data = (T*)obj->Map();
+        if( data ) memcpy(&data[0], (void*)&src[0], sizeof(T));
+    }
 
-    ~ScopedMapCopy() { obj->Unmap(); };
+    ScopedMapCopy(S* o, void* src): obj(o) {
+        data = (T*)obj->Map();
+        if( data ) memcpy(&data[0], &((T*)src)[0], sizeof(T));
+    }
+
+    ScopedMapCopy(S* o, T   * src): obj(o) {
+        data = (T*)obj->Map();
+        if( data ) memcpy(&data[0], &src[0], sizeof(T));
+    }
+
+    ~ScopedMapCopy() { if( data ) obj->Unmap(); };
 };
 
 template<typename T, class S>
@@ -64,11 +75,22 @@ public:
     T* data;
 
     template<typename T2>
-    ScopedMapCopyÑount(S* o, T2  * src, uint32_t count): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], (void*)&src[0], sizeof(T) * count); }
-    ScopedMapCopyÑount(S* o, void* src, uint32_t count): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], &((T*)src)[0], sizeof(T) * count); }
-    ScopedMapCopyÑount(S* o, T   * src, uint32_t count): obj(o) { data = (T*)obj->Map(); memcpy(&data[0], &src[0], sizeof(T) * count); }
+    ScopedMapCopyÑount(S* o, T2  * src, uint32_t count): obj(o) {
+        data = (T*)obj->Map();
+        if( data ) memcpy(&data[0], (void*)&src[0], sizeof(T) * count);
+    }
 
-    ~ScopedMapCopyÑount() { obj->Unmap(); };
+    ScopedMapCopyÑount(S* o, void* src, uint32_t count): obj(o) {
+        data = (T*)obj->Map();
+        if( data ) memcpy(&data[0], &((T*)src)[0], sizeof(T) * count);
+    }
+
+    ScopedMapCopyÑount(S* o, T   * src, uint32_t count): obj(o) {
+        data = (T*)obj->Map();
+        if( data ) memcpy(&data[0], &src[0], sizeof(T) * count);
+    }
+
+    ~ScopedMapCopyÑount() { if( data ) obj->Unmap(); };
 };
 
 ////////////////////////////////////////////////////////////////////////////
