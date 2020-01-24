@@ -108,7 +108,8 @@ private:
     uint32_t mArraySize{};
 
     // 
-    uint32_t mMinLod = 0u, mMipMaps = 0u;
+    float mMinLod = 0.f;
+    uint32_t mMipMaps = 0u;
     implTexture* mTextureUnit{};
 
     bool bUndefined = true;
@@ -154,7 +155,7 @@ public:
               DXGI_FORMAT custom_format=DXGI_FORMAT_UNKNOWN);
 
     // Setters
-    inline void SetMinLOD(uint32_t min_lod) {
+    inline void SetMinLOD(float min_lod) {
         mMinLod = min_lod;
         if( mTextureUnit ) gDirectX->gContext->SetResourceMinLOD(mTextureUnit->GetTexture3D(), min_lod);
     }
@@ -169,17 +170,17 @@ public:
     }
     
     // Getters
-    inline ID3D11ShaderResourceView*  GetSRV()       const { return mTextureUnit->pSRV;             }
-    inline ID3D11UnorderedAccessView* GetUAV()       const { return mTextureUnit->pUAV;             }
-    inline ID3D11Resource*            GetResource()  const { return Choose(mTextureUnit->pTexture); }
-    inline uint32_t                   GetFlags()     const { return mFlags;                         }
-    inline implTexture*               GetTexture()   const { return mTextureUnit;                   }
-    inline std::string_view           GetName()      const { return mName;                          }
-    inline uint32_t                   GetWidth()     const { return mWidth;                         }
-    inline uint32_t                   GetHeight()    const { return mHeight;                        }
-    inline uint32_t                   GetDepth()     const { return mDepth;                         }
-    inline uint32_t                   GetArraySize() const { return mArraySize;                     }
-    inline uint32_t                   GetCubeNum()   const { return floor(mArraySize / 6);          }
+    inline ID3D11ShaderResourceView*  GetSRV()       const { return mTextureUnit->pSRV;                }
+    inline ID3D11UnorderedAccessView* GetUAV()       const { return mTextureUnit->pUAV;                }
+    inline ID3D11Resource*            GetResource()  const { return Choose(mTextureUnit->pTexture);    }
+    inline uint32_t                   GetFlags()     const { return mFlags;                            }
+    inline implTexture*               GetTexture()   const { return mTextureUnit;                      }
+    inline std::string_view           GetName()      const { return mName;                             }
+    inline uint32_t                   GetWidth()     const { return mWidth;                            }
+    inline uint32_t                   GetHeight()    const { return mHeight;                           }
+    inline uint32_t                   GetDepth()     const { return mDepth;                            }
+    inline uint32_t                   GetArraySize() const { return mArraySize;                        }
+    inline uint32_t                   GetCubeNum()   const { return (uint32_t)floor(mArraySize / 6.f); }
 
     // Copy data from another texture
     inline void Copy(Texture *src) { gDirectX->gContext->CopyResource(GetResource(), src->GetResource()); }

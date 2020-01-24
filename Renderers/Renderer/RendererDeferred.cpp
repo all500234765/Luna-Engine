@@ -49,6 +49,10 @@ void RendererDeferred::Init() {
     shDeferredPointLights->LoadFile("shDeferredPointLightPS.cso", Shader::Pixel  );
     shDeferredPointLights->LoadFile("shDeferredPointLightCS.cso", Shader::Compute);
 
+    shDeferredAccumulation = new Shader();
+    shDeferredAccumulation->LoadFile("shTexturedQuadSimpliestVS.cso", Shader::Vertex);
+    shDeferredAccumulation->LoadFile("shDeferredAccumulationPS.cso", Shader::Pixel);
+
     // Release blobs
     shSurface->ReleaseBlobs();
     shVertexOnly->ReleaseBlobs();
@@ -61,34 +65,39 @@ void RendererDeferred::Init() {
     shHorizontalFilterDepth->ReleaseBlobs();
     shDSSDOAccumulate->ReleaseBlobs();
     shDeferredPointLights->ReleaseBlobs();
+    shDeferredAccumulation->ReleaseBlobs();
 #pragma endregion
 
 #pragma region Render Targets
     rtGBuffer = new RenderTarget2DColor5DepthMSAA(Width(), Height(), 1, "[RT]: GBuffer");
-    rtGBuffer->Create(32);                                     // Depth
-    rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // Direct, Shadow
-                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // Normals
-                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // Shading
-                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // Emission
-                             DXGI_FORMAT_R16G16B16A16_FLOAT);  // Indirect
+    rtGBuffer->Create(64);                                     // 0 Depth
+    rtGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // 1 Albedo, Shadow
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // 2 Normals
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // 3 Shading
+                             DXGI_FORMAT_R16G16B16A16_FLOAT,   // 4 Emission
+                             DXGI_FORMAT_R16G16B16A16_FLOAT);  // 5 Indirect
     
     rtCombinedGBuffer = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "[RT]: GBuffer combined");
-    rtCombinedGBuffer->Create(32);                                     // Depth
+    rtCombinedGBuffer->Create(64);                                     // Depth
     rtCombinedGBuffer->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT,   // Direct light
                                      DXGI_FORMAT_R16G16B16A16_FLOAT,   // Normals
                                      DXGI_FORMAT_R16G16B16A16_FLOAT,   // Ambient light
                                      DXGI_FORMAT_R16G16B16A16_FLOAT);  // Emission
 
     rtDepth = new RenderTarget2DDepthMSAA(2048, 2048, 1, "[RT]: World light shadowmap");
-    rtDepth->Create(32);
+    rtDepth->Create(64);
 
     rtFinalPass = new RenderTarget2DColor1(Width(), Height(), 1, "[RT]: Final Pass");
     rtFinalPass->CreateList(0, DXGI_FORMAT_R8G8B8A8_UNORM);
 
-    rtDeferred = new RenderTarget2DColor2DepthMSAA(Width(), Height(), 1, "[RT]: Deferred");
-    rtDeferred->Create(32);                                     // Depth
-    rtDeferred->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT);
-    //DXGI_FORMAT_R11G11B10_FLOAT, DXGI_FORMAT_R11G11B10_FLOAT);
+    rtDeferred = new RenderTarget2DColor1DepthMSAA(Width(), Height(), 1, "[RT]: Deferred");
+    rtDeferred->Create(64);                                     // Depth
+    rtDeferred->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT);
+    //DXGI_FORMAT_R11G11B10_FLOAT);
+
+    rtDeferredAccumulation = new RenderTarget2DColor1(Width(), Height(), 1, "[RT]: Deferred Accumulation");
+    rtDeferredAccumulation->CreateList(0, DXGI_FORMAT_R16G16B16A16_FLOAT);
+    //DXGI_FORMAT_R11G11B10_FLOAT);
 
     rtTransparency = new RenderTarget2DColor4DepthMSAA(Width(), Height(), 1, "[RT]: Transparency");
     rtTransparency->Create(32);                                     // Depth
@@ -298,6 +307,8 @@ void RendererDeferred::Init() {
     ___LITIMG(5, "Indirect"); // SSDO
     ___LITIMG(6, "Normal");
     ___LITIMG(7, "Indirect"); // Deferred
+    ___LITIMG(8, "Indirect"); // Deferred Accumulation
+    ___LITIMG(9, "Unlit");    // Shading
 
 #undef ___LITIMG
 
@@ -461,14 +472,16 @@ void RendererDeferred::FinalScreen() {
     s_material.sampl.point->Bind(Shader::Pixel);
     
     switch( (LitIndex)mLitIndex ) {
-        case LitIndex::Lit       : rtFinalPass->Bind(0u, Shader::Pixel, 0, false); break;
-        case LitIndex::Unlit     : rtGBuffer->Bind(1u, Shader::Pixel, 0, false); break;
-        case LitIndex::AO        : gSSAOPostProcess->BindAO(Shader::Pixel, 0); break;
-        case LitIndex::Volumetric: mVolumetricLightAccum->Bind(Shader::Pixel, 0, false); break;
-        case LitIndex::SSDO      : mDSSDOAccumulation->Bind(Shader::Pixel, 0, false); break;
-        case LitIndex::Normal    : rtGBuffer->Bind(2u, Shader::Pixel, 0, false); break;
-        case LitIndex::Indirect  : rtGBuffer->Bind(5u, Shader::Pixel, 0, false); break;
-        case LitIndex::Deferred  : rtDeferred->Bind(1u, Shader::Pixel, 0, false); break;
+        case LitIndex::Lit       : rtFinalPass->Bind(0u, Shader::Pixel, 0, false);            break;
+        case LitIndex::Unlit     : rtGBuffer->Bind(1u, Shader::Pixel, 0, false);              break;
+        case LitIndex::AO        : gSSAOPostProcess->BindAO(Shader::Pixel, 0);                break;
+        case LitIndex::Volumetric: mVolumetricLightAccum->Bind(Shader::Pixel, 0, false);      break;
+        case LitIndex::SSDO      : mDSSDOAccumulation->Bind(Shader::Pixel, 0, false);         break;
+        case LitIndex::Normal    : rtGBuffer->Bind(2u, Shader::Pixel, 0, false);              break;
+        case LitIndex::Indirect  : rtGBuffer->Bind(5u, Shader::Pixel, 0, false);              break;
+        case LitIndex::Deferred  : rtDeferred->Bind(1u, Shader::Pixel, 0, false);             break;
+        case LitIndex::DeferredA : rtDeferredAccumulation->Bind(0u, Shader::Pixel, 0, false); break;
+        case LitIndex::Shading   : rtGBuffer->Bind(3u, Shader::Pixel, 0, false);              break;
     }
     
     BindOrtho();
@@ -506,6 +519,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(shHorizontalFilterDepth);
     SAFE_RELEASE(shDSSDOAccumulate);
     SAFE_RELEASE(shDeferredPointLights);
+    SAFE_RELEASE(shDeferredAccumulation);
 
     // Render Targets
     SAFE_RELEASE(rtTransparency);
@@ -514,6 +528,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(rtDepth);
     SAFE_RELEASE(rtFinalPass);
     SAFE_RELEASE(rtDeferred);
+    SAFE_RELEASE(rtDeferredAccumulation);
 
     // Textures
     SAFE_RELEASE(s_material.ti.tex.bluenoise_rg_512);
@@ -556,8 +571,6 @@ void RendererDeferred::Release() {
     // Buffers
     SAFE_RELEASE(cbTransform);
     SAFE_RELEASE(cbDeferredGlobal);
-    SAFE_RELEASE(sbDeferredLight);
-    SAFE_RELEASE(cbDeferredLight);
     SAFE_RELEASE(cbVolumetricSettings);
     SAFE_RELEASE(cbBlurFilter);
     SAFE_RELEASE(cbDSSDOSettings);
@@ -695,7 +708,9 @@ void RendererDeferred::ImGui() {
                 "Volumetric",
                 "SSDO",
                 "Normal",
-                "Deferred"
+                "Deferred",
+                "Deferred Acc",
+                "Shading"
             }
         };
 
@@ -1319,8 +1334,12 @@ void RendererDeferred::Deferred() {
             cbDeferredGlobal->Bind(Shader::Pixel , 0); // CB
             //cbDeferredGlobal->Bind(Shader::Domain, 1); // CB
 
-            s_material.sampl.point->Bind(Shader::Pixel, 0); // Samplers
-            s_material.sampl.point->Bind(Shader::Pixel, 1); // Samplers
+            // Samplers
+            s_material.sampl.point->Bind(Shader::Pixel, 0);
+            s_material.sampl.linear->Bind(Shader::Pixel, 1);
+            s_material.sampl.point->Bind(Shader::Pixel, 2);
+            s_material.sampl.point->Bind(Shader::Pixel, 3);
+            s_material.sampl.point->Bind(Shader::Pixel, 4);
         }
 
         if( mOpaqueAmount )
@@ -1330,7 +1349,8 @@ void RendererDeferred::Deferred() {
             rtGBuffer->Bind(0u, Shader::Pixel, 0); // Opaque Depth Buffer
             rtGBuffer->Bind(2u, Shader::Pixel, 1); // Opaque Normal Buffer
             rtGBuffer->Bind(3u, Shader::Pixel, 2); // Opaque Shading Buffer
-            rtGBuffer->Bind(4u, Shader::Pixel, 3); // Opaque Indirect Buffer
+            rtGBuffer->Bind(5u, Shader::Pixel, 3); // Opaque Indirect Buffer
+            rtGBuffer->Bind(1u, Shader::Pixel, 4); // Opaque Albedo Buffer
 
             //rtGBuffer->Bind(1u, Shader::Pixel, 2); // Direct light
             //rtGBuffer->Bind(3u, Shader::Pixel, 3); // Ambient light
@@ -1362,8 +1382,27 @@ void RendererDeferred::Deferred() {
             //DeferredLights();
         }
 
-        LunaEngine::PSDiscardSRV<4>(); // TODO: Use defines
+        //LunaEngine::PSDiscardSRV<5>(); // TODO: Use defines to create such functions faster
         //STopologyState::Pop();
+    }
+
+    {
+        ScopedRangeProfiler q("Accumulation");
+
+        shDeferredAccumulation->Bind();
+
+        rtDeferredAccumulation->Bind();
+        rtDeferredAccumulation->Clear(s_clear.black_void2);
+
+        // Bind resources
+        rtDeferred->Bind(1u, Shader::Pixel, 5u);         // SRV
+        s_material.sampl.point->Bind(Shader::Pixel, 5u); // Sampler
+
+        // Draw quad
+        DXDraw(6, 0);
+
+        // 
+        LunaEngine::PSDiscardSRV<6>(); // TODO: Use defines
     }
 
     BlendState::Pop();

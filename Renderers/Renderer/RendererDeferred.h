@@ -98,13 +98,6 @@ private:
         #include "Deferred/Global.h"
     };
 
-    ConstantBuffer *cbDeferredLight;
-    struct DeferredLight {
-        #include "Deferred/Light.h"
-    };
-
-    CounterStructuredBuffer<DeferredLight> *sbDeferredLight;
-
     // Volumetric lights
     ConstantBuffer *cbVolumetricSettings;
     struct VolumetricSettings {
@@ -171,14 +164,15 @@ private:
     RenderTarget2DColor5DepthMSAA *rtGBuffer{};
     RenderTarget2DColor4DepthMSAA *rtTransparency{}, *rtCombinedGBuffer{};
     RenderTarget2DColor1          *rtFinalPass{};
-    RenderTarget2DColor2DepthMSAA *rtDeferred{};
+    RenderTarget2DColor1DepthMSAA *rtDeferred{};
+    RenderTarget2DColor1          *rtDeferredAccumulation{};
 
     Texture *mVolumetricLightAccum{};
     Texture *mDepth2{}, *mDepthI{}; // Main depth buffer & Intermidiate
     Texture *mDSSDOAccumulation{};
 
     Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
-    Shader *shDeferredPointLights{};
+    Shader *shDeferredPointLights{}, *shDeferredAccumulation{};
     Shader *shVolumetricLight;
     Shader *shSimpleGUI{};
     Shader *shHorizontalFilterDepth{}, *shVerticalFilterDepth{};
@@ -206,7 +200,8 @@ private:
         SSDO,
         Normal,
         Deferred, 
-        //Material,
+        DeferredA,  // Accumulation
+        Shading,
 
         Count
     };

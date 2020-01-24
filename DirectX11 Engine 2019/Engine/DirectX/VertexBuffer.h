@@ -13,7 +13,7 @@ public:
 
     inline ID3D11ShaderResourceView* GetSRV() const { return pSRV; }
     
-    void CreateDefault(UINT Num, UINT _Stride, void* vertices, bool staging=false, DXGI_FORMAT format=DXGI_FORMAT_UNKNOWN);
+    void CreateDefault(size_t Num, size_t _Stride, void* vertices, bool staging=false, DXGI_FORMAT format=DXGI_FORMAT_UNKNOWN);
 
     inline void Release() {
         if( pSRV ) pSRV->Release();

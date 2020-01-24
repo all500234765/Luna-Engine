@@ -138,6 +138,7 @@ private:
 
     // Is MSAA enabled
     bool mMSAA = false;
+    uint32_t mDirty{};
 
     // MSAA
     void MSAACheck(DXGI_FORMAT format, UINT& SampleCount, UINT& Quality) {
@@ -269,22 +270,36 @@ private:
         ID3D11ShaderResourceView  *pSRV = 0;
         ID3D11UnorderedAccessView *pUAV = 0;
 
+        std::variant<DXGI_FORMAT, UINT> DXGI_F = format;
         DXGI_FORMAT formatTex, formatDSV, formatSRV;
         if( Depth ) {
-            switch( std::get<UINT>(format) ) {
-                case 32:
+            UINT F = std::get<UINT>(format);
+            if( IsMSAAEnabled() || UAV || (mDirty & 0x1) )
+                F = std::min(F, 32u);
+            
+            // Update format to be saved
+            //DXGI_F = F;
+
+            switch( F ) {
+                case 64u:
+                    formatTex = DXGI_FORMAT_R32G8X24_TYPELESS;
+                    formatDSV = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+                    formatSRV = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+                    break;
+
+                case 32u:
                     formatTex = DXGI_FORMAT_R32_TYPELESS;
                     formatDSV = DXGI_FORMAT_D32_FLOAT;
                     formatSRV = DXGI_FORMAT_R32_FLOAT;
                     break;
 
-                case 24:
+                case 24u:
                     formatTex = DXGI_FORMAT_R24G8_TYPELESS;
                     formatDSV = DXGI_FORMAT_D24_UNORM_S8_UINT;
                     formatSRV = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
                     break;
 
-                case 16:
+                case 16u:
                     formatTex = DXGI_FORMAT_R16_TYPELESS;
                     formatDSV = DXGI_FORMAT_D16_UNORM;
                     formatSRV = DXGI_FORMAT_R16_UNORM;
@@ -562,7 +577,7 @@ private:
             else if( dim == 2 ) Out->pTexture = pTexture._2D;
             else                Out->pTexture = pTexture._3D;
 
-            Out->mFormat  = format;
+            Out->mFormat  = DXGI_F;
             Out->pSRV     = pSRV;
             Out->pUAV     = pUAV;
             Out->mFlags   = (1 << (dim - 1)) | (Depth ? _Depth : 0) | (UAV ? _UAV : 0) | 
@@ -629,6 +644,7 @@ public:
         if( mMSAA ) {
             // Disable MSAA to create non-MSAA DSV
             DisableMSAA();
+            mDirty |= 0x1;
 
             // Create non-MSAA RTV
             mRenderTargets[1] = CreateRenderTarget(true, bpp, false, 1, rct ? mRenderTargets[1] : nullptr);
@@ -638,6 +654,7 @@ public:
             SetName(" D2 No MSAA, w/ UAV", mRenderTargets[2]);
 
             // Eban MSAA back again
+            mDirty &= ~0x1;
             EnableMSAA();
         }
     }

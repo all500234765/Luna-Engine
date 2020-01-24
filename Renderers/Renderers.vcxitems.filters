@@ -3,7 +3,6 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\RendererBase.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\Global.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\Light.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Renderer\Deferred\ShaderDefinesLocal.h" />
   </ItemGroup>
   <ItemGroup>

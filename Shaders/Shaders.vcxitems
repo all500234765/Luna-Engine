@@ -160,6 +160,7 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shVoxelizeVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
+    <None Include="$(MSBuildThisFileDirectory)Shaders\Common\Deferred\Light.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\Common\Utils.hlsli" />
     <None Include="$(MSBuildThisFileDirectory)Shaders\GS\shCSMGS.hlsli">
       <ShaderType>Geometry</ShaderType>
@@ -189,8 +190,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shBokehPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDeferredFinalPS.hlsl">
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDeferredAccumulationPS.hlsl">
       <ShaderType>Pixel</ShaderType>
+      <FileType>Document</FileType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDeferredPointLightPS.hlsl">
       <ShaderType>Pixel</ShaderType>

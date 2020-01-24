@@ -44,7 +44,8 @@ float SampleShadow(float4 lpos, float NdotL) {
                                     (lpos.z / lpos.w));
 
     // Apply bias
-    projCoords.z -= bias;
+    projCoords.z -= -.000005f;
+    //projCoords.z -= bias;
 
     // If out of bounds - no shadow mapping should be applied
     [flatten] if( saturate(projCoords.x) != projCoords.x || saturate(projCoords.y) != projCoords.y ) return 1.f;
@@ -223,7 +224,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     //float S = SampleShadow(In.LightPos) * s + (1. - s); // lerp(a, b, x) = a + (b - a) * x;
     const float s = .5f;
     float S = lerp(1.f - s, 1.f, SampleShadow(In.LightPos, NdotL));
-    Direct *= S;
+    //Direct *= S;
     
     // Final result
     GBuffer Out;

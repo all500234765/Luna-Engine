@@ -382,7 +382,7 @@ private:
                            uint32_t& index) {
         // Process meshes
 #pragma omp parallel for num_threads(4)
-        for( int32_t i = 0; i < node->mNumMeshes; i++ ) {
+        for( int32_t i = 0; i < (int32_t)node->mNumMeshes; i++ ) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             MeshList->push_back(ProcessMeshStatic(mesh, scene, MatList, TextureList, index));
             index++;
@@ -523,7 +523,7 @@ private:
 
         mesh.mVBPosition->CreateDefault(Position.size(), sizeof(float3), &Position[0]);
         mesh.mVBTexcoord->CreateDefault(Texcoord.size(), sizeof(float2), &Texcoord[0]);
-        mesh.mVBTangent->CreateDefault( Tangent.size() , sizeof(float3), &Tangent [0]);
+        mesh.mVBTangent->CreateDefault( Tangent .size(), sizeof(float3), &Tangent [0]);
         mesh.mVBNormal->CreateDefault(  Normal  .size(), sizeof(float3), &Normal  [0]);
 
         mesh.mIndexBuffer->CreateDefault(IndexNum, &Index[0]);
@@ -691,7 +691,7 @@ public:
                     SAFE_RELEASE(anim_mesh->mVBJoints);
                 }
             } else {
-                printf_s("[Scene::~Scene]: Error occured during unloading %s mesh %u\n", name.data(), e);
+                printf_s("[Scene::~Scene]: Error occured during unloading %s mesh %p\n", name.data(), e);
             }
 
             mECS.RemoveEntity(e);

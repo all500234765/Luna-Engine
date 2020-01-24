@@ -1,11 +1,11 @@
 #include "pc.h"
 #include "VertexBuffer.h"
 
-void VertexBuffer::CreateDefault(UINT Num, UINT _Stride, void* vertices, bool staging, DXGI_FORMAT format) {
+void VertexBuffer::CreateDefault(size_t Num, size_t _Stride, void* vertices, bool staging, DXGI_FORMAT format) {
     // Create default index buffer
     D3D11_BUFFER_DESC desc{};
     desc.Usage               = staging ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
-    desc.ByteWidth           = Num * _Stride;
+    desc.ByteWidth           = (UINT)(Num * _Stride);
     desc.BindFlags           = staging ? 0 : (D3D11_BIND_VERTEX_BUFFER | (bSRV ? D3D11_BIND_SHADER_RESOURCE : 0));
     desc.CPUAccessFlags      = staging ? D3D11_CPU_ACCESS_READ : 0;
     desc.MiscFlags           = staging ? 0 : (bSRV ? D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS : 0);
@@ -13,11 +13,11 @@ void VertexBuffer::CreateDefault(UINT Num, UINT _Stride, void* vertices, bool st
 
     D3D11_SUBRESOURCE_DATA data;
     data.pSysMem          = vertices;
-    data.SysMemPitch      = _Stride;
+    data.SysMemPitch      = (UINT)_Stride;
     data.SysMemSlicePitch = desc.ByteWidth;
 
     // 
-    Create(desc, data, _Stride, 0);
+    Create(desc, data, (UINT)_Stride, 0);
 
     // Create Shader Resource View
     if( bSRV ) {

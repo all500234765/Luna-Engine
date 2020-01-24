@@ -234,15 +234,15 @@ void _DirectX::CreateResources() {
         PointLightBuff light{};
         light._LightColor    = float3(.7f, .9f, 0.f);
         light._LightPosition = float3(0.f, 100.f, 0.f);
-        light._LightPower    = 100.f;
+        light._LightPower    = 1.f;
         light._LightRadius   = 128.f;
         gMainScene->InsertStaticPointLight(light);
         
         // Dynamic
         light._LightColor    = float3(.4f, .3f, .6f);
         light._LightPosition = float3(0.f, 100.f, 0.f);
-        light._LightPower    = 100.f;
-        light._LightRadius = 4.f * 1024.f;
+        light._LightPower    = 1.f;
+        light._LightRadius   = 25.f;
         gTestLight = gMainScene->InsertDynamicPointLight(light);
     }
 
