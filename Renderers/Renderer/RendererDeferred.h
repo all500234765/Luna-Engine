@@ -58,7 +58,8 @@ private:
         struct {
             // Depth test/write, no stencil
             DepthStencilState *normal;
-            DepthStencilState *norw;
+            DepthStencilState *norw;   // No RW
+            DepthStencilState *ro;     // Read Only
         } depth;
 
         struct {
@@ -66,6 +67,8 @@ private:
             RasterState *wire;
             RasterState *normal_scissors;
             RasterState *wire_scissors;
+            RasterState *normal_cfront;
+            RasterState *normal_cback;
         } raster;
     } s_states{};
 
@@ -79,17 +82,23 @@ private:
             SAFE_RELEASE(unit_sphere.mVBTexcoord );
         }
 
-        void Bind(const MeshComponent& mesh) {
-            ID3D11Buffer *buffs[4] = { mesh.mVBPosition->GetBuffer(), mesh.mVBTexcoord->GetBuffer(), 
-                                       mesh.mVBNormal->GetBuffer(),   mesh.mVBTangent->GetBuffer() };
+#define GET_BUFFER(x) ((x) ? (x)->GetBuffer() : nullptr)
+#define GET_STRIDE(x) ((x) ? (x)->GetStride() : 0u)
 
-            UINT strides[4] = { mesh.mVBPosition->GetStride(), mesh.mVBTexcoord->GetStride(), 
-                                mesh.mVBNormal->GetStride(),   mesh.mVBTangent->GetStride() };
+        void Bind(const MeshComponent& mesh) {
+            ID3D11Buffer *buffs[4] = { GET_BUFFER(mesh.mVBPosition), GET_BUFFER(mesh.mVBTexcoord), 
+                                       GET_BUFFER(mesh.mVBNormal),   GET_BUFFER(mesh.mVBTangent) };
+
+            UINT strides[4] = { GET_STRIDE(mesh.mVBPosition), GET_STRIDE(mesh.mVBTexcoord), 
+                                GET_STRIDE(mesh.mVBNormal),   GET_STRIDE(mesh.mVBTangent) };
             UINT offsets[4] = { 0, 0, 0, 0 };
 
             gDirectX->gContext->IASetVertexBuffers(0, ARRAYSIZE(buffs), buffs, strides, offsets);
             gDirectX->gContext->IASetIndexBuffer(mesh.mIndexBuffer->GetBuffer(), DXGI_FORMAT_R32_UINT, 0);
         }
+
+#undef GET_BUFFER
+#undef GET_STRIDE
     } s_mesh{};
 
     // Deferred renderer
@@ -520,6 +529,104 @@ private:
         return mesh;
     }
 
+    MeshComponent LoadMeshInternal(const char* fname) {
+        std::ifstream file(fname, std::ios::binary);
+
+        if( !file.is_open() ) {
+            printf_s("[RendererDeferred::LoadMeshInternal]: Failed to open file %s.\n", fname);
+            return {};
+        }
+
+        // "VB P/N/UV; I_N=" + Index Num
+        // Position
+        // Normal
+        // UV
+        struct Header {
+            uint8_t V, B, Space;
+
+            uint8_t P, G0;
+            uint8_t N, G1;
+            uint8_t UV, G2;
+            uint8_t G3;
+            uint8_t I_N_[5];
+        } head{};
+
+        file.read((char*)&head, sizeof(Header));
+        
+        uint8_t x[10];
+        uint32_t IndexNum = 0u, e = 0u;
+        for( uint32_t i = 0; i < 10; i++ ) {
+            file.read((char*)&x[i], 1);
+            if( x[i] == '|' ) { break; }
+            e++;
+        }
+
+        // 256
+        //  2 * 10^2 | 2 - (2 - 0)
+        // +5 * 10^1 | 2 - (2 - 1)
+        // +6 * 10^0 | 2 - (2 - 2)
+        // e=3
+
+        for( uint32_t i = 0; i < e; i++ ) {
+            IndexNum += pow(10.f, (e - 1) - i) * (x[i] - '0');
+        }
+
+        // Load mesh data
+        std::vector<float3> Position, Normal;
+        std::vector<float2> Texcoord;
+        std::vector<uint32_t> Index;
+
+        Index.reserve(IndexNum);
+
+        //Position.reserve(IndexNum * 3);
+        //Normal.reserve(IndexNum * 3);
+        //Texcoord.reserve(IndexNum * 2);
+
+        Position.resize(IndexNum * 3);
+        Normal.resize(IndexNum * 3);
+        Texcoord.resize(IndexNum * 3);
+        
+        file.read((char*)Position.data(), IndexNum * sizeof(float3) * 3);
+        file.read((char*)Normal  .data(), IndexNum * sizeof(float3) * 3);
+        file.read((char*)Texcoord.data(), IndexNum * sizeof(float2) * 3);
+
+        //std::copy(std::istream_iterator<float3>(file), std::istream_iterator<float3>(file) + IndexNum * 3, std::back_inserter(Position));
+        //std::copy(std::istream_iterator<float3>(file), std::istream_iterator<float3>(file) + IndexNum * 3, std::back_inserter(Normal  ));
+        //std::copy(std::istream_iterator<float2>(file), std::istream_iterator<float2>(file) + IndexNum * 2, std::back_inserter(Texcoord));
+
+        file.close();
+
+        // Create indices
+        for( uint32_t i = 0; i < IndexNum; i++ )
+            Index.push_back(i);
+
+        // Create mesh
+        MeshComponent mesh{};
+        
+        // Create buffers
+        mesh.mIndexBuffer = new IndexBuffer();
+        mesh.mVBPosition  = new VertexBuffer();
+        mesh.mVBTexcoord  = new VertexBuffer();
+        mesh.mVBNormal    = new VertexBuffer();
+        //mesh.mVBTangent   = new VertexBuffer();
+        mesh.mReferenced  = false;
+
+        mesh.mVBPosition->SetSRV(mMeshSRV);
+        mesh.mVBTexcoord->SetSRV(mMeshSRV);
+        //mesh.mVBTangent->SetSRV(mMeshSRV);
+        mesh.mVBNormal->SetSRV(mMeshSRV);
+
+        mesh.mIndexBuffer->SetSRV(mMeshSRV);
+
+        mesh.mVBPosition->CreateDefault(Position.size(), sizeof(float3), &Position[0]);
+        mesh.mVBTexcoord->CreateDefault(Texcoord.size(), sizeof(float2), &Texcoord[0]);
+        //mesh.mVBTangent->CreateDefault( Tangent.size() , sizeof(float3), &Tangent [0]);
+        mesh.mVBNormal->CreateDefault(  Normal  .size(), sizeof(float3), &Normal  [0]);
+
+        mesh.mIndexBuffer->CreateDefault(IndexNum, &Index[0]);
+        
+        return mesh;
+    }
 public:
     RendererDeferred(): RendererBase() {};
     ~RendererDeferred() {

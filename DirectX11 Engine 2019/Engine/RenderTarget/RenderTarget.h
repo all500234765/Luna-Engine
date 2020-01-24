@@ -235,6 +235,7 @@ private:
     }
 
     static ID3D11Resource* ChooseS(UINT DIM, std::variant<bool, ID3D11Texture1D*, ID3D11Texture2D*, ID3D11Texture3D*> pTexture) {
+        if( !pTexture.index() ) return nullptr;
         if( DIM == 1 ) return std::get<ID3D11Texture1D*>(pTexture);
         if( DIM == 2 ) return std::get<ID3D11Texture2D*>(pTexture);
         return std::get<ID3D11Texture3D*>(pTexture);
@@ -806,6 +807,43 @@ public:
             gDirectX->gContext->OMSetRenderTargets(0, nullptr, ptrDSV);
         }
         
+        // Bind viewport
+        gDirectX->gContext->RSSetViewports(1, &mViewPort);
+
+        // Bind as current
+        //gState = this;
+    }
+
+    // Bind RTVs and custom DSV
+    template<size_t dim2, size_t BufferNum2, bool DepthBuffer2=false, 
+         size_t ArraySize2=1,  /* if Cube == true  => specify how many cubemaps 
+                                                     to create per RT buffer   */
+         bool WillHaveMSAA2=false, bool Cube2=false>
+    void Bind(RenderTarget<dim2, BufferNum2, DepthBuffer2, ArraySize2, WillHaveMSAA2, Cube2>* RT) {
+        ID3D11DepthStencilView *ptrDSV = nullptr;
+
+        // Get depth buffer view if avaliable
+        if( DepthBuffer && (mRenderTargets[0]->pUAV == nullptr) ) {
+            ptrDSV = std::get<ID3D11DepthStencilView*>(mRenderTargets[0]->pView);
+
+            if( ptrDSV ) {
+                gDirectX->gContext->CopyResource(Choose(mRenderTargets[0]->pTexture), 
+                                                 ChooseS(RT->GetDim(), RT->GetDepthBufferTexture()));
+            }
+        }
+
+        if( BufferNum > 0 ) {
+            ID3D11RenderTargetView *ptrRTV[std::max((size_t)1, BufferNum)];
+            for( size_t i = 0; i < BufferNum; i++ )
+                ptrRTV[i] = std::get<ID3D11RenderTargetView*>(mRenderTargets[mOffset + i]->pView);
+
+            // 
+            gDirectX->gContext->OMSetRenderTargets(BufferNum, ptrRTV, ptrDSV);
+        } else {
+            // Depth only
+            gDirectX->gContext->OMSetRenderTargets(0, nullptr, ptrDSV);
+        }
+
         // Bind viewport
         gDirectX->gContext->RSSetViewports(1, &mViewPort);
 

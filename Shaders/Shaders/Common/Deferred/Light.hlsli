@@ -128,7 +128,7 @@ float4 DeferredPBR(Surface surf, PointLight light) {
     // PBR
     float3 F0 = lerp((.04f).xxx, surf.Albedo.rgb, surf.Shading.r);
     
-    float Dist = length(light._LightPosition - surf.WorldPos) / light._LightRadius;
+    float Dist = length(light._LightPosition - surf.WorldPos);// / (light._LightRadius * .5f);
     float invD = 1.f / (Dist * Dist); // TODO: Use inverse sqrt (rsqrt)
     
     float3 Radiance = /*_WorldLightColor */ invD + 0*Dist / 20.f; //invD;
@@ -146,7 +146,8 @@ float4 DeferredPBR(Surface surf, PointLight light) {
     float3 Spec = N_ / D;
 
 	// Light
-    return float4(light._LightColor * (KD * surf.Albedo.rgb * InvPI + Spec) * Radiance * saturate(NdotL), invD);
+    float3 Light = light._LightColor * (KD * surf.Albedo.rgb * InvPI + Spec) * Radiance * saturate(NdotL);
+    return float4(pow(Light, 1.f / 2.2f), 1.f);
 }
 
 float3 PBRAccumullation(Surface surf, float3 Light) {

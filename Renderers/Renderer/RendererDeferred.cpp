@@ -222,7 +222,8 @@ void RendererDeferred::Init() {
 
 #pragma region Depth stencil states
     s_states.depth.normal = new DepthStencilState;
-    s_states.depth.norw = new DepthStencilState;
+    s_states.depth.norw   = new DepthStencilState;
+    s_states.depth.ro     = new DepthStencilState;
 
     {
         D3D11_DEPTH_STENCIL_DESC pDesc;
@@ -246,8 +247,15 @@ void RendererDeferred::Init() {
         pDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
         pDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
         
+        // New
         s_states.depth.normal->Create(pDesc, 0);
 
+        // New
+        pDesc.DepthEnable = true;
+        pDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        s_states.depth.ro->Create(pDesc, 0);
+
+        // New
         pDesc.DepthEnable = false;
         pDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         s_states.depth.norw->Create(pDesc, 0);
@@ -259,6 +267,8 @@ void RendererDeferred::Init() {
     s_states.raster.wire            = new RasterState;
     s_states.raster.normal_scissors = new RasterState;
     s_states.raster.wire_scissors   = new RasterState;
+    s_states.raster.normal_cfront   = new RasterState;
+    s_states.raster.normal_cback    = new RasterState;
 
     {
         D3D11_RASTERIZER_DESC pDesc;
@@ -276,6 +286,14 @@ void RendererDeferred::Init() {
 
         // Normal
         s_states.raster.normal->Create(pDesc);
+
+        // Normal + Cull Front
+        pDesc.CullMode = D3D11_CULL_FRONT;
+        s_states.raster.normal_cfront->Create(pDesc);
+
+        // Normal + Cull Back
+        pDesc.CullMode = D3D11_CULL_BACK;
+        s_states.raster.normal_cback->Create(pDesc);
 
         // Normal + Scissors
         pDesc.ScissorEnable = true;
@@ -358,6 +376,7 @@ void RendererDeferred::Init() {
 
     // Load default models
     s_mesh.unit_sphere = LoadModelExternal("../Models/UVUnitSphere.obj", 0u)[0];
+    //LoadMeshInternal("../Data/model.vb");
     
     // Default CSM Settings
     gCSMArgs._Antiflicker = true;
@@ -559,14 +578,18 @@ void RendererDeferred::Release() {
     SAFE_DELETE(gOrderIndendentTransparency);
     
     // States
-    SAFE_RELEASE(s_states.blend.normal );
-    SAFE_RELEASE(s_states.blend.add    );
-    SAFE_RELEASE(s_states.raster.normal);
-    SAFE_RELEASE(s_states.raster.wire  );
+    SAFE_RELEASE(s_states.blend.normal  );
+    SAFE_RELEASE(s_states.blend.add     );
+    SAFE_RELEASE(s_states.blend.no_blend);
+    SAFE_RELEASE(s_states.raster.normal         );
+    SAFE_RELEASE(s_states.raster.wire           );
     SAFE_RELEASE(s_states.raster.normal_scissors);
     SAFE_RELEASE(s_states.raster.wire_scissors  );
+    SAFE_RELEASE(s_states.raster.normal_cfront  );
+    SAFE_RELEASE(s_states.raster.normal_cback   );
     SAFE_RELEASE(s_states.depth.normal );
     SAFE_RELEASE(s_states.depth.norw   );
+    SAFE_RELEASE(s_states.depth.ro     );
 
     // Buffers
     SAFE_RELEASE(cbTransform);
@@ -1288,13 +1311,17 @@ void RendererDeferred::Deferred() {
 
     // Light pass
     BlendState::Push();
-    s_states.blend.no_blend->Bind();
+    RasterState::Push();
+    DepthStencilState::Push();
+    s_states.blend.normal->Bind();
+    s_states.depth.ro->Bind();
+    s_states.raster.normal_cback->Bind();
 
     {
         ScopedRangeProfiler s2(L"Lights");
-        rtDeferred->Bind();
+        rtDeferred->Bind(rtGBuffer);
         rtDeferred->Clear(s_clear.black_void2);
-        rtDeferred->Clear(0.f, 0);
+        //rtDeferred->Clear(0.f, 0);
 
         // Store states
         //STopologyState::Push();
@@ -1386,6 +1413,9 @@ void RendererDeferred::Deferred() {
         //STopologyState::Pop();
     }
 
+    s_states.depth.norw->Bind();
+    RasterState::Pop();
+
     {
         ScopedRangeProfiler q("Accumulation");
 
@@ -1405,6 +1435,7 @@ void RendererDeferred::Deferred() {
         LunaEngine::PSDiscardSRV<6>(); // TODO: Use defines
     }
 
+    DepthStencilState::Pop();
     BlendState::Pop();
 
 }

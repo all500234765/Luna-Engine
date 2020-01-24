@@ -432,7 +432,7 @@ void _DirectX::FreeResources() {
 }
 
 void _DirectX::Unload() {
-    SAFE_RELEASE((RendererDeferred*)gRenderer);
+    SAFE_RELEASE_RENDERER(RendererDeferred, gRenderer);
     SAFE_DELETE(gMainScene);
 }
 
