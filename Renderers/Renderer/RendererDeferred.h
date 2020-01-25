@@ -57,9 +57,14 @@ private:
 
         struct {
             // Depth test/write, no stencil
-            DepthStencilState *normal;
+            DepthStencilState *normal; // RW; Greater Than | Default
             DepthStencilState *norw;   // No RW
             DepthStencilState *ro;     // Read Only
+            DepthStencilState *ro_eq;  // Read Only; Equal
+            DepthStencilState *ro_get; // Read Only; Greater Equal Than
+            DepthStencilState *ro_lt;  // Read Only; Less Than
+            DepthStencilState *ro_let; // Read Only; Less Equal Than
+
         } depth;
 
         struct {

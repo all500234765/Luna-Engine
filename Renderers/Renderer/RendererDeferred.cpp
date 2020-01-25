@@ -224,6 +224,10 @@ void RendererDeferred::Init() {
     s_states.depth.normal = new DepthStencilState;
     s_states.depth.norw   = new DepthStencilState;
     s_states.depth.ro     = new DepthStencilState;
+    s_states.depth.ro_eq  = new DepthStencilState;
+    s_states.depth.ro_let = new DepthStencilState;
+    s_states.depth.ro_lt  = new DepthStencilState;
+    s_states.depth.ro_get = new DepthStencilState;
 
     {
         D3D11_DEPTH_STENCIL_DESC pDesc;
@@ -247,15 +251,31 @@ void RendererDeferred::Init() {
         pDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
         pDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
         
-        // New
+        // RW; Greater Than | Default
         s_states.depth.normal->Create(pDesc, 0);
 
-        // New
+        // Read Only
         pDesc.DepthEnable = true;
         pDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         s_states.depth.ro->Create(pDesc, 0);
 
-        // New
+        // Read Only; Greater Equal Than
+        pDesc.DepthFunc = D3D11_COMPARISON_EQUAL;
+        s_states.depth.ro_eq->Create(pDesc, 0);
+
+        // Read Only; Greater Equal Than
+        pDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+        s_states.depth.ro_get->Create(pDesc, 0);
+
+        // Read Only; Less Than
+        pDesc.DepthFunc = D3D11_COMPARISON_LESS;
+        s_states.depth.ro_lt->Create(pDesc, 0);
+
+        // Read Only; Less Equal Than
+        pDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+        s_states.depth.ro_let->Create(pDesc, 0);
+
+        // No RW
         pDesc.DepthEnable = false;
         pDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         s_states.depth.norw->Create(pDesc, 0);
@@ -1316,7 +1336,7 @@ void RendererDeferred::Deferred() {
     RasterState::Push();
     DepthStencilState::Push();
     s_states.blend.normal->Bind();
-    s_states.depth.ro->Bind();
+    s_states.depth.ro_lt->Bind();
     s_states.raster.normal_cback->Bind();
 
     {

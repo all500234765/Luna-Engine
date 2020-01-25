@@ -128,10 +128,10 @@ float4 DeferredPBR(Surface surf, PointLight light) {
     // PBR
     float3 F0 = lerp((.04f).xxx, surf.Albedo.rgb, surf.Shading.r);
     
-    float Dist = length(light._LightPosition - surf.WorldPos) / light._LightRadius;
-    float invD = 1.f / (Dist * 1); // TODO: Use inverse sqrt (rsqrt)
+    float Dist = length(light._LightPosition - surf.WorldPos) / (light._LightRadius);
+    float invD = saturate(1.f - Dist * 1.f); //1.f / (Dist * Dist); // TODO: Use inverse sqrt (rsqrt)
     
-    float3 Radiance = /*_WorldLightColor */ invD + 0*Dist / 20.f; //invD;
+    float3 Radiance = /*_WorldLightColor */ invD.xxx; // + Dist + 0*Dist / 20.f; //invD;
 
     // Cook-Torrance BRDF
     float  NDF = DistrGGX(N, H, Roughness);
@@ -147,7 +147,10 @@ float4 DeferredPBR(Surface surf, PointLight light) {
 
 	// Light
     float3 Light = light._LightColor * (KD * surf.Albedo.rgb * InvPI + Spec) * Radiance * saturate(NdotL);
-    return float4(Light, 1.f);
+    
+//return float4((1.f - Dist).xxx, 1.f);
+
+    return float4(pow(Light, 1.f / 2.2f), 1.f);
 }
 
 float3 PBRAccumullation(Surface surf, float3 Light) {
