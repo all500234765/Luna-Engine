@@ -376,7 +376,7 @@ private:
                            uint32_t& index) {
         // Process meshes
 #pragma omp parallel for num_threads(4)
-        for( int32_t i = 0; i < node->mNumMeshes; i++ ) {
+        for( int32_t i = 0; i < (int32_t)node->mNumMeshes; i++ ) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             MeshList->push_back(ProcessMeshStatic(mesh, scene, /*MatList, TextureList, */index));
             index++;
@@ -568,7 +568,7 @@ private:
         // e=3
 
         for( uint32_t i = 0; i < e; i++ ) {
-            IndexNum += pow(10.f, (e - 1) - i) * (x[i] - '0');
+            IndexNum += (uint32_t)powf(10.f, (e - 1) - i) * (x[i] - '0');
         }
 
         // Load mesh data

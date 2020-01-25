@@ -829,8 +829,8 @@ public:
         cbWorldLight->Bind(type, slot);
     }
 
-    uint GetStaticPointLightCount() const { return mPointLightStaticList.size(); };
-    uint GetDynamicPointLightCount() const { return mPointLightDynamicList.size(); };
+    size_t GetStaticPointLightCount() const { return mPointLightStaticList.size(); };
+    size_t GetDynamicPointLightCount() const { return mPointLightDynamicList.size(); };
 
     EntityHandle InsertStaticPointLight(PointLightBuff light) {
         PointLightComponent L{ light };
@@ -868,7 +868,7 @@ public:
             printf_s("[SEGV]: LOVI SEGFAULT\n");
         
         {
-            ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightDynamicBuffer, lights.data(), lights.size());
+            ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightDynamicBuffer, lights.data(), (uint32_t)lights.size());
         }
 
         return sbPointLightDynamicBuffer;
@@ -893,7 +893,7 @@ public:
 
         // Send new data
         {
-            ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightStaticBuffer, lights.data(), lights.size());
+            ScopedMapCopy—ount<PointLightBuff, StructuredBuffer<PointLightBuff>> map(sbPointLightStaticBuffer, lights.data(), (uint32_t)lights.size());
         }
 
         mPointLightListStaticUpdate = false;

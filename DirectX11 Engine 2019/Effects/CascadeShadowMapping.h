@@ -182,7 +182,7 @@ private:
 public:
     CascadeShadowMapping(UINT w=2048u, UINT CascadeNum=CascadeMaxNum, bool MSAA=false) {
         // Create Render Target
-        rtCSM = new RenderTarget<2, 0, true, CascadeMaxNum, WillHaveMSAA>(w, w, 1.f, "CSM");
+        rtCSM = new RenderTarget<2, 0, true, CascadeMaxNum, WillHaveMSAA>(w, w, 1u, "CSM");
         if( MSAA ) rtCSM->EnableMSAA();
         rtCSM->Create(32u);
         

@@ -116,6 +116,9 @@ template<size_t dim, size_t BufferNum, bool DepthBuffer=false,
          bool WillHaveMSAA=false, bool Cube=false>
 class RenderTarget: public RenderTargetMSAA {
 private:
+    template<size_t, size_t, bool, size_t, bool, bool>
+    friend class RenderTarget;
+
     UINT mWidth, mHeight, mDepth;
     D3D11_VIEWPORT mViewPort;
 
@@ -819,16 +822,30 @@ public:
          size_t ArraySize2=1,  /* if Cube == true  => specify how many cubemaps 
                                                      to create per RT buffer   */
          bool WillHaveMSAA2=false, bool Cube2=false>
-    void Bind(RenderTarget<dim2, BufferNum2, DepthBuffer2, ArraySize2, WillHaveMSAA2, Cube2>* RT) {
+    void Bind(RenderTarget<dim2, BufferNum2, DepthBuffer2, ArraySize2, WillHaveMSAA2, Cube2>* RT, bool Copy=true) {
         ID3D11DepthStencilView *ptrDSV = nullptr;
 
-        // Get depth buffer view if avaliable
-        if( DepthBuffer && (mRenderTargets[0]->pUAV == nullptr) ) {
-            ptrDSV = std::get<ID3D11DepthStencilView*>(mRenderTargets[0]->pView);
+        // Copy/Bind depth buffer view if avaliable
+        if( DepthBuffer && RT->mRenderTargets[0]->pUAV == nullptr ) {
+            if( Copy ) {
+                if( mRenderTargets[0]->pUAV == nullptr ) {
+                    ptrDSV = std::get<ID3D11DepthStencilView*>(mRenderTargets[0]->pView);
 
-            if( ptrDSV ) {
-                gDirectX->gContext->CopyResource(Choose(mRenderTargets[0]->pTexture), 
-                                                 ChooseS(RT->GetDim(), RT->GetDepthBufferTexture()));
+                    if( ptrDSV ) {
+                        if( RT->mRenderTargets[0]->mFormat != mRenderTargets[0]->mFormat ) {
+                            printf_s("[RT::Bind(RenderTarget<...> *RTDepth, true)]: Make sure that you have similar precision depth buffers\n");
+                        } else {
+                            ID3D11Resource *Resource = RT->GetDepthBufferTexture<0u, false>();
+                            if( Resource ) {
+                                gDirectX->gContext->CopyResource(Choose(mRenderTargets[0]->pTexture), Resource);
+                            } else {
+                                printf_s("[RT::Bind(RenderTarget<...> *RTDepth, true)]: Error occured during copying depth buffers\n");
+                            }
+                        }
+                    }
+                }
+            } else {
+                ptrDSV = std::get<ID3D11DepthStencilView*>(RT->mRenderTargets[0]->pView);
             }
         }
 

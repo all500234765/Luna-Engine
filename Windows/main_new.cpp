@@ -178,8 +178,8 @@ void _DirectX::Tick(float fDeltaTime) {
         // Set mouse at center of the screen
         RECT rect = gWindow->GetRect();
         WindowConfig wcfg = gWindow->GetCFG();
-        float ww = wcfg.CurrentWidth;
-        float wh = wcfg.CurrentHeight;
+        float ww = (float)(wcfg.CurrentWidth);
+        float wh = (float)(wcfg.CurrentHeight);
 
         gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
     } else {
@@ -198,14 +198,14 @@ void _DirectX::Resize() {
 
     // Resize camera
     CameraComponent *cam = gMainScene->GetCamera(0)->cCam;
-    cam->fWidth = wcfg.CurrentWidth;
-    cam->fHeight = wcfg.CurrentHeight;
-    cam->fAspect = wcfg.CurrentWidth / wcfg.CurrentHeight;
+    cam->fWidth = (float)(wcfg.CurrentWidth);
+    cam->fHeight = (float)(wcfg.CurrentHeight);
+    cam->fAspect = (float)(wcfg.CurrentWidth / wcfg.CurrentHeight);
 
     // Set mouse at center of the screen
     RECT rect = gWindow->GetRect();
-    float ww = wcfg.CurrentWidth;
-    float wh = wcfg.CurrentHeight;
+    float ww = (float)(wcfg.CurrentWidth);
+    float wh = (float)(wcfg.CurrentHeight);
 
     gMouse->SetAt(rect.left + ww * .5f, rect.top + wh * .5f, true);
 }
@@ -407,7 +407,7 @@ void _DirectX::InitGameData() {
     };
 
     // Create cameras
-    gMainScene->MakeCameraFOVH(0, .2f, 10000.f, gRenderer->Width(), gRenderer->Height(), 70.f); // Player
+    gMainScene->MakeCameraFOVH(0, .2f, 10000.f, (float)(gRenderer->Width()), (float)(gRenderer->Height()), 70.f); // Player
     gMainScene->MakeCameraFOVH(1, .2f, 10000.f, 2048.f, 2048.f, 70.f); // Light
     gMainScene->SetActiveCamera(0);
     gMainScene->UpdateMadeCameras();

@@ -178,7 +178,7 @@ public:
             inst0->_OffsetRad  = args._OffsetRad;
             inst0->_SSAOPower  = args._Power;
             inst0->_ProjValues = { 1.f / dest.m[0][0], 1.f / dest.m[1][1], args._CameraNear * fQ, fQ };
-            inst0->_NoiseSize  = _BlueNoise->GetWidth();
+            inst0->_NoiseSize  = (float)(_BlueNoise->GetWidth());
         cbDownscaling->Unmap();
 
         BlurArgs *inst1 = (BlurArgs*)cbBlurArgs->Map();

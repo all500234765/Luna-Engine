@@ -358,12 +358,13 @@ void RendererDeferred::Init() {
     cbBlurFilter->CreateDefault(sizeof(BlurFilter));
 
     // Shadow mapping
-    mDepthI = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, rtDepth->GetWidth() / 4.f, rtDepth->GetHeight() / 4.f, 1u, 1u, "Blurred Light Buffer I");
-    mDepth2 = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, rtDepth->GetWidth() / 4.f, rtDepth->GetHeight() / 4.f, 1u, 1u, "Blurred Light Buffer");
+    mDepthI = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, (uint32_t)(rtDepth->GetWidth() / 4.f), (uint32_t)(rtDepth->GetHeight() / 4.f), 1u, 1u, "Blurred Light Buffer I");
+    mDepth2 = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, (uint32_t)(rtDepth->GetWidth() / 4.f), (uint32_t)(rtDepth->GetHeight() / 4.f), 1u, 1u, "Blurred Light Buffer");
 
     // Volumetric Light
     mVolumetricLightAccum = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R16G16B16A16_FLOAT, 
-                                        ceil(Width() / 2.f), ceil(Height() / 2.f), 1u, 1u, "Volumetric Light Accumulation");
+                                        (uint32_t)(ceil(Width() / 2.f)), (uint32_t)(ceil(Height() / 2.f)), 
+                                        1u, 1u, "Volumetric Light Accumulation");
 
     cbVolumetricSettings = new ConstantBuffer();
     cbVolumetricSettings->CreateDefault(sizeof(VolumetricSettings));
@@ -516,7 +517,8 @@ void RendererDeferred::Resize() {
     rtFinalPass->Resize(Width(), Height(), 1u);
     rtDeferred->Resize(Width(), Height(), 1u);
     rtGBuffer->Resize(Width(), Height(), 1u);
-    mVolumetricLightAccum->Resize(ceil(Width() / gVolumetricSettings._Scaling.x), ceil(Height() / gVolumetricSettings._Scaling.y), 1u);
+    mVolumetricLightAccum->Resize((uint32_t)(ceil(Width() / gVolumetricSettings._Scaling.x)), 
+                                  (uint32_t)(ceil(Height() / gVolumetricSettings._Scaling.y)), 1u);
 
     EffectBase::ResizeGlobal(Width(), Height()); // TODO: EffectBase::ResizeGlobal
     gHDRPostProcess->Resize(Width(), Height());
@@ -882,7 +884,7 @@ void RendererDeferred::ImGui() {
     if( ImGui::SliderInt("Scaling"   , &gVLScaling    , 0u, 3u) ) {
         // Re-scale texture
         float scale = pow(2.f, gVLScaling);
-        mVolumetricLightAccum->Resize(Width() / scale, Height() / scale, 1u);
+        mVolumetricLightAccum->Resize((uint32_t)(Width() / scale), (uint32_t)(Height() / scale), 1u);
     }
 
     // OIT
@@ -1039,7 +1041,7 @@ void RendererDeferred::ImGui() {
     gVolumetricSettings._ProjValues  = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
     gVolumetricSettings._ProjValues2 = { l_fNear * l_fQ, l_fQ, 1.f / mProj2F.m[0][0], 1.f / mProj2F.m[1][1] };
     gVolumetricSettings._MaxDistance = gVLMaxDistance;
-    gVolumetricSettings._Interleaved = pow(2, gVLInterleaved);
+    gVolumetricSettings._Interleaved = (uint32_t)(powf(2, gVLInterleaved));
     gVolumetricSettings._FrameIndex  = gFrameIndex % gVolumetricSettings._Interleaved;
     gVolumetricSettings._Exposure    = gVLExposure;
 
@@ -1569,8 +1571,8 @@ void RendererDeferred::VolumetricLight() {
     rtGBuffer->Bind(0u,         Shader::Compute, 1u);       // SRV
 
     // Dispatch
-    uint X = ceil(mVolumetricLightAccum->GetWidth()  / 8.f + .5f);
-    uint Y = ceil(mVolumetricLightAccum->GetHeight() / 4.f + .5f);
+    uint X = (uint32_t)(ceil(mVolumetricLightAccum->GetWidth()  / 8.f + .5f));
+    uint Y = (uint32_t)(ceil(mVolumetricLightAccum->GetHeight() / 4.f + .5f));
     
     {
         if( gFrameIndex % 240 == 0 ) Timer t("Volumetric Light");
@@ -1599,8 +1601,8 @@ void RendererDeferred::DSSDO() {
     rtGBuffer->Bind(2u, Shader::Compute, 1u);            // SRV
 
     // Dispatch
-    uint X = ceil(mDSSDOAccumulation->GetWidth() / 8.f + .5f);
-    uint Y = ceil(mDSSDOAccumulation->GetHeight() / 4.f + .5f);
+    uint X = (uint32_t)(ceil(mDSSDOAccumulation->GetWidth() / 8.f + .5f));
+    uint Y = (uint32_t)(ceil(mDSSDOAccumulation->GetHeight() / 4.f + .5f));
 
     {
         if( gFrameIndex % 240 == 0 ) Timer t("SSDO");
@@ -1661,7 +1663,7 @@ void RendererDeferred::Final() {
 
 void RendererDeferred::BindOrtho() {
     // Bind matrices
-    mScene->DefineCameraOrtho(2, .1f, 10.f, Width(), Height());
+    mScene->DefineCameraOrtho(2, .1f, 10.f, (float)(Width()), (float)(Height()));
     mScene->GetCamera(2)->ViewIdentity();
     mScene->BindCamera(2, Shader::Vertex, 1);
 
