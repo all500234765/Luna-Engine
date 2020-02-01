@@ -965,6 +965,27 @@ public:
         Bind(mRenderTargets[mOffset + index - UINT(DepthBuffer) + mMSAA * BufferNum], type, slot, UAV);
     }
 
+    void Bind(std::variant<ID3D11ShaderResourceView*, ID3D11UnorderedAccessView*> res, Shader::ShaderType type, UINT slot = 0, bool UAV=false) const {
+        ID3D11ShaderResourceView *SRV = UAV ? 0 : std::get<ID3D11ShaderResourceView*>(res);
+        ID3D11UnorderedAccessView *UAVR = UAV ? std::get<ID3D11UnorderedAccessView*>(res) : 0;
+
+        switch( type ) {
+            case Shader::Vertex  : gDirectX->gContext->VSSetShaderResources(slot, 1, &SRV); break;
+            case Shader::Pixel   : gDirectX->gContext->PSSetShaderResources(slot, 1, &SRV); break;
+            case Shader::Geometry: gDirectX->gContext->GSSetShaderResources(slot, 1, &SRV); break;
+            case Shader::Hull    : gDirectX->gContext->HSSetShaderResources(slot, 1, &SRV); break;
+            case Shader::Domain  : gDirectX->gContext->DSSetShaderResources(slot, 1, &SRV); break;
+            case Shader::Compute :
+                if( UAV ) {
+                    UINT InitCount = { 0 };
+                    gDirectX->gContext->CSSetUnorderedAccessViews(slot, 1, &UAVR, &InitCount);
+                } else {
+                    gDirectX->gContext->CSSetShaderResources(slot, 1, &SRV);
+                }
+                break;
+        }
+    }
+
     void BindResources(Shader::ShaderType type, UINT slot=0) const {
         for( UINT i = 0; i < BufferNum + DepthBuffer; i++ ) Bind(i, type, slot);
     }

@@ -22,12 +22,12 @@ LBuffer main(PS In) {
     // 
     float4 Transp  = _TransparentTex.Sample(_Sampler, In.Texcoord);
     float3 Ambient = _AmbientLightTex.Sample(_Sampler, In.Texcoord).rgb;
-    float1 SSAO    = _SSAOTex.Sample(_Sampler, In.Texcoord).r;
+    float4 SSAO    = _SSAOTex.Sample(_Sampler, In.Texcoord).rgba;
     float3 Direct  = _DirectLightTex.Sample(_Sampler, In.Texcoord).rgb;
     
     // Light formula
-    SSAO = 1.f; //lerp(SSAO, 1.f, Transp.a * .5f);
-    Light = (Ambient*0 + Direct) * SSAO + Transp; // Add SSAO for transparency
+    //SSAO = 1.f; //lerp(SSAO, 1.f, Transp.a * .5f);
+    Light = lerp(SSAO.rgb, (Ambient*0 + Direct), SSAO.a) + Transp; // Add SSAO for transparency
     
     //Light /= 1.f + Light;
     //Light = pow(Light, 1.f / 2.2f);

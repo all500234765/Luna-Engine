@@ -127,6 +127,20 @@ private:
         uint _Padding;
     };
 
+    // HDR Gradation View
+    struct HDRDebugSettings {
+        float _LumScale;
+        uint _UseAvg;
+        float _MaxLum;
+        float1 dummy;
+    };
+
+    Texture *mHDRGradationLUT;
+    ConstantBuffer *cbGradationLUT;
+    uint bUseHDRLUT = 0u; // 1st bit - UseHDRLUT; 2nd bit - UseAvg lum Per frame
+    float fHDRLUTScale  = 1.9f;
+    float fHDRLUTMaxLum = 100.f;
+
     // Blur filter
     ConstantBuffer *cbBlurFilter;
     struct BlurFilter {
@@ -188,7 +202,7 @@ private:
     Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
     Shader *shDeferredPointLights{}, *shDeferredAccumulation{};
     Shader *shVolumetricLight;
-    Shader *shSimpleGUI{};
+    Shader *shSimpleGUI{}, *shHDRView{};
     Shader *shHorizontalFilterDepth{}, *shVerticalFilterDepth{};
     Shader *shDSSDOAccumulate{};
     

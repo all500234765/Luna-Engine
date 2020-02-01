@@ -75,6 +75,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shSSAOCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shSSLRCS.hlsl">
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\CS\shVerticalFilterCS.hlsl">
       <ShaderType>Compute</ShaderType>
     </FxCompile>
@@ -122,10 +125,16 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDepthAlphaPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shHDRViewPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shRenderAVCCubePS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shTexturedQuadNoFXPSMSAA.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shUIPrimitivesPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shVoxelizePS.hlsl">
@@ -155,6 +164,9 @@
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shTexturedQuadSimpliestVS.hlsl">
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shUIPrimitivesVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shVoxelizeVS.hlsl">
@@ -347,5 +359,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\Common\OITCommon.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\Common\SSLRSettings.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Shaders\Common\UIInclude.h" />
   </ItemGroup>
 </Project>

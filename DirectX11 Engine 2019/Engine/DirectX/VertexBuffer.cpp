@@ -4,7 +4,7 @@
 void VertexBuffer::CreateDefault(size_t Num, size_t _Stride, void* vertices, bool staging, DXGI_FORMAT format) {
     // Create default index buffer
     D3D11_BUFFER_DESC desc{};
-    desc.Usage               = staging ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
+    desc.Usage               = staging ? D3D11_USAGE_STAGING : (bSRV ? D3D11_USAGE_DEFAULT : D3D11_USAGE_IMMUTABLE);
     desc.ByteWidth           = (UINT)(Num * _Stride);
     desc.BindFlags           = staging ? 0 : (D3D11_BIND_VERTEX_BUFFER | (bSRV ? D3D11_BIND_SHADER_RESOURCE : 0));
     desc.CPUAccessFlags      = staging ? D3D11_CPU_ACCESS_READ : 0;

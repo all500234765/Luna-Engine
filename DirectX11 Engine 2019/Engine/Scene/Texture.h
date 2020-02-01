@@ -160,8 +160,9 @@ public:
         if( mTextureUnit ) gDirectX->gContext->SetResourceMinLOD(mTextureUnit->GetTexture3D(), min_lod);
     }
 
-    inline void SetName(std::string_view name) {
+    inline void SetName(const std::string& name) {
         mName = name;
+        //mName.copy(const_cast<char*>(name.data()), name.length());
         using namespace std::string_literals;
         if( mTextureUnit ) {
             std::string str = std::string(name.data());

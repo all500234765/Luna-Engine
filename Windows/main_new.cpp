@@ -12,6 +12,8 @@
 
 #include "Engine/Window/SplashScreen.h"
 
+#include "Engine Includes/UI.h"
+
 HighLevel gHighLevel;
 RendererBase *gRenderer;
 Scene *gMainScene;
@@ -113,6 +115,27 @@ bool _DirectX::Render() {
     // Debug
     gRenderer->DebugHUD();
     gRenderer->ImGui();
+
+    // GUI Render
+    UIManager::Clear();
+
+    {
+        {
+            //UIContainer cont(261.f, 146.5f, 844.f, 475.f);
+
+            UIPrimitive::SetColor(LunaEngine::Math::normrgba({ 58.f, 58.f, 58.f, 255.f }));
+            UIRectangle a(261.f, 146.5f, 1105.f, 621.5f);
+            
+            UIRectangle b(32.f, 32.f, 96.f, 64.f);
+        }
+    }
+
+    UIManager::Submit();
+    UIManager::Render();
+
+    // Render to screen
+    gContext->OMSetRenderTargets(1, &gRTV, nullptr);
+    UIManager::Screen();
 
     // Debug frame statistics
     if( (gRenderFrame % 240) == 0 ) {
@@ -331,7 +354,8 @@ void _DirectX::CreateResources() {
         //mat->_AlbedoTex = new Texture("../Textures/DarkPixel.png", 0u, "Black plane");
     });*/
 
-    EntityHandleList elist = gMainScene->LoadModelStaticOpaque("../Models/Sketchfab/ch basement a/scene.gltf", //"../Models/Sponza/SponzaPBR.gltf",
+    EntityHandleList elist = gMainScene->LoadModelStaticOpaque("../Models/Sketchfab/ch basement a/scene.gltf", 
+                                                               //"../Models/Sponza/SponzaPBR.gltf",
                                                                aiProcess_FlipUVs, [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);

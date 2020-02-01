@@ -95,9 +95,9 @@ private:
     ConstantBuffer *cbFinalPass;
     ConstantBuffer *cbGeometry;
     
-    StructuredBuffer<float1> *sbILuminance; // Intermidiate luminance
-    StructuredBuffer<float1> *sbALuminance; // Average luminance
-    StructuredBuffer<float1> *sbPLuminance; // Previous luminance
+    StructuredBuffer<float4> *sbILuminance; // Intermidiate luminance
+    StructuredBuffer<float4> *sbALuminance; // Average luminance
+    StructuredBuffer<float4> *sbPLuminance; // Previous luminance
 
     StructuredBuffer<_IndirectArgs> *sbBokehIndirect; // For Indirect instanced rendering
     AppendStructuredBuffer<BokehBuffer> *abBokeh;     // Bokeh buffer
@@ -185,23 +185,23 @@ public:
         shBloom->ReleaseBlobs();
 
         // Intermidiate luminance
-        sbILuminance = new StructuredBuffer<float1>();
-        std::vector<float1> _LumData;
+        sbILuminance = new StructuredBuffer<float4>();
+        std::vector<float4> _LumData;
         size_t num = (size_t)ceil(float(Width * Height) / (16.f * 1024.f));
         _LumData.resize(num);
 
         sbILuminance->CreateDefault((UINT)num, &_LumData[0], true);
 
         // Average luminance
-        sbALuminance = new StructuredBuffer<float1>();
-        std::vector<float1> _ALumData;
+        sbALuminance = new StructuredBuffer<float4>();
+        std::vector<float4> _ALumData;
         _ALumData.resize(1);
 
         sbALuminance->CreateDefault(1, &_ALumData[0], true);
 
         // Prev luminance
-        sbPLuminance = new StructuredBuffer<float1>();
-        std::vector<float1> _PLumData;
+        sbPLuminance = new StructuredBuffer<float4>();
+        std::vector<float4> _PLumData;
         _PLumData.resize(1);
 
         sbPLuminance->CreateDefault(1, &_PLumData[0], true);
@@ -334,12 +334,12 @@ public:
              size_t ArraySize=1,  /* if Cube == true  => specify how many cubemaps 
                                                          to create per RT buffer   */
              bool WillHaveMSAA=false, bool Cube=false>
-    void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB) {
+    void Begin(RenderTarget<dim, BufferNum, DepthBuffer, ArraySize, WillHaveMSAA, Cube> *RB, ID3D11ShaderResourceView* color) {
         ScopedRangeProfiler s1(L"HDR Pass");
 
         // Avg luminance pass
         // 1st Pass
-        RB->Bind(1, Shader::Compute, 0);              // SRV
+        RB->Bind(color, Shader::Compute, 0);          // SRV
         sbILuminance->Bind(Shader::Compute, 0, true); // UAV
         _HDRDS->Bind(Shader::Compute, 1, true);       // RWTexture2D; _HDRDS
         cbDownScale->Bind(Shader::Compute, 0);        // CB
@@ -459,7 +459,7 @@ public:
         LunaEngine::CSDiscardCB <1>();
 
         //////////////////////////// Bokeh reveal ////////////////////////////
-        RB->Bind(1u, Shader::Compute, 0);        // Texture2D; SRV  // Diffuse
+        RB->Bind(color, Shader::Compute, 0);     // Texture2D; SRV  // Diffuse
         RB->Bind(0u, Shader::Compute, 1);        // Texture2D; SRV  // Depth
         sbALuminance->Bind(Shader::Compute, 2);  // SRV
         cbDownScale->Bind(Shader::Compute, 0);   // CB

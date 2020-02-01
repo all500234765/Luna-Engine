@@ -2,8 +2,8 @@
 
 Texture2D _HDR : register(t0);
 
-RWStructuredBuffer<float> _AvgLum : register(u0); // Intermidiate buffer
-RWTexture2D<float4>       _HDRDS  : register(u1);
+RWStructuredBuffer<float4> _AvgLum : register(u0); // Intermidiate buffer
+RWTexture2D<float4>        _HDRDS  : register(u1);
 
 // For storing intermidiate values
 groupshared float _SharedPositions[1024];
@@ -75,7 +75,7 @@ void DownScale4to1(uint dispatchThreadID, uint groupThreadID, uint groupID, floa
         FinalAvgLum *= 1.f / 1024.f;
 
         // Write final to UAV for next step
-        _AvgLum[groupID] = FinalAvgLum;
+        _AvgLum[groupID].r = FinalAvgLum;
     }
 }
 

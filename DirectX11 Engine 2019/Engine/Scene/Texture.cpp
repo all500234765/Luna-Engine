@@ -282,7 +282,7 @@ Texture::Texture(UINT flags, DXGI_FORMAT format,
                    uint32_t w, uint32_t h, uint32_t d, uint32_t ArraySize, 
                    std::string_view name): bUndefined(false) {
     mFlags = flags;
-    SetName(name);
+    SetName(name.data());
 
     /*D3D11_SUBRESOURCE_DATA *SubResource = new D3D11_SUBRESOURCE_DATA[ArraySize * (1 + 5 * IsCube)];
     for( uint32_t i = 0; i < n; i++ ) {
@@ -298,14 +298,15 @@ Texture::Texture(UINT flags, DXGI_FORMAT format,
     mArraySize = ArraySize * (1 + 5 * IsCube);
     mWidth = w; mHeight = h; mDepth = d; mMipMaps = 1;
     mTextureUnit = CreateTexture(format, nullptr, mArraySize, nullptr);
-    SetName(mName);
+    //SetName(mName.data());
 }
 
 Texture::Texture(std::string_view fname, UINT flags, std::string_view name, 
                    uint32_t ArraySize, DXGI_FORMAT custom_format): bUndefined(false) {
-    SetName(name);
+    std::string nm = ( (name == "UnnamedTexture") ? file_name(fname).data() : name.data() );
+    SetName(nm);
     Load(fname, flags, ArraySize, custom_format);
-    SetName(mName);
+    //SetName(mName.data());
 }
 
 void Texture::Load(std::string_view fname, UINT flags, uint32_t ArraySize, DXGI_FORMAT custom_format) {
@@ -397,7 +398,7 @@ void Texture::Load(std::string_view fname, UINT flags, uint32_t ArraySize, DXGI_
     // Create texture unit
     mArraySize = n;
     mTextureUnit = CreateTexture(format, SubResource, n, nullptr);
-    SetName(mName);
+    SetName(mName.data());
 
     // Free resources
     delete[] SubResource;

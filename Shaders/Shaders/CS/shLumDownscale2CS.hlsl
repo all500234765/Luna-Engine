@@ -5,10 +5,10 @@
 // For storing intermidiate results
 groupshared float _SharedAvgFinal[MAX_GROUPS];
 
-RWStructuredBuffer<float> _AvgLum : register(u0); // Intermidiate buffer
-RWStructuredBuffer<float> _FinLum : register(u1); // Average buffer
+RWStructuredBuffer<float4> _AvgLum : register(u0); // Intermidiate buffer
+RWStructuredBuffer<float4> _FinLum : register(u1); // Average buffer
 
-StructuredBuffer  <float> _PreLum : register(t0); // Previous luminance
+StructuredBuffer  <float4> _PreLum : register(t0); // Previous luminance
 
 // Downscale 2nd pass
 [numthreads(MAX_GROUPS, 1, 1)]
@@ -18,7 +18,7 @@ void main(uint3 groupID          : SV_GroupID,
     // Fill shared memory with 1D values
     float avgLum = 0.f;
     if( dispatchThreadID.x < _GroupSize ) {
-        avgLum = _AvgLum[dispatchThreadID.x];
+        avgLum = _AvgLum[dispatchThreadID.x].r;
     }
 
     _SharedAvgFinal[dispatchThreadID.x] = avgLum;
@@ -70,7 +70,7 @@ void main(uint3 groupID          : SV_GroupID,
 
         // Store result
         // Calculate final luminance
-        float AdaptedLum = lerp(_PreLum[0], finalAvgLum, _Adaptation);
-        _FinLum[0] = max(.0001f, AdaptedLum);
+        float AdaptedLum = lerp(_PreLum[0].r, finalAvgLum, _Adaptation);
+        _FinLum[0].r = max(.0001f, AdaptedLum);
     }
 }

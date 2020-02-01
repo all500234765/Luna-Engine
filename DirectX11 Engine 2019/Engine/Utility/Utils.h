@@ -25,4 +25,5 @@ Dest ieee(Src f) {
 std::wstring widen(const std::string& str);
 std::string narrow(const std::wstring& str);
 
-bool file_exists(std::string szPath);
+bool file_exists(const std::string& szPath);
+std::string file_name(std::string_view path);

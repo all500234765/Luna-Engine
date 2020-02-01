@@ -93,8 +93,8 @@ public:
         sbDepthNDS = new StructuredBuffer<float4>();
         sbDepthNDS->CreateDefault(Width * Height, nullptr, true);
 
-        _SSAO      = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, Width, Height, 1u, 1u, "SSAO");
-        _SSAOInter = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R32_FLOAT, Width, Height, 1u, 1u, "SSAO Intermidiate");
+        _SSAO      = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R16G16B16A16_FLOAT, Width, Height, 1u, 1u, "SSAO");
+        _SSAOInter = new Texture(tf_dim_2 | tf_UAV, DXGI_FORMAT_R16G16B16A16_FLOAT, Width, Height, 1u, 1u, "SSAO Intermidiate");
         _BlueNoise = new Texture("../Textures/Noise/Blue/LDR_RG01_0.png", 0u, "SSAO Bluenoise", 1u, DXGI_FORMAT_R16G16_UNORM);
         
         //_BlueNoise->Load("../Textures/Noise/Blue/LDR_RG01_0.png", DXGI_FORMAT_R16G16_UNORM);
@@ -204,6 +204,7 @@ public:
         cbDownscaling->Bind(Shader::Compute, 0); // CB
         sbDepthNDS->Bind(Shader::Compute, 0);    // SRV
         _BlueNoise->Bind(Shader::Compute, 1);    // SRV
+        RB->Bind(1u, Shader::Compute, 2, false); // SRV
 
         shSSAO->Dispatch(X, 1, 1);
 

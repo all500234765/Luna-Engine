@@ -98,7 +98,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     // Ray march
     [unroll(STEPS)]
     for( uint i = 1; i < STEPS; i++ ) {
-        float Dither = DitherPattern[(iuv.x + i / 4) % 4][(iuv.y + i) % 4];
+        float Dither = 0*DitherPattern[(iuv.x + i / 4) % 4][(iuv.y + i) % 4];
         float4 LightSpace = mul(mProj0, mul(mView0, float4(Current + Dither, 1.f)));
         LightSpace /= LightSpace.w;
         

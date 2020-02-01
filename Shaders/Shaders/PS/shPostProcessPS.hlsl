@@ -34,7 +34,7 @@ cbuffer _FinalPass : register(b0) {
     //float1 _Alignment3;
 };
 
-StructuredBuffer<float> _AvgLum : register(t4);
+StructuredBuffer<float4> _AvgLum : register(t4);
 
 Texture2D<float4> _BloomTexture     : register(t5);
 Texture2D<float4> _BlurTexture      : register(t6);
@@ -104,7 +104,7 @@ float3 EyeAdaptationNtoneMapping(float3 HDR) {
     
     float3 LScale = dot(HDR, _LumFactor);
 
-    LScale *= _MiddleGrey / _AvgLum[0];
+    LScale *= _MiddleGrey / _AvgLum[0].r;
     LScale = (LScale + LScale * LScale / _LumWhiteSqr) / (1.f + LScale);
 
     // Apply lum scale

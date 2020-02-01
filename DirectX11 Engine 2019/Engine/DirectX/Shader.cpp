@@ -59,8 +59,18 @@ bool Shader::LoadFile(std::string fname, ShaderType type, D3D11_SO_DECLARATION_E
         return 1;
     }
 
+    switch( type ) {
+        case Vertex    : _SetName((ID3D11Resource*)sVertex  , fname.c_str()); break;
+        case Pixel     : _SetName((ID3D11Resource*)sPixel   , fname.c_str()); break;
+        case GeometrySO:
+        case Geometry  : _SetName((ID3D11Resource*)sGeometry, fname.c_str()); break;
+        case Hull      : _SetName((ID3D11Resource*)sHull    , fname.c_str()); break;
+        case Domain    : _SetName((ID3D11Resource*)sDomain  , fname.c_str()); break;
+        case Compute   : _SetName((ID3D11Resource*)sCompute , fname.c_str()); break;
+    }
+
     // Show message about succ loaded shader
-    std::cout << "Successfully loaded " << fname << " file as " << gcShaderName[(int)log2((int)type)] << " shader type" << std::endl;
+    std::cout << "[Shader::LoadFile]: Successfully loaded " << fname << " file as " << gcShaderName[(int)log2((int)type)] << " shader type" << std::endl;
 
     // Shader was compiled natively
     Type |= type;

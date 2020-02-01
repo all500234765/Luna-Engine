@@ -1,6 +1,6 @@
 Texture2D<float3>  _HDR : register(t0);
 Texture2D<float> _Depth : register(t1);
-StructuredBuffer<float> _AvgLum : register(t2);
+StructuredBuffer<float4> _AvgLum : register(t2);
 
 struct TBokeh {
     float4 _Color;
@@ -62,7 +62,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID) {
             if( CoC > _BokehThreshold ) {
                 float3 Color = _HDR.Load(int3(CurPixel, 0));
                 float Lum    = dot(Color, _LumFactor.xyz);
-                float avgLum = _AvgLum[0];
+                float avgLum = _AvgLum[0].r;
                 
                 // Find color scale
                 float lumfac = saturate(Lum - avgLum * _BloomThreshold);

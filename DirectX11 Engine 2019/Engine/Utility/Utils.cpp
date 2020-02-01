@@ -1,9 +1,21 @@
 #include "pc.h"
 #include "Utils.h"
 
-bool file_exists(std::string szPath) {
+bool file_exists(const std::string& szPath) {
     DWORD dwAttrib = GetFileAttributes(widen(szPath).c_str());
     return (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+std::string file_name(std::string_view path) {
+    char fname[_MAX_FNAME];
+    char ext[_MAX_EXT];
+
+    _splitpath(path.data(), NULL, NULL, fname, ext);
+
+    char str[_MAX_FNAME + _MAX_EXT];
+    memcpy(str, fname, _MAX_FNAME);
+    memcpy(&str[strlen(fname)], ext, _MAX_EXT);
+    return std::string(str);
 }
 
 std::wstring widen(const std::string& str) {

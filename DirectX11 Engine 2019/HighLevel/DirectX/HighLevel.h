@@ -8,6 +8,7 @@
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/RenderTarget/RenderTarget.h"
 #include "Integration/RenderDocManager.h"
+#include "UI/UIManager.h"
 
 //#include "Enums.h"
 #include "Defines.h"
@@ -73,6 +74,7 @@ public:
 #endif
 
         RenderTarget2DColor1::GlobalInit();
+        UIManager::Init();
 
         // Return DirectX object
         return gDirectX;
@@ -112,9 +114,12 @@ public:
         ImGui_ImplWin32_Shutdown();
 #endif
 
+        // Init in DirectXChild
         RangeProfiler::Release();
+        RangeProfilerGPU::Release();
 
         RenderTarget2DColor1::GlobalRelease();
+        UIManager::Release();
 
         SAFE_DELETE(gRenderDoc);
         gWindow->Destroy();

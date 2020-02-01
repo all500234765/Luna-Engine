@@ -21,3 +21,31 @@ public:
         RangeProfiler::End();
     }
 };
+
+class ScopedRangeGPUProfiler {
+private:
+    float* pDest{};
+    const char* mScopeName{};
+    bool mPrint{};
+
+public:
+    ScopedRangeGPUProfiler(const char* ScopeName) : mScopeName(ScopeName), mPrint(true) {
+        RangeProfilerGPU::Begin();
+    }
+    
+    ScopedRangeGPUProfiler(float* dest) {
+        RangeProfilerGPU::Begin();
+    }
+
+    ~ScopedRangeGPUProfiler() {
+        RangeProfilerGPU::End();
+
+        if( mPrint ) {
+            float dest = RangeProfilerGPU::GetTime();
+            printf_s("[%s]: %fms\n", mScopeName, dest);
+        } else {
+            *pDest = RangeProfilerGPU::GetTime();
+        }
+
+    }
+};

@@ -8,6 +8,7 @@ void DirectXChild::SetDirectX(_DirectX* dx) {
     gDirectX = dx;
 
     RangeProfiler::Init();
+    RangeProfilerGPU::Init();
 }
 
 _DirectX* DirectXChild::gDirectX = 0;

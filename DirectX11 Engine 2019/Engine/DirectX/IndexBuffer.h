@@ -16,7 +16,7 @@ public:
     void CreateDefault(UINT Num, void* indices, bool staging=false) {
         // Create default index buffer
         D3D11_BUFFER_DESC desc;
-        desc.Usage = staging ? D3D11_USAGE_STAGING : D3D11_USAGE_DEFAULT;
+        desc.Usage = staging ? D3D11_USAGE_STAGING : (bSRV ? D3D11_USAGE_DEFAULT : D3D11_USAGE_IMMUTABLE);
         desc.ByteWidth = sizeof(unsigned long) * Num;
         desc.BindFlags = staging ? 0 : (D3D11_BIND_INDEX_BUFFER | (bSRV ? D3D11_BIND_SHADER_RESOURCE : 0));
         desc.CPUAccessFlags = staging ? D3D11_CPU_ACCESS_READ : 0;

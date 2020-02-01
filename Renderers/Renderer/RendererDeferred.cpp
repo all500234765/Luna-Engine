@@ -22,6 +22,10 @@ void RendererDeferred::Init() {
     shGUI->AttachShader(shPostProcess, Shader::Vertex);
     shGUI->LoadFile("shGUIPS.cso", Shader::Pixel);
 
+    shHDRView = new Shader();
+    shHDRView->AttachShader(shPostProcess, Shader::Vertex);
+    shHDRView->LoadFile("shHDRViewPS.cso", Shader::Pixel);
+
     shCombinationPass = new Shader();
     shCombinationPass->AttachShader(shPostProcess, Shader::Vertex);
     shCombinationPass->LoadFile("shCombinationPassPS.cso", Shader::Pixel);
@@ -66,6 +70,7 @@ void RendererDeferred::Init() {
     shDSSDOAccumulate->ReleaseBlobs();
     shDeferredPointLights->ReleaseBlobs();
     shDeferredAccumulation->ReleaseBlobs();
+    shHDRView->ReleaseBlobs();
 #pragma endregion
 
 #pragma region Render Targets
@@ -170,6 +175,8 @@ void RendererDeferred::Init() {
     gCascadeShadowMapping       = new CascadeShadowMapping;
     //gCoverageBuffer             = new CoverageBuffer;
     gOrderIndendentTransparency = new OrderIndendentTransparency;
+
+    EffectBase::ResizeGlobal(Width(), Height());
 #pragma endregion
 
 #pragma region Blend states
@@ -350,6 +357,14 @@ void RendererDeferred::Init() {
 
 #undef ___LITIMG
 
+    // HDR Debug View
+    mHDRGradationLUT = new Texture("../Textures/GradLUTMapHDR.dds", tf_Immutable);
+    cbGradationLUT = new ConstantBuffer();
+    cbGradationLUT->CreateDefault(sizeof(HDRDebugSettings));
+    bUseHDRLUT = 0u; // 1st bit - UseHDRLUT; 2nd bit - UseAvg lum Per frame
+    fHDRLUTScale = 1.9f;
+    fHDRLUTMaxLum = 100.f;
+
     // Edit ImGui style
     {
         ImGuiStyle &style = ImGui::GetStyle();
@@ -432,6 +447,8 @@ void RendererDeferred::Init() {
 
 void RendererDeferred::Render() {
     ScopedRangeProfiler q0(L"Deferred Renderer");
+    //ScopedRangeGPUProfiler gpu0(&fGPUTime);
+
     mScene = Scene::Current();
     if( !mScene ) {
         printf_s("[%s]: No scene is bound!\n", __FUNCTION__);
@@ -506,17 +523,30 @@ void RendererDeferred::Render() {
 }
 
 void RendererDeferred::FinalScreen() {
-    shGUI->Bind();
+    if( bUseHDRLUT & 0x1 ) {
+        shHDRView->Bind();
+
+        // Bind more resources
+        s_material.sampl.linear->Bind(Shader::Pixel, 1u);
+
+        mHDRGradationLUT->Bind(Shader::Pixel, 1u);
+        gHDRPostProcess->BindLuminance(Shader::Pixel, 2u);
+
+        ScopeMapConstantBuffer<HDRDebugSettings> q(cbGradationLUT);
+        q.data->_LumScale = fHDRLUTScale;
+        q.data->_UseAvg   = bUseHDRLUT & 0x2;
+        q.data->_MaxLum   = fHDRLUTMaxLum;
+    } else shGUI->Bind();
 
     // Bind resources
-    s_material.sampl.point->Bind(Shader::Pixel);
+    s_material.sampl.point->Bind(Shader::Pixel, 0u);
     
     switch( (LitIndex)mLitIndex ) {
         case LitIndex::Lit       : rtFinalPass->Bind(0u, Shader::Pixel, 0, false);            break;
         case LitIndex::Unlit     : rtGBuffer->Bind(1u, Shader::Pixel, 0, false);              break;
         case LitIndex::AO        : gSSAOPostProcess->BindAO(Shader::Pixel, 0);                break;
         case LitIndex::Volumetric: mVolumetricLightAccum->Bind(Shader::Pixel, 0, false);      break;
-        case LitIndex::SSDO      : mDSSDOAccumulation->Bind(Shader::Pixel, 0, false);         break;
+        //case LitIndex::SSDO      : mDSSDOAccumulation->Bind(Shader::Pixel, 0, false);         break;
         case LitIndex::Normal    : rtGBuffer->Bind(2u, Shader::Pixel, 0, false);              break;
         case LitIndex::Indirect  : rtGBuffer->Bind(5u, Shader::Pixel, 0, false);              break;
         case LitIndex::Deferred  : rtDeferred->Bind(1u, Shader::Pixel, 0, false);             break;
@@ -561,6 +591,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(shDSSDOAccumulate);
     SAFE_RELEASE(shDeferredPointLights);
     SAFE_RELEASE(shDeferredAccumulation);
+    SAFE_RELEASE(shHDRView);
 
     // Render Targets
     SAFE_RELEASE(rtTransparency);
@@ -584,6 +615,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(mDepth2);
     SAFE_RELEASE(mDepthI);
     SAFE_RELEASE(mDSSDOAccumulation);
+    SAFE_RELEASE(mHDRGradationLUT);
 
     // Samplers
     SAFE_RELEASE(s_material.sampl.point      );
@@ -619,7 +651,8 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(cbVolumetricSettings);
     SAFE_RELEASE(cbBlurFilter);
     SAFE_RELEASE(cbDSSDOSettings);
-    
+    SAFE_RELEASE(cbGradationLUT);
+
     // Meshes
     s_mesh.Release();
 
@@ -701,11 +734,17 @@ void RendererDeferred::ImGui() {
                 ImGui::Image(y->GetBufferSRV(i), v); \
             } \
         }
-        
+
 #define ____SHOW_TX_IMGUI(x, y) \
         if( ImGui::CollapsingHeader(x) ) \
         { \
             ImGui::Image(y->GetSRV(), v); \
+        }
+
+#define ____SHOW_RV_IMGUI(x, y) \
+        if( ImGui::CollapsingHeader(x) ) \
+        { \
+            ImGui::Image(y, v); \
         }
 
         // TODO: Support for non 2D textures
@@ -720,6 +759,7 @@ void RendererDeferred::ImGui() {
             ____SHOW_RT_IMGUI("Transparency", rtTransparency);
             ____SHOW_RT_IMGUI("Deferred"    , rtDeferred    );
             ____SHOW_TX_IMGUI("mVolumetricLightAccum", mVolumetricLightAccum);
+            ____SHOW_RV_IMGUI("SSLR", gSSLRPostProcess->GetSRV());
             //____SHOW_TX_IMGUI("mDSSDOAccumulation", mDSSDOAccumulation);
             ImGui::TreePop();
         }
@@ -815,7 +855,12 @@ void RendererDeferred::ImGui() {
         //(bIsWireframe ? s_states.raster.wire : s_states.raster.normal)->Bind();
     }
 
-    bDebugHUD ^= ImGui::Button("Debug buffers");
+    bDebugHUD  ^= ImGui::Button("Debug buffers");
+    bUseHDRLUT ^= ImGui::Button("HDR LUT View");
+    bUseHDRLUT ^= ImGui::Button("Use Avg Lum per frame") << 1;
+
+    ImGui::SliderFloat("HDR LUT Scale", &fHDRLUTScale, .001f, 2.f);
+    ImGui::SliderFloat("HDR LUT Max Lum", &fHDRLUTMaxLum, .1f, 1000.f);
 
     // Test
     //ImGui::SliderFloat("Camera speed", &fSpeed, 0.f, 2000.f);
@@ -993,17 +1038,20 @@ void RendererDeferred::ImGui() {
     float l_fFar = l_cam->fFar;
     float l_fQ = l_fFar / (l_fNear - l_fFar);
 
+    float4x4 mProjF;
+    DirectX::XMStoreFloat4x4(&mProjF, cam->mProj);
+
     // Update constant buffers
     FinalPassInst *__q = gHDRPostProcess->MapFinalPass();
-    __q->_LumWhiteSqr = White * White * MidGray * MidGray;
-    __q->_MiddleGrey = MidGray;
-    __q->_BloomScale = gBloomScale;
-    __q->_ProjectedValues = { fNear * fQ, fQ };
-    __q->_DoFFarValues = { gFarStart * gFarScale, 1.f / (gFarRange * gFarScale) };
-    __q->_BokehThreshold = gBokehThreshold;
-    __q->_ColorScale = gBokehColorScale;
-    __q->_RadiusScale = gBokehRadiusScale;
-    __q->_RenderFlags = _RenderFlags;
+        __q->_LumWhiteSqr = White * White * MidGray * MidGray;
+        __q->_MiddleGrey = MidGray;
+        __q->_BloomScale = gBloomScale;
+        __q->_ProjectedValues = { fNear * fQ, fQ };
+        __q->_DoFFarValues = { gFarStart * gFarScale, 1.f / (gFarRange * gFarScale) };
+        __q->_BokehThreshold = gBokehThreshold;
+        __q->_ColorScale = gBokehColorScale;
+        __q->_RadiusScale = gBokehRadiusScale;
+        __q->_RenderFlags = _RenderFlags;
     gHDRPostProcess->UnmapFinalPass();
 
     const WindowConfig& cfg = gWindow->GetCFG();
@@ -1016,22 +1064,20 @@ void RendererDeferred::ImGui() {
     gHDRPostProcess->UnmapDownScale();
 
     // Update settings
-    gSSAOArgs._CameraFar = fFar;
+    gSSAOArgs._CameraFar  = fFar;
     gSSAOArgs._CameraNear = fNear;
-    gSSAOArgs._mView = cam->mView;
-    gSSAOArgs._mProj = cam->mProj;
-    gSSAOArgs._OffsetRad = gSSAOOffsetRad;
-    gSSAOArgs._Radius = gSSAORadius;
-    gSSAOArgs._Power = gSSAOPower;
-    gSSAOArgs._Blur = gSSAOBlur;
+    gSSAOArgs._mView      = cam->mView;
+    gSSAOArgs._mProj      = cam->mProj;
+    gSSAOArgs._OffsetRad  = gSSAOOffsetRad;
+    gSSAOArgs._Radius     = gSSAORadius;
+    gSSAOArgs._Power      = gSSAOPower;
+    gSSAOArgs._Blur       = gSSAOBlur;
 
-    gSSLRArgs._mProj = cam->mProj;
-    gSSLRArgs._CameraFar = fFar;
-    gSSLRArgs._CameraNear = fNear;
+    gSSLRArgs._ProjValues         = { fNear * fQ, fQ, 1.f / mProjF.m[0][0], 1.f / mProjF.m[1][1] };
     gSSLRArgs._ViewAngleThreshold = gViewAngleThreshold;
-    gSSLRArgs._EdgeDistThreshold = gEdgeDistThreshold;
-    gSSLRArgs._ReflScale = gReflScale;
-    gSSLRArgs._DepthBias = gDepthBias;
+    gSSLRArgs._EdgeDistThreshold  = gEdgeDistThreshold;
+    gSSLRArgs._ReflScale          = gReflScale;
+    gSSLRArgs._DepthBias          = gDepthBias;
 
     /*gCBuffArgs.Scaling = gCBuffScale;
     gCBuffArgs._CameraFar = fFar;
@@ -1050,8 +1096,6 @@ void RendererDeferred::ImGui() {
     gOITSettings.fMinFadeDist = gMinFadeDist;
 
     // Volumetric Light
-    float4x4 mProjF;
-    DirectX::XMStoreFloat4x4(&mProjF, cam->mProj);
 
     float4x4 mProj2F;
     DirectX::XMStoreFloat4x4(&mProj2F, l_cam->mProj);
@@ -1447,6 +1491,9 @@ void RendererDeferred::Deferred() {
         rtDeferredAccumulation->Clear(s_clear.black_void2);
 
         // Bind resources
+        rtGBuffer->Bind(3u, Shader::Pixel, 2);           // Opaque Shading Buffer
+        rtGBuffer->Bind(5u, Shader::Pixel, 3);           // Opaque Indirect Buffer
+        rtGBuffer->Bind(1u, Shader::Pixel, 4);           // Opaque Albedo Buffer
         rtDeferred->Bind(1u, Shader::Pixel, 5u);         // SRV
         s_material.sampl.point->Bind(Shader::Pixel, 5u); // Sampler
 
@@ -1520,6 +1567,10 @@ void RendererDeferred::SSAO() {
 }
 
 void RendererDeferred::SSLR() {
+    // Opaque
+    gSSLRPostProcess->Begin(rtGBuffer, gSSLRArgs);
+
+    // Transparent
 
 }
 
@@ -1548,7 +1599,7 @@ void RendererDeferred::Combine() {
     // Bind resources
     s_material.sampl.linear->Bind(Shader::Pixel, 0);
 
-    rtGBuffer->Bind(1, Shader::Pixel, 0);
+    rtGBuffer->Bind(rtDeferredAccumulation->GetBufferSRV(0u), Shader::Pixel, 0);
     rtGBuffer->Bind(3, Shader::Pixel, 1);
     gSSAOPostProcess->BindAO(Shader::Pixel, 2);
     rtTransparency->Bind(1, Shader::Pixel, 3);
@@ -1566,7 +1617,7 @@ void RendererDeferred::Combine() {
 }
 
 void RendererDeferred::HDR() {
-    gHDRPostProcess->Begin(rtGBuffer);
+    gHDRPostProcess->Begin(rtGBuffer, rtDeferredAccumulation->GetBufferSRV(0u));
 }
 
 void RendererDeferred::VolumetricLight() {
@@ -1595,7 +1646,7 @@ void RendererDeferred::VolumetricLight() {
     uint Y = (uint32_t)(ceil(mVolumetricLightAccum->GetHeight() / 4.f + .5f));
     
     {
-        if( gFrameIndex % 240 == 0 ) Timer t("Volumetric Light");
+        //if( gFrameIndex % 240 == 0 ) Timer t("Volumetric Light");
         shVolumetricLight->Dispatch(X, Y, 1u);
     }
 

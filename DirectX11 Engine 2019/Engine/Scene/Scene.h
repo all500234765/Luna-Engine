@@ -381,7 +381,7 @@ private:
                            LoaderTextureList* TextureList,
                            uint32_t& index) {
         // Process meshes
-#pragma omp parallel for num_threads(4)
+//#pragma omp parallel for num_threads(4)
         for( int32_t i = 0; i < (int32_t)node->mNumMeshes; i++ ) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             MeshList->push_back(ProcessMeshStatic(mesh, scene, MatList, TextureList, index));
@@ -460,14 +460,14 @@ private:
             aiString fname;
             m->GetTexture(type, i, &fname);
             std::string s = fname.C_Str();
-            printf_s(" - %u:%u\n", type, m->GetTextureCount(type));
+            //printf_s(" - %u:%u\n", type, m->GetTextureCount(type));
 
             // No texture found
             if( !strcmp(fname.C_Str(), "") ) return false;
             LoaderTextureList::iterator it = TextureList->find(s);
 
             if( it == TextureList->end() ) {
-                printf_s("%s; %u\n", s.c_str(), type);
+                //printf_s("%s; %u\n", s.c_str(), type);
 
                 // Add
                 TextureList->insert_or_assign(s, LoaderTextureList::mapped_type({ aiTextureType(type + i * (AI_TEXTURE_TYPE_MAX + 1)), { index } }));
@@ -478,7 +478,7 @@ private:
             return true;
         };
 
-        printf_s("-------------\n");
+        //printf_s("-------------\n");
 
         AddTexture(aiTextureType_DIFFUSE  ); // Albedo
         AddTexture(aiTextureType_SHININESS); // Roughness

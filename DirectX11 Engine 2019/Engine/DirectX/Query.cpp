@@ -49,6 +49,9 @@ void Query::Create(D3D11_QUERY type, D3D11_QUERY_MISC_FLAG misc) {
             mValueType = Statictics;
             break;
     }
+
+    // Allocate data buffer
+    pData = malloc(DataTypeSize[mValueType]);
 }
 
 // Begin query event
@@ -57,12 +60,9 @@ void Query::Begin() {
 }
 
 // End query event
-void* Query::End() {
+QueryValue Query::End() {
     // End query event
     gDirectX->gContext->End(pQuery);
-
-    // Allocate data buffer
-    void* pData = malloc(DataTypeSize[mValueType]);
     
     // A return value of S_OK indicates that the data at pData is available for the calling application to access. 
     // A return value of S_FALSE indicates that the data is not yet available. 
@@ -70,19 +70,21 @@ void* Query::End() {
     while( gDirectX->gContext->GetData(pQuery, &pData, DataTypeSize[mValueType], 0) != S_OK ) { }
 
     // Cache value
+    QueryValue v;
     switch( mValueType ) {
-        case Bool      : bLastValue =   (bool)pData; break;
-        case Integer   : iLastValue = (UINT64)pData; break;
-        case Timestamp : tLastValue = reinterpret_cast<D3D11_QUERY_DATA_TIMESTAMP_DISJOINT*> (pData); break;
-        case Pipeline  : pLastValue = reinterpret_cast<D3D11_QUERY_DATA_PIPELINE_STATISTICS*>(pData); break;
-        case Statictics: sLastValue = reinterpret_cast<D3D11_QUERY_DATA_SO_STATISTICS*>      (pData); break;
+        case Bool      : v.bLastValue =   (bool)pData; break;
+        case Integer   : v.iLastValue = (UINT64)pData; break;
+        case Timestamp : v.tLastValue = reinterpret_cast<D3D11_QUERY_DATA_TIMESTAMP_DISJOINT*> (&pData); break;
+        case Pipeline  : v.pLastValue = reinterpret_cast<D3D11_QUERY_DATA_PIPELINE_STATISTICS*>(&pData); break;
+        case Statictics: v.sLastValue = reinterpret_cast<D3D11_QUERY_DATA_SO_STATISTICS*>      (&pData); break;
     }
 
     // Return result data
-    return pData;
+    return v;
 }
 
 void Query::Release() {
     // Release query
+    free(pData);
     if( pQuery ) pQuery->Release();
 }

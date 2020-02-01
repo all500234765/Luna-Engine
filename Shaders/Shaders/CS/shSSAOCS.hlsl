@@ -11,13 +11,15 @@ cbuffer Downscaling : register(b0) {
 
 StructuredBuffer<float4> _DepthNDS  : register(t0);
 Texture2D<float2> _BlueNoiseTexture : register(t1);
-RWTexture2D<float> _AO              : register(u0);
+Texture2D<float3> _AlbedoTexture    : register(t2);
+
+RWTexture2D<float4> _AO             : register(u0);
 
 groupshared float _SharedDepth[1024];
 
-static const float NumSamplesRcp = 1.0 / 8.0;
-static const uint NumSamples = 8;
-static const float2 SampleOffsets[NumSamples] = {
+#define NumSamples 8
+static const float NumSamplesRcp = 1.f / float(NumSamples);
+static const float2 SampleOffsets[8] = {
 	float2(0.2803166, 0.08997212),
 	float2(-0.5130632, 0.6877457),
 	float2(0.425495, 0.8665376),
@@ -38,8 +40,18 @@ float3 GetNormal(int2 p) {
     return _DepthNDS[p2.x + p2.y * _Res.x].yzw;
 }
 
+float3 GetAlbedo(int2 p) {
+    int2 p2 = clamp(p, 0, _Res - 1) * 2;
+    return _AlbedoTexture[p2];
+}
+
+float min2c(float a, float b) {
+	[flatten] if( a < b ) return a;
+	return 0.f;
+}
+
 // c = Center
-float ComputeAO(int2 cPixel, float2 cClip) {
+float4 ComputeAO(int2 cPixel, float2 cClip) {
     // Get depth
     float cDepth = GetDepth(cPixel);
     float IsNSky = (cDepth);
@@ -51,6 +63,9 @@ float ComputeAO(int2 cPixel, float2 cClip) {
 
     // Get view space normal
     float3 cNormal = GetNormal(cPixel);
+    
+    // Get Albedo
+    float3 cAlbedo = GetAlbedo(cPixel);
 
     // Prepare random sampling
     float rAng = dot(cClip, float2(73.f, 197.f));
@@ -59,24 +74,28 @@ float ComputeAO(int2 cPixel, float2 cClip) {
                              rSinCos.x, +rSinCos.y);
 
     float ao = 0.f;
+    float3 color = cAlbedo;
     [unroll(NumSamples)]
     for( uint i = 0; i < NumSamples; i++ ) {
         // Get offset and sample depth
         float2 sOffset = _OffsetRad * _BlueNoiseTexture[cPixel % _NoiseSize]; //mul(mRot, SampleOffsets[i]);
-        float curDepth = GetDepth(cPixel + sOffset * float2(1.f, -1.f));
+        int2 offset = cPixel + sOffset * float2(1.f, -1.f);
+        float curDepth = GetDepth(offset);
 
         // Calc view space pos
         float3 curPos = float3((cClip + 2.f * sOffset * _ResRcp) * _ProjValues.xy * curDepth, curDepth);
 
         float3 c2CurP = curPos - cPos;
         float LenC2CP = length(c2CurP);
-        float aFactor = 1.f - dot(c2CurP / LenC2CP, cNormal);
+		float3 Normal = c2CurP / LenC2CP;
+        float aFactor = 1.f - dot(Normal, cNormal);
         float distFac = LenC2CP / _Radius;
-
+        
+        color += GetAlbedo(offset) * saturate(dot(Normal, cNormal)) * min2c(distFac, .65f);
         ao += saturate(max(aFactor, distFac));
     }
 
-    return ao * NumSamplesRcp;
+    return float4(color, ao) * NumSamplesRcp; // * ao * NumSamplesRcp * NumSamplesRcp;
 }
 
 [numthreads(1024, 1, 1)]
@@ -96,6 +115,8 @@ void main(uint3 groupThreadId : SV_GroupThreadID, uint3 dispatchThreadId : SV_Di
 		float2 centerClipPos = 2.f * float2(CurPixel) * _ResRcp;
 		centerClipPos = float2(centerClipPos.x - 1.f, 1.f - centerClipPos.y);
 
-		_AO[CurPixel] = pow(ComputeAO(CurPixel, centerClipPos), _SSAOPower);
+		float4 CAO = ComputeAO(CurPixel, centerClipPos);
+		CAO.a = pow(CAO.a, _SSAOPower);
+		_AO[CurPixel].rgba = float4(lerp(CAO.rgb, 0.f, CAO.a), CAO.a);
 	}
 }
