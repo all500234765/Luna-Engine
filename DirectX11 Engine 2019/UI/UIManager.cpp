@@ -33,7 +33,7 @@ void UIManager::Init() {
     shScreen->LoadFile("shGUIPS.cso", Shader::Pixel);
 
     shPrimitives->ReleaseBlobs();
-    shScreen->Release();
+    shScreen->ReleaseBlobs();
 
     // Render Targets
     UINT w = (UINT)(1366.f / gScaleX), h = (UINT)(768.f / gScaleY);
