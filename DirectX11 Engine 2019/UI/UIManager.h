@@ -12,25 +12,52 @@
 #include "Engine/ScopedMapper.h"
 #include "Other/DrawCall.h"
 
+struct UIVertex {
+    float3 Position;
+    float4 Color;
+};
+
+struct UIContainer {
+    float3 Offset{ 0.f, 0.f, 0.f };
+    float3 Size{ 1.f, 1.f, 1.f };
+    bool bActive{};
+
+    UIContainer() {};
+    UIContainer(float3 off, float3 sz, bool act): Offset(off), Size(sz), bActive(act) {};
+    UIContainer(float3 off, float3 sz);
+    UIContainer(float2 off, float2 sz);
+    UIContainer(float x, float y, float w, float h);
+
+    void Init();
+    bool Inside(const UIVertex& v) const;
+    bool Inside(const UIVertex& v0, const UIVertex& v1, const UIVertex& v2) const;
+    bool AtleastInside(const UIVertex& v0, const UIVertex& v1, const UIVertex& v2) const;
+    const UIVertex& Clamp(const UIVertex& v) const;
+};
+
 class UIManager {
 public:
     static const uint gMaxLayers = 10u;
+    static const uint gMaxContainers = 10u;
     static float gScaleX, gScaleY;
-
-    struct UIVertex {
-        float3 Position;
-        float4 Color;
-    };
-
+    
 protected:
+    friend struct UIContainer;
+
     struct VSDataBuffer {
         #include "Shaders/Common/UIInclude.h"
     };
 
+    // Per layer data for vertex buffer gen
     static std::array<VertexBuffer*, gMaxLayers>         gVBLayer;
     static std::array<uint64_t, gMaxLayers>              gDCLayer; // DataCounter
     static std::vector<uint32_t>                         gLastActiveLayers;
     static std::array<std::vector<UIVertex>, gMaxLayers> gVertexLayer;
+
+    // Containers
+    static std::array<std::array<UIContainer*, gMaxContainers>, gMaxLayers> gContainerStackLayer;
+    static std::array<uint32_t, gMaxContainers>                             gContainerStackIDLayer;
+    static std::array<float3, gMaxLayers>                                   gContainerOffsetLayer;
 
     // Rendering
     static ConstantBuffer                *cbVSDataBuffer, *cbPSDataBuffer;

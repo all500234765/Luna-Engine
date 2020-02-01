@@ -121,12 +121,13 @@ bool _DirectX::Render() {
 
     {
         {
-            //UIContainer cont(261.f, 146.5f, 844.f, 475.f);
+            UIContainer cont(261.f, 146.5f, 844.f, 475.f);
 
             UIPrimitive::SetColor(LunaEngine::Math::normrgba({ 58.f, 58.f, 58.f, 255.f }));
-            UIRectangle a(261.f, 146.5f, 1105.f, 621.5f);
-            
-            UIRectangle b(32.f, 32.f, 96.f, 64.f);
+            //UIRectangle a(261.f, 146.5f, 1105.f, 621.5f);
+            UIRectangle b(0.f, 0.5f, 844.f, 475.f);
+
+            UIRectangle c(32.f, 32.f, 96.f, 64.f);
         }
     }
 
