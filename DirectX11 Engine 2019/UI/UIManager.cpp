@@ -3,6 +3,8 @@
 #include "UIManager.h"
 #include "UIPrimitive.h"
 
+#include "Primitives/UIRectangle.h"
+
 /*************************************************************\
 |   UIManager statics
 \*************************************************************/
@@ -14,7 +16,7 @@ std::array<std::vector<UIVertex>, UIManager::gMaxLayers> UIManager::gVertexLayer
 
 // Containers
 std::array<std::array<UIContainer*, UIManager::gMaxContainers>, UIManager::gMaxLayers> UIManager::gContainerStackLayer{};
-std::array<uint32_t, UIManager::gMaxContainers>                                        UIManager::gContainerStackIDLayer{};
+std::array<uint32_t, UIManager::gMaxLayers>                                            UIManager::gContainerStackIDLayer{};
 std::array<float3, UIManager::gMaxLayers>                                              UIManager::gContainerOffsetLayer{};
 
 // Rendering
@@ -23,6 +25,10 @@ Shader*                        UIManager::shPrimitives{};
 ConstantBuffer*                UIManager::cbVSDataBuffer{};
 ConstantBuffer*                UIManager::cbPSDataBuffer{};
 RenderTarget2DColor1DepthMSAA* UIManager::rtDestination{};
+
+// Misc
+std::array<std::array<std::array<float2, UIManager::gMaxScrollbars>, UIManager::gMaxContainers>, UIManager::gMaxLayers> UIManager::gScrollbarContentSize{};
+std::array<std::array<std::array<UIManager::UIScrollbarState*, UIManager::gMaxScrollbars>, UIManager::gMaxContainers>, UIManager::gMaxLayers> UIManager::gScrollbarState{};
 
 // Params
 float UIManager::gScaleX = 1.f;
@@ -34,15 +40,40 @@ float UIManager::gScaleY = 1.f;
 UIContainer::UIContainer(float3 off, float3 sz): bActive(true), Offset(off), Size(sz) { Init(); };
 UIContainer::UIContainer(float2 off, float2 sz): bActive(true), Offset({ off.x, off.y, 0.f }), Size({ sz.x, sz.y, 1.f }) { Init(); };
 UIContainer::UIContainer(float x, float y, float w, float h): bActive(true), Offset({ x, y, 0.f }), Size({ w, h, 1.f }) { Init(); };
+UIContainer::~UIContainer() {
+    uint32_t LID = UIPrimitive::gLayerID;
+    uint32_t SID = UIManager::gContainerStackIDLayer[LID] - 1;
+
+    // Copy
+    if( SID < UIManager::gMaxContainers ) {
+        UIContainer *ptr = UIManager::gContainerStackLayer[LID][SID];
+        if( ptr ) {
+            ptr->bActive = false;
+            UIManager::gContainerOffsetLayer[LID] -= ptr->Offset;
+        } else {
+            //UIManager::gContainerOffsetLayer[LID] -= Offset;
+        }
+    } else {
+        //UIManager::gContainerOffsetLayer[LID] -= Offset;
+    }
+
+    // Advance
+    UIManager::gContainerStackIDLayer[LID]--;
+}
 
 void UIContainer::Init() {
     uint32_t LID = UIPrimitive::gLayerID;
+    uint32_t SID = UIManager::gContainerStackIDLayer[LID]; // TODO: Check if must add -1 ?
 
     // Copy
-    UIContainer *ptr = UIManager::gContainerStackLayer[LID][UIManager::gContainerStackIDLayer[LID]];
-    ptr->bActive = bActive;
-    ptr->Offset  = Offset;
-    ptr->Size    = Size;
+    if( SID < UIManager::gMaxContainers ) {
+        UIContainer *ptr = UIManager::gContainerStackLayer[LID][SID];
+        if( ptr ) {
+            ptr->bActive = bActive;
+            ptr->Offset  = Offset;
+            ptr->Size    = Size;
+        }
+    }
 
     // Advance
     UIManager::gContainerStackIDLayer[LID]++;
@@ -66,18 +97,22 @@ bool UIContainer::AtleastInside(const UIVertex& v0, const UIVertex& v1, const UI
     return Inside(v0) || Inside(v1) || Inside(v2);
 }
 
-const UIVertex& UIContainer::Clamp(const UIVertex& v) const {
+UIVertex&& UIContainer::Clamp(const UIVertex& v) const {
+    UIVertex v1(v);
+
     // We don't need to clamp this vertex
-    if( Inside(v) ) return v;
+    if( Inside(v) ) 
+        return std::move(v1);
 
     // Otherwise clamp
-    UIVertex v1(v);
-    float3 start = UIManager::gContainerOffsetLayer[UIPrimitive::gLayerID] + Offset;
-    v1.Position.x = std::clamp(v.Position.x, Offset.x, Offset.x + Size.x);
-    v1.Position.y = std::clamp(v.Position.y, Offset.y, Offset.y + Size.y);
-    v1.Position.z = std::clamp(v.Position.z, Offset.z, Offset.z + Size.z);
+    float3 start = UIManager::gContainerOffsetLayer[UIPrimitive::gLayerID];
+    float3 end = start + Size;
 
-    return v1;
+    v1.Position.x = std::clamp(v.Position.x, start.x, end.x);
+    v1.Position.y = std::clamp(v.Position.y, start.y, end.y);
+    v1.Position.z = std::clamp(v.Position.z, start.z, end.z);
+
+    return std::move(v1);
 }
 
 /*************************************************************\
@@ -89,6 +124,10 @@ void UIManager::Init() {
 
         for( uint32_t j = 0; j < gMaxContainers; j++ ) {
             gContainerStackLayer[i][j] = new UIContainer();
+
+            for( uint32_t k = 0; k < gMaxScrollbars; k++ ) {
+                gScrollbarState[i][j][k] = new UIScrollbarState();
+            }
         }
     }
 
@@ -133,6 +172,9 @@ void UIManager::Clear() {
 
         for( uint32_t j = 0; j < gMaxContainers; j++ ) {
             gContainerStackLayer[i][j]->bActive = {};
+
+            for( uint32_t k = 0; k < gMaxScrollbars; k++ )
+                gScrollbarContentSize[i][j][k] = { -9999.f, -9999.f };
         }
 
         gVertexLayer[index].clear();
@@ -189,6 +231,10 @@ void UIManager::Release() {
     SAFE_RELEASE_N(gVBLayer, gMaxLayers);
     for( uint j = 0; j < gMaxLayers; j++ ) {
         SAFE_DELETE_N(gContainerStackLayer[j], gMaxContainers);
+
+        for( uint k = 0; k < gMaxContainers; k++ ) {
+            SAFE_DELETE_N(gScrollbarState[j][k], gMaxScrollbars);
+        }
     }
 
     SAFE_RELEASE(shScreen);
@@ -196,6 +242,10 @@ void UIManager::Release() {
     SAFE_RELEASE(rtDestination);
     SAFE_RELEASE(cbVSDataBuffer);
     SAFE_RELEASE(cbPSDataBuffer);
+}
+
+float3 UIManager::GetOffset() {
+    return gContainerOffsetLayer[UIPrimitive::gLayerID];
 }
 
 float UIManager::Width() { return rtDestination->GetWidth(); }

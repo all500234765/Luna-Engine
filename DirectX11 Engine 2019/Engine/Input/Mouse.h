@@ -86,6 +86,12 @@ public:
     float GetX() const { return x; }
     float GetY() const { return y; }
     float2 GetXY() const { return float2((float)x, (float)y); }
+    bool InRect(float x1, float y1, float w, float h) const {
+        float x2 = x1 + w;
+        float y2 = y1 + h;
+        return (x >= x1) && (x <= x2)
+            && (y >= y1) && (y <= y2);
+    }
 
     bool IsPressed(MouseButton mkey);
     bool IsDown(MouseButton mkey);

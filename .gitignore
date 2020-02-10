@@ -310,6 +310,9 @@ Compiled/**/_Capture/
 #Compiled/Windows_Build/Music/Paid/
 #Compiled/Windows_Build/Textures/Paid/
 
+# Local storage
+**/_Local/**
+
 # Projects
 Compiled/Pixel Stars 2_Build/
 Pixel Stars 2/
