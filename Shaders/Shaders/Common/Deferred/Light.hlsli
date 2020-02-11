@@ -126,7 +126,7 @@ float4 DeferredPBR(Surface surf, PointLight light) {
     float NdotL = dot(N, L);
 
     // PBR
-    float3 F0 = lerp((.04f).xxx, surf.Albedo.rgb, surf.Shading.r);
+    float3 F0 = lerp((.04f).xxx, surf.Albedo.rgb, Metallic);
     
     float Dist = length(light._LightPosition - surf.WorldPos) / (light._LightRadius);
     float invD = saturate(1.f - Dist * 1.f); //1.f / (Dist * Dist); // TODO: Use inverse sqrt (rsqrt)
@@ -135,22 +135,22 @@ float4 DeferredPBR(Surface surf, PointLight light) {
 
     // Cook-Torrance BRDF
     float  NDF = DistrGGX(N, H, Roughness);
-	float  G   = GSmith(N, V, L, Roughness);
+    float  G   = GSmith(N, V, L, Roughness);
     float3 F   = FresnelShlick(saturate(dot(H, V)), F0, Roughness);
 
     float3 KS = F;
     float3 KD = (1.f - KS) * (1.f - Metallic); // TODO: MAD
-
+    
     float3 N_ = NDF * G * F;
     float1 D  = mad(4.f * saturate(NdotV), saturate(NdotL), .001f); // .001f: Prevent division by zero
     float3 Spec = N_ / D;
-
-	// Light
+    
+    // Light
     float3 Light = light._LightColor * (KD * surf.Albedo.rgb * InvPI + Spec) * Radiance * saturate(NdotL);
     
 //return float4((1.f - Dist).xxx, 1.f);
-
-    return float4(pow(Light, 1.f / 2.2f), 1.f);
+    
+    return float4(Light, 1.f);
 }
 
 float3 PBRAccumullation(Surface surf, float3 Light) {
@@ -167,7 +167,7 @@ float3 PBRAccumullation(Surface surf, float3 Light) {
     float AmbientOcclusion = surf.Shading.b;
 
     // IBL
-    float3 F0 = lerp((.04f).xxx, surf.Albedo.rgb, surf.Shading.r);
+    float3 F0 = lerp((.04f).xxx, surf.Albedo.rgb, Metallic);
     float3 KS = FresnelShlick(saturate(NdotV), F0, Roughness);
     float3 KD = (1.f - KS) * (1.f - Metallic);
     
@@ -178,5 +178,5 @@ float3 PBRAccumullation(Surface surf, float3 Light) {
     
     // Accumulation                  Shadows
     float3 Acc = (Ambient + Light) * surf.Albedo.w;
-    return pow(Acc, 1.f / 2.2f);
+    return Acc;
 }

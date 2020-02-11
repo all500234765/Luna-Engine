@@ -127,10 +127,13 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     // Get normal
     half3 N = normalize(In.WorldTBN._m20_m21_m22), Bump = half3(0.f, 0.f, 0.f);
     [flatten] if( _Norm ) {
-        Bump = mad(_NormalTex.SampleLevel(_NormalSampl, In.Texcoord, 0.f).rgb, 2.f, -1.f);
+        Bump = mad(_NormalTex.Sample(_NormalSampl, In.Texcoord).rgb, 2.f, -1.f);
         
 		Bump.g *= mad(bIsFront, 2.f, -1.f);
-        N = normalize(lerp(N, mul(transpose(In.WorldTBN), Bump), _NormalMul));
+        float3x3 TBN = In.WorldTBN;
+        TBN._m00_m01_m02 = normalize(TBN._m00_m01_m02);
+        TBN._m10_m11_m12 = normalize(TBN._m10_m11_m12);
+        N = normalize(lerp(N, mul(transpose(TBN), Bump), _NormalMul));
         
         // Flip normals
         //N *= (bIsFront * 2. - 1);
@@ -172,7 +175,7 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     
     // Final result
     GBuffer Out;
-        Out.Direct   = float4(pow(Albedo, 1.f / 2.2f), S);
+        Out.Direct   = float4(Albedo, S);
         Out.Shading  = float4(Metallic, Rougness, AOccl, 1.f);
         Out.Normal   = float4(EncodeNormal(N), 0., 1.);
         Out.Emission = float4(_EmissionTex.Sample(_EmissionSampl, In.Texcoord).rgb * _EmissionMul, 1.f);

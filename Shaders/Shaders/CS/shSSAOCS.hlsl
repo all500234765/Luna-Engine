@@ -117,6 +117,6 @@ void main(uint3 groupThreadId : SV_GroupThreadID, uint3 dispatchThreadId : SV_Di
 
 		float4 CAO = ComputeAO(CurPixel, centerClipPos);
 		CAO.a = pow(CAO.a, _SSAOPower);
-		_AO[CurPixel].rgba = float4(lerp(CAO.rgb, 0.f, CAO.a), CAO.a);
+		_AO[CurPixel].rgba = CAO.aaaa; //float4(lerp(CAO.rgb, 0.f, CAO.a), CAO.a);
 	}
 }

@@ -661,6 +661,10 @@ public:
     virtual void ClearMainRT() override;
     virtual void DebugHUD()    override;
 
+    // 
+    virtual void BindRSWireframe() const override;
+    virtual void BindRSNormal()    const override;
+
     //inline Texture* GetTexture(uint32_t index) const override { return s_material.texture_list[index]; };
     inline Texture* GetTexture(TextureList index) const { return s_material.ti.texture_list[(uint32_t)index]; };
 };

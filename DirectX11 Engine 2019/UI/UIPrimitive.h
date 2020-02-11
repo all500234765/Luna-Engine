@@ -26,7 +26,7 @@ protected:
         v1.Position.z++;
         gVertexLayer[gLayerID].push_back(v1);
 
-        uint32_t SID = gContainerStackIDLayer[gLayerID] - 1;
+        uint32_t SID = std::max((int)gContainerStackIDLayer[gLayerID] - 1, 0);
         Notify();
     }
 
@@ -48,7 +48,7 @@ protected:
         UIVertex v12 = Advance(v2);
 
         // Check, If we inside of the container
-        uint32_t SID = gContainerStackIDLayer[gLayerID] - 1;
+        uint32_t SID = std::max((int)gContainerStackIDLayer[gLayerID] - 1, 0);
         const UIContainer* Container = gContainerStackLayer[gLayerID][SID];
 
         auto NotifyScroll = [&](const UIVertex& v20, const UIVertex& v21, const UIVertex& v22) {

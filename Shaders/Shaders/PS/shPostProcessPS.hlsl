@@ -141,6 +141,19 @@ static const float threshold = .9; // .9
 
 #define fsqrt(x) sqrt(dot(x, x)) //dot(length(x), length(x))
 
+// Tonemapping operator
+static const float A = 0.15;
+static const float B = 0.50;
+static const float C = 0.10;
+static const float D = 0.20;
+static const float E = 0.02;
+static const float F = 0.30;
+static const float W = 11.2;
+
+float3 Uncharted2Tonemap(float3 x) {
+   return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+}
+
 half4 main(PS In): SV_Target0 {
     //float2 fxaaFrame;
     //_Texture.GetDimensions(fxaaFrame.x, fxaaFrame.y);
@@ -219,9 +232,19 @@ half4 main(PS In): SV_Target0 {
     
     // Eye Adaptation And Tonemapping
     [flatten] if( _RenderFlags & 4 ) {
-        Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);
+        //Diff.rgb = EyeAdaptationNtoneMapping(Diff.rgb);
+        
+        Diff.rgb = Uncharted2Tonemap(Diff.rgb);
+        
+        // White scale
+        const float3 White = 1.f / Uncharted2Tonemap(W);
+        Diff.rgb *= White;
+        
     }
 
+    // Back to gamma
+    Diff.rgb = pow(Diff.rgb, 1.f / 2.2f);
+    
     // 
     return Diff;
 }

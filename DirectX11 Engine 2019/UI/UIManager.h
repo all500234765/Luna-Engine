@@ -89,20 +89,21 @@ protected:
     static Shader*                        shPrimitives;
     static Shader*                        shScreen;
     static RasterState*                   rsDefault;
+    static RasterState*                   rsWire;
     static BlendState*                    bsDefault;
     static DepthStencilState*             dsDefault;
-
     // Misc
     static std::array<std::array<std::array<float2, gMaxScrollbars>, gMaxContainers>, gMaxLayers> gScrollbarContentSize;
     static std::array<std::array<std::array<UIScrollbarState*, gMaxScrollbars>, gMaxContainers>, gMaxLayers> gScrollbarState;
+    static uint32_t gCirclePrecision;
 
 public:
-    static void Init();    // Init buffers
-    static void Clear();       // 0. Reset state
-    static void Submit();      // 1. Generate buffers
-    static void Render();      // 2. Render to buffer
-    static void Screen();      // 3. Render to screen
-    static void Release(); // Clean up buffers
+    static void Init();                 // Init buffers
+    static void Clear();                    // 0. Reset state
+    static void Submit();                   // 1. Generate buffers
+    static void Render(bool dw=false);      // 2. Render to buffer
+    static void Screen();                   // 3. Render to screen
+    static void Release();              // Clean up buffers
 
     //static void Resize(UINT Width, UINT Height);
 

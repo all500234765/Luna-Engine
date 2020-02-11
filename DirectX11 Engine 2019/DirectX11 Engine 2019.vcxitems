@@ -94,6 +94,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\StaticReference.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)pc.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRectangle.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRoundrect.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIScrollbar.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\UIPrimitive.h" />
   </ItemGroup>
   <ItemGroup>
@@ -149,6 +151,8 @@
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRectangle.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRoundrect.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIScrollbar.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\UIManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\UIManager.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\UIPrimitive.cpp" />

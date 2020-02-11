@@ -74,7 +74,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     dxCFG.Height = winCFG.CurrentHeight2;
     dxCFG.m_hwnd = gWindow->GetHWND();
     dxCFG.RefreshRate = 60;
-    dxCFG.UseHDR = true;
+    dxCFG.UseHDR = false;
     dxCFG.DeferredContext = false;
     dxCFG.Windowed = winCFG.Windowed;
     dxCFG.Ansel = USE_ANSEL;
@@ -119,20 +119,78 @@ bool _DirectX::Render() {
     // GUI Render
     UIManager::Clear();
 
+    if( true )
     {
+        float2 Pos = { 261.f, 146.5f };
+        float2 Size = { 844.f, 475.f };
+
+        float TopBarHeight = 64.f;
+
+        //UIPrimitive::SetColor({ 1.f, 0.f, 0.f, 1.f });
+        UIPrimitive::SetColor({ .8f, .8f, .8f, .75f });
+        UIRoundrect RrR(64.f, 64.f, 64.f * 2, 64.f * 2);
+
+        UIPrimitive::SetColor({ 1.f, 0.f, 0.f, 1.f });
+        UIRoundrect RrR2(2.f * 64.f, 64.f, 64.f * 3.f, 64.f * 2.f, { 16.f, 0.f, 16.f, 0.f });
+
+        UIPrimitive::SetColor({ 1.f, 0.f, 0.f, .75f });
+        UIRoundrect RrR3(3.f * 64.f, 64.f, 64.f * 4.f, 64.f * 2.f, { 16.f, 0.f, 16.f, 0.f });
+
         {
-            UIContainer cont(261.f, 146.5f, 844.f, 475.f);
+            UIContainer cont(Pos, Size);
 
-            UIPrimitive::SetColor(LunaEngine::Math::normrgba({ 58.f, 58.f, 58.f, 255.f }));
-            //UIRectangle a(261.f, 146.5f, 1105.f, 621.5f);
-            UIRectangle b(0.f, 0.5f, 844.f, 475.f);
+            UIPrimitive::SetColor({ 1.f, 0.f, 0.f, 1.f });
+            UIRectangle b({ 0.f, 0.f }, Size);
 
-            UIRectangle c(32.f, 32.f, 96.f, 64.f);
+            // Top bar
+            {
+                UIContainer cont1(0.f, 0.f, Size.x, TopBarHeight);
+
+                UIPrimitive::SetColor({ 0.f, 0.f, 0.f, 1.f });
+                UIRectangle c(0.f, 0.f, 56.f, 64.f);
+                UIRectangle d(732.f + 56.f, 0.f, 732.f + 56.f + 56.f, 64.f);
+
+                UIPrimitive::SetColor(LunaEngine::Math::normrgba({ 45.f, 45.f, 45.f, 255.f }));
+                UIRectangle e(56.f, 0.f, 56.f + 732.f, 64.f);
+            }
+
+            // Content
+            {
+                UIContainer cont3(0.f, 64.f, 844.f, 384.f);
+                {
+                    UIScrollbar vsb(UIScrollbarType::Vertical);
+
+                    float4 Colors[2] = {
+                        LunaEngine::Math::normrgba({ 29.f, 29.f, 29.f, 255.f }),
+                        LunaEngine::Math::normrgba({ 45.f, 45.f, 45.f, 255.f })
+                    };
+
+                    // 
+                    const int num = 9;
+                    for( uint i = 0; i < num; i++ ) {
+                        UIPrimitive::SetColor(Colors[i % 2]);
+                        UIRectangle rect(0.f, i * 48.f, 844.f, (i + 1.f) * 48.f);
+                    }
+
+                    UIPrimitive::SetColor(LunaEngine::Math::normrgba({ 190.f, 240.f, 0.f, 255.f }));
+                    UIRectangle rect(0.f, num * 48.f, 844.f, (num + 1.f) * 48.f);
+                }
+            }
+
+            // Bottom bar
+            {
+                UIContainer cont2(gKeyboard->IsDown(VK_G) * 10.f + 0.f, 448.f, 844.f, 27.f);
+                //UIPrimitive::SetColor(LunaEngine::Math::normrgba({ 29.f, 29.f, 29.f, 255.f }));
+                UIPrimitive::SetColor(LunaEngine::Math::normrgba({ 97.f, 97.f, 97.f, 255.f }));
+                UIRectangle f(0.f, 0.f, 844.f, 64.f);
+            }
         }
     }
 
+    static bool fLaG = false;
+    fLaG ^= gKeyboard->IsPressed(VK_H);
     UIManager::Submit();
-    UIManager::Render();
+    UIManager::Render(fLaG);
 
     // Render to screen
     gContext->OMSetRenderTargets(1, &gRTV, nullptr);
@@ -219,6 +277,7 @@ void _DirectX::Resize() {
 
     // Resize renderer
     gRenderer->Resize();
+    //UIManager::Resize();
 
     // Resize camera
     CameraComponent *cam = gMainScene->GetCamera(0)->cCam;
@@ -355,16 +414,19 @@ void _DirectX::CreateResources() {
         //mat->_AlbedoTex = new Texture("../Textures/DarkPixel.png", 0u, "Black plane");
     });*/
 
-    EntityHandleList elist = gMainScene->LoadModelStaticOpaque("../Models/Sketchfab/ch basement a/scene.gltf", 
+    EntityHandleList elist = gMainScene->LoadModelStaticOpaque(//"../Models/Sketchfab/ch basement a/scene.gltf", 
+                                                               "../Models/VolumetricTests/Volumetric Test.obj", 
                                                                //"../Models/Sponza/SponzaPBR.gltf",
+                                                               //"../Models/SDKMesh/TankScene.gltf",
                                                                aiProcess_FlipUVs, [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
         MeshStaticComponent *mesh = gMainScene->GetComponent<MeshStaticComponent>(e);
 
         //transf->vRotation = float3(270.f, 0.f, 0.f);
-        //transf->vRotation = float3(90.f, 0.f, 0.f);
+        transf->vRotation = float3(90.f, 0.f, 0.f); // Sponza, TankScene
         //transf->vScale = float3(100.f, 100.f, 100.f);
+        transf->vScale = float3(10.f, 10.f, 10.f); // TankScene
         //transf->vScale    = float3(.125, .125, .125);
         //transf->vPosition = float3(-50.f, 0.f, 50.f);
 

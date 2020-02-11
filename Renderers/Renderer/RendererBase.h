@@ -66,6 +66,10 @@ public:
     virtual void FinalScreen() { return; };
     virtual void DebugHUD() { return; }
 
+    // 
+    virtual void BindRSWireframe() const { return; }
+    virtual void BindRSNormal() const { return; }
+
     // Setters
     inline void SetMSAA(bool msaa) { mMSAA = msaa; }
     inline void SetMSAALevel(uint32_t level) { mMSAALevel = level; }

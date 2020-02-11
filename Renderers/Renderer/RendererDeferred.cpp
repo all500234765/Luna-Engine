@@ -327,12 +327,13 @@ void RendererDeferred::Init() {
         s_states.raster.normal_scissors->Create(pDesc);
 
         // Wireframe + Scissors
+        pDesc.CullMode = D3D11_CULL_NONE;
         pDesc.FillMode = D3D11_FILL_WIREFRAME;
-        s_states.raster.wire->Create(pDesc);
+        s_states.raster.wire_scissors->Create(pDesc);
 
         // Wireframe
         pDesc.ScissorEnable = false;
-        s_states.raster.wire_scissors->Create(pDesc);
+        s_states.raster.wire->Create(pDesc);
     }
 #pragma endregion
     
@@ -1187,6 +1188,15 @@ void RendererDeferred::DebugHUD() {
     LunaEngine::PSDiscardSRV<1>();
 }
 
+void RendererDeferred::BindRSWireframe() const {
+    RasterState::Push();
+    s_states.raster.wire->Bind();
+}
+
+void RendererDeferred::BindRSNormal() const {
+    RasterState::Pop();
+}
+
 void RendererDeferred::Shadows() {
     ScopedRangeProfiler s1(L"Shadows");
 
@@ -1462,18 +1472,18 @@ void RendererDeferred::Deferred() {
             DeferredLights(point);
         }
 
-        if( mTransparencyAmount )
-        {
-            ScopedRangeProfiler s3(L"Transparent");
-
-            rtTransparency->Bind(0u, Shader::Pixel, 0); // Opaque Depth Buffer
-            rtTransparency->Bind(2u, Shader::Pixel, 1); // Opaque Normal Buffer
-
-            //rtTransparency->Bind(1u, Shader::Pixel, 2); // Direct light
-            //rtTransparency->Bind(3u, Shader::Pixel, 3); // Ambient light
-
-            //DeferredLights();
-        }
+        //if( mTransparencyAmount )
+        //{
+        //    ScopedRangeProfiler s3(L"Transparent");
+        //
+        //    rtTransparency->Bind(0u, Shader::Pixel, 0); // Opaque Depth Buffer
+        //    rtTransparency->Bind(2u, Shader::Pixel, 1); // Opaque Normal Buffer
+        //
+        //    //rtTransparency->Bind(1u, Shader::Pixel, 2); // Direct light
+        //    //rtTransparency->Bind(3u, Shader::Pixel, 3); // Ambient light
+        //
+        //    //DeferredLights();
+        //}
 
         //LunaEngine::PSDiscardSRV<5>(); // TODO: Use defines to create such functions faster
         //STopologyState::Pop();
@@ -1491,6 +1501,8 @@ void RendererDeferred::Deferred() {
         rtDeferredAccumulation->Clear(s_clear.black_void2);
 
         // Bind resources
+        rtGBuffer->Bind(0u, Shader::Pixel, 0);           // Opaque Depth Buffer
+        rtGBuffer->Bind(2u, Shader::Pixel, 1);           // Opaque Normal Buffer
         rtGBuffer->Bind(3u, Shader::Pixel, 2);           // Opaque Shading Buffer
         rtGBuffer->Bind(5u, Shader::Pixel, 3);           // Opaque Indirect Buffer
         rtGBuffer->Bind(1u, Shader::Pixel, 4);           // Opaque Albedo Buffer

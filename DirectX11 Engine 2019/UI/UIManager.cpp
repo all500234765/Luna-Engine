@@ -25,10 +25,14 @@ Shader*                        UIManager::shPrimitives{};
 ConstantBuffer*                UIManager::cbVSDataBuffer{};
 ConstantBuffer*                UIManager::cbPSDataBuffer{};
 RenderTarget2DColor1DepthMSAA* UIManager::rtDestination{};
+RasterState*                   UIManager::rsDefault{};
+RasterState*                   UIManager::rsWire{};
 
 // Misc
 std::array<std::array<std::array<float2, UIManager::gMaxScrollbars>, UIManager::gMaxContainers>, UIManager::gMaxLayers> UIManager::gScrollbarContentSize{};
 std::array<std::array<std::array<UIManager::UIScrollbarState*, UIManager::gMaxScrollbars>, UIManager::gMaxContainers>, UIManager::gMaxLayers> UIManager::gScrollbarState{};
+
+uint32_t UIManager::gCirclePrecision = 32;
 
 // Params
 float UIManager::gScaleX = 1.f;
@@ -42,7 +46,7 @@ UIContainer::UIContainer(float2 off, float2 sz): bActive(true), Offset({ off.x, 
 UIContainer::UIContainer(float x, float y, float w, float h): bActive(true), Offset({ x, y, 0.f }), Size({ w, h, 1.f }) { Init(); };
 UIContainer::~UIContainer() {
     uint32_t LID = UIPrimitive::gLayerID;
-    uint32_t SID = UIManager::gContainerStackIDLayer[LID] - 1;
+    uint32_t SID = std::max((int)UIManager::gContainerStackIDLayer[LID] - 1, 0);
 
     // Copy
     if( SID < UIManager::gMaxContainers ) {
@@ -131,6 +135,32 @@ void UIManager::Init() {
         }
     }
 
+    // Raster states
+    rsDefault = new RasterState;
+    rsWire    = new RasterState;
+
+    {
+        D3D11_RASTERIZER_DESC pDesc;
+        ZeroMemory(&pDesc, sizeof(D3D11_RASTERIZER_DESC));
+        pDesc.AntialiasedLineEnable = true;
+        pDesc.CullMode              = D3D11_CULL_NONE;
+        pDesc.DepthBias             = 0;
+        pDesc.DepthBiasClamp        = 0.0f;
+        pDesc.DepthClipEnable       = true;
+        pDesc.FillMode              = D3D11_FILL_SOLID;
+        pDesc.FrontCounterClockwise = true;
+        pDesc.MultisampleEnable     = true;
+        pDesc.ScissorEnable         = false;
+        pDesc.SlopeScaledDepthBias  = 0.0f;
+
+        // Normal
+        rsDefault->Create(pDesc);
+
+        // Wireframe
+        pDesc.FillMode = D3D11_FILL_WIREFRAME;
+        rsWire->Create(pDesc);
+    }
+
     // Shaders
     shPrimitives = new Shader();
     shPrimitives->LoadFile("shUIPrimitivesVS.cso", Shader::Vertex);
@@ -198,7 +228,7 @@ void UIManager::Submit() {
 }
 
 // TODO: Custom (w/ shaders)
-void UIManager::Render() {
+void UIManager::Render(bool debug_wire) {
     {
         ScopeMapConstantBuffer<VSDataBuffer> q(cbVSDataBuffer);
         q.data->mProj = DirectX::XMMatrixOrthographicOffCenterLH(0.f, Width(), Height(), 0.f, .1f, float(gMaxLayers));
@@ -209,6 +239,10 @@ void UIManager::Render() {
     shPrimitives->Bind();
     cbVSDataBuffer->Bind(Shader::Vertex, 0u);
 
+    // For Lisa
+    RasterState::Push();
+    (debug_wire ? rsWire : rsDefault)->Bind();
+
     for( uint i = 0; i < gLastActiveLayers.size(); i++ ) {
         uint32_t index = gLastActiveLayers[i];
 
@@ -216,6 +250,9 @@ void UIManager::Render() {
 
         DXDraw(gDCLayer[index], 0);
     }
+
+    // Restore state
+    RasterState::Pop();
 }
 
 void UIManager::Screen() {
@@ -237,7 +274,9 @@ void UIManager::Release() {
         }
     }
 
+    SAFE_RELEASE(rsWire);
     SAFE_RELEASE(shScreen);
+    SAFE_RELEASE(rsDefault);
     SAFE_RELEASE(shPrimitives);
     SAFE_RELEASE(rtDestination);
     SAFE_RELEASE(cbVSDataBuffer);
@@ -247,6 +286,9 @@ void UIManager::Release() {
 float3 UIManager::GetOffset() {
     return gContainerOffsetLayer[UIPrimitive::gLayerID];
 }
+
+// TODO: 
+//uint32_t SID = std::max((int)gContainerStackIDLayer[gLayerID] - 1, 0);
 
 float UIManager::Width() { return rtDestination->GetWidth(); }
 float UIManager::Height() { return rtDestination->GetHeight(); }
