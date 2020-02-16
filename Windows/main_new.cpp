@@ -25,6 +25,8 @@ float g_fAvgMS{};
 
 EntityHandle gTestLight;
 
+UIAtlasItem *rd, *img[10];
+
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
     // Create, redirect IO to, and hide console
@@ -80,12 +82,13 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     dxCFG.Ansel = USE_ANSEL;
 
     // Init DirectX
-    gDirectX = gHighLevel.InitDirectX(dxCFG, true);
+    gDirectX = gHighLevel.InitDirectX(dxCFG, !true);
 
     // Main Loop
     gHighLevel.AppLoop();
 
     // 
+    UIAtlas::Release();
     SAFE_DELETE_N(gGamepad, NUM_GAMEPAD);
     SAFE_DELETE(gInput);
     SAFE_RELEASE(gAudioDevice);
@@ -118,6 +121,7 @@ bool _DirectX::Render() {
 
     // GUI Render
     UIManager::Clear();
+    UIText::Clear();
 
     if( true )
     {
@@ -126,16 +130,62 @@ bool _DirectX::Render() {
 
         float TopBarHeight = 64.f;
 
-        //UIPrimitive::SetColor({ 1.f, 0.f, 0.f, 1.f });
-        UIPrimitive::SetColor({ .8f, .8f, .8f, .75f });
-        UIRoundrect RrR(64.f, 64.f, 64.f * 2, 64.f * 2);
+        UIPrimitive::SetColor({ 0.f, 0.f, 0.f, .5f });
 
-        UIPrimitive::SetColor({ 1.f, 0.f, 0.f, 1.f });
-        UIRoundrect RrR2(2.f * 64.f, 64.f, 64.f * 3.f, 64.f * 2.f, { 16.f, 0.f, 16.f, 0.f });
+        // Menus
+        {
+            UIContainer c0(8.f, 46.f, 326.f, 256.f);
 
-        UIPrimitive::SetColor({ 1.f, 0.f, 0.f, .75f });
-        UIRoundrect RrR3(3.f * 64.f, 64.f, 64.f * 4.f, 64.f * 2.f, { 16.f, 0.f, 16.f, 0.f });
+            static const std::vector<const char*> items =
+            {
+                "Save",
+                "Load",
+                "Import",
+                "Export",
+                "Exit"
+            };
 
+            for( int i = 0; i < 4; i++ ) {
+                UIRoundrect r0(i * 86.f, 0.f, i * 86.f + 66.f, 28.f, 6.f);
+                UIText t0((i + 0*.5f) * 86.f + 5.f, 5.f, items[i]);
+            }
+        }
+
+        // Hot access
+        {
+            UIContainer c0(8.f, 81.f, 188.f, 256.f);
+
+            for( int i = 0; i < 4; i++ ) {
+                UIRoundrect r0(i * 52.f, 0.f, i * 52.f + 32.f, 32.f, 6.f);
+            }
+
+            // Switch through render textures
+            {
+                UIContainer c1(60.f - 8.f, 116.f - 81.f, 85.f * 4.f, 32.f * 20.f);
+
+                static const std::vector<const char*> items =
+                {
+                    "Lit",
+                    "Unlit",
+                    "AO",
+                    "Indirect",
+                    "Volumetric",
+                    "SSDO",
+                    "Normal",
+                    "Deferred",
+                    "Deferred Acc",
+                    "Shading"
+                };
+
+                for( int i = 0; i < 10; i++ ) {
+                    UIRoundrect r1(0.f, i * 36.f, 170.f, i * 36.f + 32.f, 6.f);
+                    UIText t0(35.f, 7.f + i * 36.f, items[i]);
+                }
+
+            }
+        }
+        
+        if( false )
         {
             UIContainer cont(Pos, Size);
 
@@ -189,9 +239,12 @@ bool _DirectX::Render() {
 
     static bool fLaG = false;
     fLaG ^= gKeyboard->IsPressed(VK_H);
-    UIManager::Submit();
-    UIManager::Render(fLaG);
 
+    UIText::Submit();
+    UIManager::Submit();
+
+    UIManager::Render(&UIText::Render, fLaG);
+    
     // Render to screen
     gContext->OMSetRenderTargets(1, &gRTV, nullptr);
     UIManager::Screen();
@@ -329,6 +382,22 @@ void _DirectX::CreateResources() {
         gTestLight = gMainScene->InsertDynamicPointLight(light);
     }
 
+    // UI Image Atlas initialization
+    UIAtlas::Init(1024u, 1024u, 1u);
+    rd = UIAtlas::Insert("Engine/RenderDoc.png");
+    #define TST(i, y) img[i] = UIAtlas::Insert("Engine/" y "Cube.png");
+    TST(0, "Lit");
+    TST(1, "Unlit");
+    TST(2, "AO");
+    TST(3, "Indirect");
+    TST(4, "Indirect"); // Volumetric
+    TST(5, "Indirect"); // SSDO
+    TST(6, "Normal");
+    TST(7, "Indirect"); // Deferred
+    TST(8, "Indirect"); // Deferred Accumulation
+    TST(9, "Unlit");    // Shading
+    UIAtlas::Update();
+
     /*gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
                                       [](EntityHandle e, uint32_t index) {
         TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
@@ -419,9 +488,9 @@ void _DirectX::CreateResources() {
                                                                //"../Models/Sponza/SponzaPBR.gltf",
                                                                //"../Models/SDKMesh/TankScene.gltf",
                                                                aiProcess_FlipUVs, [](EntityHandle e, uint32_t index) {
-        TransformComponent *transf = gMainScene->GetComponent<TransformComponent>(e);
-        MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
-        MeshStaticComponent *mesh = gMainScene->GetComponent<MeshStaticComponent>(e);
+        TransformComponent  *transf = gMainScene->GetComponent<TransformComponent>(e);
+        MaterialComponent   *mat    = gMainScene->GetComponent<MaterialComponent>(e);
+        MeshStaticComponent *mesh   = gMainScene->GetComponent<MeshStaticComponent>(e);
 
         //transf->vRotation = float3(270.f, 0.f, 0.f);
         transf->vRotation = float3(90.f, 0.f, 0.f); // Sponza, TankScene

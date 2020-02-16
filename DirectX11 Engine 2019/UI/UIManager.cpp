@@ -27,6 +27,8 @@ ConstantBuffer*                UIManager::cbPSDataBuffer{};
 RenderTarget2DColor1DepthMSAA* UIManager::rtDestination{};
 RasterState*                   UIManager::rsDefault{};
 RasterState*                   UIManager::rsWire{};
+Sampler*                       UIManager::gPointSampler{};
+Sampler*                       UIManager::gLinearSampler{};
 
 // Misc
 std::array<std::array<std::array<float2, UIManager::gMaxScrollbars>, UIManager::gMaxContainers>, UIManager::gMaxLayers> UIManager::gScrollbarContentSize{};
@@ -135,13 +137,36 @@ void UIManager::Init() {
         }
     }
 
+    // Samplers
+    gLinearSampler = new Sampler;
+    gPointSampler  = new Sampler;
+
+    {
+        D3D11_SAMPLER_DESC pDesc{};
+        pDesc.Filter         = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+        pDesc.AddressU       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.AddressV       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.AddressW       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+        pDesc.MaxLOD         = D3D11_FLOAT32_MAX;
+        pDesc.MinLOD         = 0;
+        pDesc.MipLODBias     = 0;
+        pDesc.MaxAnisotropy  = 16;
+
+        // Point sampler
+        gPointSampler->Create(pDesc);
+
+        // Linear sampler
+        pDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        gLinearSampler->Create(pDesc);
+    }
+
     // Raster states
     rsDefault = new RasterState;
     rsWire    = new RasterState;
 
     {
-        D3D11_RASTERIZER_DESC pDesc;
-        ZeroMemory(&pDesc, sizeof(D3D11_RASTERIZER_DESC));
+        D3D11_RASTERIZER_DESC pDesc{};
         pDesc.AntialiasedLineEnable = true;
         pDesc.CullMode              = D3D11_CULL_NONE;
         pDesc.DepthBias             = 0;
@@ -228,7 +253,7 @@ void UIManager::Submit() {
 }
 
 // TODO: Custom (w/ shaders)
-void UIManager::Render(bool debug_wire) {
+void UIManager::Render(void(*TextRenderFunction)(void), bool debug_wire) {
     {
         ScopeMapConstantBuffer<VSDataBuffer> q(cbVSDataBuffer);
         q.data->mProj = DirectX::XMMatrixOrthographicOffCenterLH(0.f, Width(), Height(), 0.f, .1f, float(gMaxLayers));
@@ -250,6 +275,8 @@ void UIManager::Render(bool debug_wire) {
 
         DXDraw(gDCLayer[index], 0);
     }
+
+    TextRenderFunction();
 
     // Restore state
     RasterState::Pop();
@@ -279,6 +306,8 @@ void UIManager::Release() {
     SAFE_RELEASE(rsDefault);
     SAFE_RELEASE(shPrimitives);
     SAFE_RELEASE(rtDestination);
+    SAFE_RELEASE(gPointSampler);
+    SAFE_RELEASE(gLinearSampler);
     SAFE_RELEASE(cbVSDataBuffer);
     SAFE_RELEASE(cbPSDataBuffer);
 }

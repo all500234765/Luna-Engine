@@ -2,7 +2,7 @@
 #include "Texture.h"
 
 implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *SubResource, 
-                                     uint32_t ArraySize, implTexture *Out) {
+                                     uint32_t ArraySize, implTexture *Out) const {
     union local_texture {
         ID3D11Texture1D* _1D;
         ID3D11Texture2D* _2D;
@@ -298,7 +298,7 @@ Texture::Texture(UINT flags, DXGI_FORMAT format,
     mArraySize = ArraySize * (1 + 5 * IsCube);
     mWidth = w; mHeight = h; mDepth = d; mMipMaps = 1;
     mTextureUnit = CreateTexture(format, nullptr, mArraySize, nullptr);
-    //SetName(mName.data());
+    SetName(name.data());
 }
 
 Texture::Texture(std::string_view fname, UINT flags, std::string_view name, 
@@ -310,7 +310,7 @@ Texture::Texture(std::string_view fname, UINT flags, std::string_view name,
 }
 
 void Texture::Load(std::string_view fname, UINT flags, uint32_t ArraySize, DXGI_FORMAT custom_format) {
-    if( mTextureUnit ) { mTextureUnit->Release(); }
+    SAFE_RELEASE(mTextureUnit);
 
     mFlags = flags;
     DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -407,6 +407,215 @@ void Texture::Load(std::string_view fname, UINT flags, uint32_t ArraySize, DXGI_
     if( strcmp(ext, "dds") ) {
         stbi_image_free(stbi_image);
     }
+}
+
+void Texture::Copy(Texture* src, uint32_t dst_x, uint32_t dst_y, uint32_t dst_z, uint32_t dst_array, uint32_t dst_mip,
+                   uint32_t src_mip, uint32_t src_array) {
+    D3D11_BOX box{};
+    box.left = 0;
+    box.right = mWidth >> src_mip;
+
+    box.top = 0;
+    box.bottom = mHeight >> src_mip;
+
+    box.front = 0;
+    box.back = mDepth >> src_mip;
+
+    // Overflow test
+    if( box.bottom == 0 || (box.right == 0 && (dim >= 2)) || (box.back == 0 && (dim == 3)) ) {
+    
+    } else {
+        box.right = std::max(box.right, 1u); // 1D
+        box.back = std::max(box.back, 1u); // 1D, 2D
+    }
+
+    uint32_t dst_sub = D3D11CalcSubresource(dst_mip, dst_array, mMipMaps);
+    uint32_t src_sub = D3D11CalcSubresource(src_mip, src_array, src->mMipMaps);
+
+    gDirectX->gContext->CopySubresourceRegion(GetResource(), dst_sub, dst_x, dst_y, dst_z, 
+                                              src->GetResource(), src_sub, &box);
+}
+
+void Texture::CopyS(Texture* dest, Texture* src, uint32_t dst_x, uint32_t dst_y, uint32_t dst_z, 
+                    uint32_t dst_array, uint32_t dst_mip, uint32_t src_mip, uint32_t src_array) {
+    D3D11_BOX box{};
+    box.left = 0;
+    box.right = dest->GetWidth() >> src_mip;
+
+    box.top = 0;
+    box.bottom = dest->GetHeight() >> src_mip;
+
+    box.front = 0;
+    box.back = dest->GetDepth() >> src_mip;
+
+    // Overflow test
+    if( box.bottom == 0 || (box.right == 0 && (dest->dim >= 2)) || (box.back == 0 && (dest->dim == 3)) ) {
+
+    } else {
+        box.right = std::max(box.right, 1u); // 1D
+        box.back = std::max(box.back, 1u); // 1D, 2D
+    }
+
+    uint32_t dst_sub = D3D11CalcSubresource(dst_mip, dst_array, dest->mMipMaps);
+    uint32_t src_sub = D3D11CalcSubresource(src_mip, src_array, src->mMipMaps);
+
+    gDirectX->gContext->CopySubresourceRegion(dest->GetResource(), dst_sub, dst_x, dst_y, dst_z,
+                                              src->GetResource(), src_sub, &box);
+}
+
+void Texture::CopyS(implTexture* dest, Texture* src, uint32_t dst_x, uint32_t dst_y, uint32_t dst_z,
+                    uint32_t dst_array, uint32_t dst_mip, uint32_t src_mip, uint32_t src_array) {
+    D3D11_BOX box{};
+    box.left = 0;
+    box.right = src->GetWidth() >> src_mip;
+
+    box.top = 0;
+    box.bottom = src->GetHeight() >> src_mip;
+
+    box.front = 0;
+    box.back = src->GetDepth() >> src_mip;
+
+    // Overflow test
+    if( box.bottom == 0 || (box.right == 0 && (dest->dim >= 2)) || (box.back == 0 && (dest->dim == 3)) ) {
+
+    } else {
+        box.right = std::max(box.right, 1u); // 1D
+        box.back = std::max(box.back, 1u); // 1D, 2D
+    }
+
+    uint32_t dst_sub = D3D11CalcSubresource(dst_mip, dst_array, dest->HasMipMaps * 15);
+    uint32_t src_sub = D3D11CalcSubresource(src_mip, src_array, src->mMipMaps);
+
+    gDirectX->gContext->CopySubresourceRegion(ChooseS(dest), dst_sub, dst_x, dst_y, dst_z,
+                                              src->GetResource(), src_sub, &box);
+}
+
+void Texture::ClearStg(float4 color) {
+    implTexture* stg = CreateStaging(color);
+    Copy(stg);
+    SAFE_RELEASE(stg);
+}
+
+void Texture::ClearStg(uint4 color) {
+    implTexture* stg = CreateStaging(color);
+    Copy(stg);
+    SAFE_RELEASE(stg);
+}
+
+void Texture::ClearRtv(const float color[4]) const {
+    D3D11_RENDER_TARGET_VIEW_DESC desc{};
+    desc.Format = GetFormat();
+    desc.ViewDimension = D3D11_RTV_DIMENSION(
+        (dim == 1) ? (D3D11_RTV_DIMENSION_TEXTURE1D + (mArraySize > 1)) :
+        (dim == 2) ? (D3D11_RTV_DIMENSION_TEXTURE2D + (mArraySize > 1)) :
+        (dim == 3) ? D3D11_RTV_DIMENSION_TEXTURE3D :
+        D3D11_RTV_DIMENSION_UNKNOWN
+    );
+
+    uint32_t mip_levels = ((mMipMaps <= 1) && HasMipMaps) ? -1 : std::max({ 1, (int)mMipMaps - 1 });
+
+    if( dim == 1 ) {
+        desc.Texture1D.MipSlice = 0;
+
+        if( mArraySize > 1 ) {
+            desc.Texture1DArray.FirstArraySlice = 0;
+            desc.Texture1DArray.ArraySize       = mArraySize;
+            desc.Texture1DArray.MipSlice        = 0;
+        }
+    } else if( dim == 2 ) {
+        desc.Texture2D.MipSlice = 0;
+
+        if( mArraySize > 1 ) {
+            desc.Texture2DArray.MipSlice        = 0;
+            desc.Texture2DArray.ArraySize       = mArraySize;
+            desc.Texture2DArray.FirstArraySlice = 0;
+        }
+    } else if( dim == 3 ) {
+        desc.Texture3D.FirstWSlice = 0;
+        desc.Texture3D.MipSlice    = 0;
+        desc.Texture3D.WSize       = GetDepth();
+    }
+
+    // Create
+    ID3D11RenderTargetView* rtv;
+    HRESULT res = gDirectX->gDevice->CreateRenderTargetView(GetResource(), &desc, &rtv);
+    if( FAILED(res) ) {
+        printf_s("[Texture::ClearRtv]: Failed to create RTV! [%s]\n", mName.data());
+        if( rtv ) rtv->Release();
+        return;
+    }
+
+    // Clear
+    gDirectX->gContext->ClearRenderTargetView(rtv, color);
+
+    // Delete
+    rtv->Release();
+}
+
+implTexture* Texture::CreateStaging() const {
+    auto tex = CreateTexture(mTextureUnit->mFormat, nullptr, mArraySize);
+    std::string str = std::string("stg.") + mName.data();
+    _SetName(Choose(tex->pTexture), str.c_str());
+
+    return tex;
+}
+
+implTexture* Texture::CreateStaging(float4 color) {
+    // Remove mipmapping for staging texture
+    uint mpsc = mMipMaps;
+    mMipMaps = 0;
+
+    // Load subresource data
+    D3D11_SUBRESOURCE_DATA* sub = new D3D11_SUBRESOURCE_DATA[mArraySize];
+    size_t index = 0;
+    for( int i = 0; i < mArraySize; i++ ) {
+        // Set data
+        sub[index].pSysMem = malloc(GetWHDCN());
+        sub[index].SysMemPitch = GetLineLength();
+        sub[index].SysMemSlicePitch = GetSliceLength();
+
+        memcpy_s(&sub[index].pSysMem, GetWHDCN(), &color, GetChannelNum() * sizeof(float));
+        index++;
+    }
+
+    implTexture* tex = CreateTexture(mTextureUnit->mFormat, sub, mArraySize);
+    mMipMaps = mpsc; // Restore mips
+    _SetName(Choose(tex->pTexture), (std::string("stg.") + std::string(mName)).c_str());
+
+    delete[] sub;
+    return tex;
+}
+
+implTexture* Texture::CreateStaging(uint4 color) {
+    // Remove mipmapping for staging texture
+    uint mpsc = mMipMaps;
+    mMipMaps = 0;
+
+    // Load subresource data
+    D3D11_SUBRESOURCE_DATA* sub = new D3D11_SUBRESOURCE_DATA[mArraySize];
+    size_t index = 0;
+    for( int i = 0; i < mArraySize; i++ ) {
+        // Set data
+        sub[index].pSysMem     = malloc(GetWHDCN());
+        sub[index].SysMemPitch = GetLineLength();
+        sub[index].SysMemSlicePitch = GetSliceLength();
+        
+        memcpy_s(&sub[index].pSysMem, GetWHDCN(), &color, GetChannelNum() * sizeof(uint));
+        index++;
+    }
+    
+    implTexture* tex = CreateTexture(mTextureUnit->mFormat, sub, mArraySize);
+    mMipMaps = mpsc; // Restore mips
+    _SetName(Choose(tex->pTexture), (std::string("stg.") + std::string(mName)).c_str());
+
+    delete[] sub;
+    return tex;
+}
+
+Texture* Texture::CreateStaging(uint32_t flags, DXGI_FORMAT format, uint32_t width,
+                                uint32_t height, uint32_t depth, uint32_t array_size) {
+    flags |= tf_CPURead | tf_CPUWrite;
+    return new Texture(flags, format, width, height, depth, array_size, "stg");
 }
 
 void Texture::SetSubresource(const D3D11_SUBRESOURCE_DATA* resource, UINT mip, UINT array) {

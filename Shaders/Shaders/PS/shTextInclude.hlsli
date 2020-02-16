@@ -27,6 +27,9 @@ SamplerState _FontSampler : register(s0);
 struct PS {
     float4 Position : SV_Position;
     float2 Texcoord : TEXCOORD0;
+#ifdef _Color_Text_
+    float3 Color    : COLOR0;
+#endif
 };
 
 float SDF(float2 uv) {

@@ -37,7 +37,7 @@ Font::Font(const char* fontFile, Sampler* s, bool SDF): sFont(s), bSDF(SDF) {
     // Get texture file name and load texture
     std::getline(file, line);
     EraseGarbage("page id=0 file=\"", "\"");
-    tFont = new Texture(std::string(FONT_DIRECTORY) + std::string(line), DXGI_FORMAT_R8G8B8A8_UNORM);
+    tFont = new Texture(std::string(FONT_DIRECTORY) + std::string(line), 0u, fontFile);
     
     // Get number of characters
     std::getline(file, line);

@@ -8,7 +8,7 @@
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/RenderTarget/RenderTarget.h"
 #include "Integration/RenderDocManager.h"
-#include "UI/UIManager.h"
+#include "Engine Includes/UI.h"
 
 //#include "Enums.h"
 #include "Defines.h"
@@ -75,6 +75,7 @@ public:
 
         RenderTarget2DColor1::GlobalInit();
         UIManager::Init();
+        UIText::Init();
 
         // Return DirectX object
         return gDirectX;
@@ -120,6 +121,7 @@ public:
 
         RenderTarget2DColor1::GlobalRelease();
         UIManager::Release();
+        UIText::Release();
 
         SAFE_DELETE(gRenderDoc);
         gWindow->Destroy();

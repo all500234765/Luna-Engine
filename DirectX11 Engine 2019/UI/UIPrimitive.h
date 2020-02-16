@@ -20,11 +20,16 @@ protected:
     }
 
     static void AddVertex(const UIVertex& v) {
-        gDCLayer[gLayerID]++;
+        AddVertex(gDCLayer[gLayerID], &gVertexLayer[gLayerID], v);
+    }
+
+    static void AddVertex(uint64_t& counter, std::vector<UIVertex> *vertices, const UIVertex& v) {
+        //gDCLayer[gLayerID]++;
+        counter++;
 
         UIVertex v1(v);
         v1.Position.z++;
-        gVertexLayer[gLayerID].push_back(v1);
+        vertices->push_back(v1);
 
         uint32_t SID = std::max((int)gContainerStackIDLayer[gLayerID] - 1, 0);
         Notify();
@@ -42,6 +47,10 @@ protected:
     static const UIVertex& AdvanceScroll(const UIVertex& v, uint32_t SID);
 
     static void AddTriangle(const UIVertex& v0, const UIVertex& v1, const UIVertex& v2) {
+        AddTriangle(gDCLayer[gLayerID], &gVertexLayer[gLayerID], v0, v1, v2);
+    }
+
+    static void AddTriangle(uint64_t& counter, std::vector<UIVertex> *vertices, const UIVertex& v0, const UIVertex& v1, const UIVertex& v2) {
         // Advance
         UIVertex v10 = Advance(v0);
         UIVertex v11 = Advance(v1);
@@ -77,9 +86,9 @@ protected:
                 }
             }
 
-            AddVertex(v10);
-            AddVertex(v11);
-            AddVertex(v12);
+            AddVertex(counter, vertices, v10);
+            AddVertex(counter, vertices, v11);
+            AddVertex(counter, vertices, v12);
         } else {
             NotifyScroll(v0, v1, v2);
 
@@ -87,9 +96,9 @@ protected:
             v11 = AdvanceScroll(v11, SID);
             v12 = AdvanceScroll(v12, SID);
 
-            AddVertex(v0);
-            AddVertex(v1);
-            AddVertex(v2);
+            AddVertex(counter, vertices, v0);
+            AddVertex(counter, vertices, v1);
+            AddVertex(counter, vertices, v2);
         }
     }
 

@@ -83,8 +83,8 @@ public:
     void DisableDefaultTexture() { bUseDefaultTexture = false; };
     void EnableDefaultTexture()  { bUseDefaultTexture = true; };
 
-    const IndexBuffer&  GetIB() const { return MeshBuffer[0]->GetIB(); }
-    const VertexBuffer& GetVB() const { return MeshBuffer[0]->GetVB(); }
+    const IndexBuffer*  GetIB() const { return MeshBuffer[0]->GetIB(); }
+    const VertexBuffer* GetVB() const { return MeshBuffer[0]->GetVB(); }
 };
 
 /*template<typename VertexT>

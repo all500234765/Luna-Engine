@@ -96,6 +96,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRectangle.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRoundrect.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIScrollbar.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIText.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UI\UIAtlas.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\UIPrimitive.h" />
   </ItemGroup>
   <ItemGroup>
@@ -153,6 +155,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRectangle.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRoundrect.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIScrollbar.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIText.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UI\UIAtlas.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\UIManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\UIManager.h" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\UIPrimitive.cpp" />

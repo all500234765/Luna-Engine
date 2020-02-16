@@ -9,8 +9,9 @@
 #include "Engine/Scene/Texture.h"
 #include "Engine/Scene/Sampler.h"
 
+#include "Engine/States/PipelineState.h"
 
-class Font: public DirectXChild {
+class Font: public PipelineState<Font>, DirectXChild {
 private:
     struct Character {
         int id;
@@ -20,6 +21,7 @@ private:
         float xStep;
     };
 
+    float fScale = 16.f; // Custom
     float mScale, mSpacing = 1.f, mHeight;
     bool bSDF;
 
@@ -61,11 +63,14 @@ public:
     inline float GetCharU1(char ch) const { return aChars[ch].u1; } // UV 1
     inline float GetCharV1(char ch) const { return aChars[ch].v1; }
 
-    inline DirectX::XMFLOAT2 GetCharUV0(char ch) const { return DirectX::XMFLOAT2(aChars[ch].u0, aChars[ch].v0); }
-    inline DirectX::XMFLOAT2 GetCharUV1(char ch) const { return DirectX::XMFLOAT2(aChars[ch].u1, aChars[ch].v1); }
+    inline float2 GetCharUV0(char ch) const { return float2(aChars[ch].u0, aChars[ch].v0); }
+    inline float2 GetCharUV1(char ch) const { return float2(aChars[ch].u1, aChars[ch].v1); }
 
     inline float GetAdvance(char ch) const { return aChars[ch].xStep; }
 
     inline float GetCharX(char ch) const { return aChars[ch].xOffset; }
     inline float GetCharY(char ch) const { return aChars[ch].yOffset; }
+
+    inline void SetScaling(float s) { fScale = s; }
+    inline float GetScaling() const { return fScale; }
 };

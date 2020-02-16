@@ -675,6 +675,7 @@ void RendererDeferred::ImGui() {
                            | ImGuiWindowFlags_NoBackground;
     bool open = true;
 
+    if( false )
     {
         static const std::vector<std::vector<const char*>> items = {
             {
@@ -780,6 +781,7 @@ void RendererDeferred::ImGui() {
     }
     ImGui::End();
 
+    if( false )
     {
         static const std::vector<std::vector<const char*>> items = {
             {

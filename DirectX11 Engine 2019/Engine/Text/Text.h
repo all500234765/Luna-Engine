@@ -30,6 +30,7 @@ public:
     inline float GetSizeH() const { return mHeight; }
 
     inline const char* GetText() const { return mText; }
+    inline       Mesh* GetMesh() const { return data; }
 
     void Clear();
     void Release(); // Reserved for future

@@ -115,7 +115,7 @@ private:
     bool bUndefined = true;
 
     // Name
-    std::string_view mName;
+    std::string mName;
 
     // Choose texture
     ID3D11Resource* Choose(ID3D11Texture1D* _1D, ID3D11Texture2D* _2D, ID3D11Texture3D* _3D) const {
@@ -136,8 +136,14 @@ private:
         return std::get<ID3D11Texture3D*>(pTexture);
     }
 
+    static ID3D11Resource* ChooseS(implTexture* tex) {
+        if( tex->dim == 1 ) return std::get<ID3D11Texture1D*>(tex->pTexture);
+        if( tex->dim == 2 ) return std::get<ID3D11Texture2D*>(tex->pTexture);
+        return std::get<ID3D11Texture3D*>(tex->pTexture);
+    }
+
     implTexture* CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *SubResource, 
-                               uint32_t ArraySize=1, implTexture* Out=nullptr);
+                               uint32_t ArraySize=1, implTexture* Out=nullptr) const;
 
 public:
     // Deleted call
@@ -171,22 +177,75 @@ public:
     }
     
     // Getters
-    inline ID3D11ShaderResourceView*  GetSRV()       const { return mTextureUnit->pSRV;                }
-    inline ID3D11UnorderedAccessView* GetUAV()       const { return mTextureUnit->pUAV;                }
-    inline ID3D11Resource*            GetResource()  const { return Choose(mTextureUnit->pTexture);    }
-    inline uint32_t                   GetFlags()     const { return mFlags;                            }
-    inline implTexture*               GetTexture()   const { return mTextureUnit;                      }
-    inline std::string_view           GetName()      const { return mName;                             }
-    inline uint32_t                   GetWidth()     const { return mWidth;                            }
-    inline uint32_t                   GetHeight()    const { return mHeight;                           }
-    inline uint32_t                   GetDepth()     const { return mDepth;                            }
-    inline uint32_t                   GetArraySize() const { return mArraySize;                        }
-    inline uint32_t                   GetCubeNum()   const { return (uint32_t)floor(mArraySize / 6.f); }
+    inline ID3D11ShaderResourceView*  GetSRV()         const { return mTextureUnit->pSRV;                }
+    inline ID3D11UnorderedAccessView* GetUAV()         const { return mTextureUnit->pUAV;                }
+    inline ID3D11Resource*            GetResource()    const { return Choose(mTextureUnit->pTexture);    }
+    inline uint32_t                   GetFlags()       const { return mFlags;                            }
+    inline implTexture*               GetTexture()     const { return mTextureUnit;                      }
+    inline std::string_view           GetName()        const { return mName;                             }
+    inline uint32_t                   GetWidth()       const { return mWidth;                            }
+    inline uint32_t                   GetHeight()      const { return mHeight;                           }
+    inline uint32_t                   GetDepth()       const { return mDepth;                            }
+    inline uint32_t                   GetArraySize()   const { return mArraySize;                        }
+    inline DXGI_FORMAT                GetFormat()      const { return mTextureUnit->mFormat;             }
+    inline uint32_t                   GetCubeNum()     const { return (uint32_t)floor(mArraySize / 6.f); }
+    inline uint32_t                   GetChannelNum()  const { return Format2Ch(mTextureUnit->mFormat);  }
+
+    inline uint32_t                   GetSliceLength() const { return GetLineLength() * GetHeight();     };
+    inline uint32_t                   GetLineLength()  const { return GetWidth() *  Format2BPP(GetFormat()); }
+    inline uint32_t                   GetWHDCN()       const { return GetWidth() * GetHeight() * GetDepth() * GetChannelNum(); }
 
     // Copy data from another texture
-    inline void Copy(Texture *src) { gDirectX->gContext->CopyResource(GetResource(), src->GetResource()); }
-    inline void Copy(ID3D11Texture2D *src) { gDirectX->gContext->CopyResource(GetResource(), src); }
-    
+    inline void Copy(Texture         *src) const { gDirectX->gContext->CopyResource(GetResource(), src->GetResource()); }
+    inline void Copy(implTexture     *src) const { gDirectX->gContext->CopyResource(GetResource(), Choose(src->pTexture)); }
+    inline void Copy(ID3D11Texture2D *src) const { gDirectX->gContext->CopyResource(GetResource(), src); }
+
+    static inline void Copy(Texture         *dest, Texture         *src) { gDirectX->gContext->CopyResource(dest->GetResource(), src->GetResource()); }
+    static inline void Copy(Texture         *dest, implTexture     *src) { gDirectX->gContext->CopyResource(dest->GetResource(), ChooseS(src)); }
+    static inline void Copy(Texture         *dest, ID3D11Texture2D *src) { gDirectX->gContext->CopyResource(dest->GetResource(), src); }
+
+    static inline void Copy(implTexture     *dest, Texture         *src) { gDirectX->gContext->CopyResource(ChooseS(dest), src->GetResource()); }
+    static inline void Copy(implTexture     *dest, implTexture     *src) { gDirectX->gContext->CopyResource(ChooseS(dest), ChooseS(src)); }
+    static inline void Copy(implTexture     *dest, ID3D11Texture2D *src) { gDirectX->gContext->CopyResource(ChooseS(dest), src); }
+
+    static inline void Copy(ID3D11Texture2D *dest, Texture         *src) { gDirectX->gContext->CopyResource(dest, src->GetResource()); }
+    static inline void Copy(ID3D11Texture2D *dest, implTexture     *src) { gDirectX->gContext->CopyResource(dest, ChooseS(src)); }
+    static inline void Copy(ID3D11Texture2D *dest, ID3D11Texture2D *src) { gDirectX->gContext->CopyResource(dest, src); }
+
+    void Copy(Texture* src, uint32_t dst_x, uint32_t dst_y, uint32_t dst_z, uint32_t dst_array, uint32_t dst_mip,
+              uint32_t src_mip, uint32_t src_array);
+
+    static void CopyS(Texture* dest, Texture* src, uint32_t dst_x, uint32_t dst_y, uint32_t dst_z,
+                      uint32_t dst_array, uint32_t dst_mip, uint32_t src_mip, uint32_t src_array);
+
+    static void CopyS(implTexture* dest, Texture* src, uint32_t dst_x, uint32_t dst_y, uint32_t dst_z,
+                      uint32_t dst_array, uint32_t dst_mip, uint32_t src_mip, uint32_t src_array);
+
+    void ClearStg(float4 color);
+    void ClearStg(uint4 color);
+
+    void ClearRtv(const float color[4]) const;
+
+    /*template<typename T>
+    void Clear(T color) {
+        if( Immutable ) return;
+        ID3D11Resource* stg = CreateStaging();
+        D3D11_MAPPED_SUBRESOURCE pMapped{};
+        if( gDirectX->gContext->Map(stg, 0, D3D11_MAP_WRITE, 0, &pMapped) == S_OK ) {
+            memcpy_s(&pMapped.pData, GetWidth() * GetHeight() * GetDepth() * GetChannelNum(), &color, GetChannelNum() * sizeof(T::x));
+
+            gDirectX->gContext->Unmap(stg, 0);
+        }
+
+        stg->Release();
+    }*/
+
+    implTexture* CreateStaging() const;
+    implTexture* CreateStaging(float4 color);
+    implTexture* CreateStaging(uint4 color);
+
+    static Texture* CreateStaging(uint32_t flags, DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t depth, uint32_t array_size);
+
     void SetSubresource(const D3D11_SUBRESOURCE_DATA* resource, UINT mip=0, UINT array=0);
     void Resize(uint32_t w, uint32_t h, uint32_t d=1u, TResizeFlag SaveContent= TResizeFlag::Clear);
     void Bind(UINT type, UINT slot=0u, bool UAV=false);

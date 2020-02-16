@@ -137,6 +137,9 @@
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shUIPrimitivesPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shUITextSDFPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shVoxelizePS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>

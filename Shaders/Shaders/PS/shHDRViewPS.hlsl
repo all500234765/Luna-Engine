@@ -22,11 +22,11 @@ static const float3 LumScale = float3(.299f, .587f, .114f);
 float4 main(PS In): SV_Target0 {
     float lum = dot(_Texture.Sample(_Sampler1, In.Texcoord).rgb, LumScale);
     
-    [branch] if( _UseAvg ) {
+    /*[branch] if( _UseAvg ) {
         lum *= _LumScale / _AvgLum[0].r;
     } else {
         lum /= _MaxLum;
-    }
-    
+    }*/
+    if( In.Texcoord.y >= .95f ) lum = In.Texcoord.x;
     return _LUT.Sample(_Sampler2, float2(saturate(lum), 0.f));
 }
