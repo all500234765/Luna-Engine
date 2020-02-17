@@ -26,7 +26,7 @@ UIRoundrect::UIRoundrect(float x0, float y0, float x1, float y1, float Rounding)
 }
 
 UIRoundrect::UIRoundrect(float x0, float y0, float x1, float y1, float4 Rounding) {
-    UIVertex v0, v1, v2;
+    UIVertex v0{}, v1{}, v2{};
     float z = (float)gLayerID;
 
     v0.Color = gColor;

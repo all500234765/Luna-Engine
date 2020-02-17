@@ -1,6 +1,17 @@
 #include "pc.h"
 #include "Texture.h"
 
+Shader*         Texture::shTransformRTV{};
+Shader*         Texture::shTransformUAV{};
+ConstantBuffer* Texture::cbTransform{};
+ConstantBuffer* Texture::cbCamera{};
+Sampler*        Texture::gLinearSampler{};
+Sampler*        Texture::gPointSampler{};
+
+BlendState*        Texture::bsSimple{};
+RasterState*       Texture::rsSimple{};
+DepthStencilState* Texture::dsSimple{};
+
 implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *SubResource, 
                                      uint32_t ArraySize, implTexture *Out) const {
     union local_texture {
@@ -11,6 +22,7 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
 
     ID3D11ShaderResourceView  *pSRV = 0;
     ID3D11UnorderedAccessView *pUAV = 0;
+    ID3D11RenderTargetView    *pRTV = 0;
 
     // MSAA
     uint32_t Quality = 0;
@@ -18,12 +30,12 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
 
     // 
     HRESULT res = S_FALSE;
+    D3D11_USAGE Usage = (CPURead    ? D3D11_USAGE_STAGING : (CPUWrite ? D3D11_USAGE_DYNAMIC : (Immutable ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT)));
     UINT BindFlags = D3D11_BIND_SHADER_RESOURCE | 
                      (HasUAV ? D3D11_BIND_UNORDERED_ACCESS : 0)
-                   | (HasMipMaps & !MSAA && !FormatBC(format) ? D3D11_BIND_RENDER_TARGET : 0);
+                   | (((Usage!= D3D11_USAGE_STAGING && Usage != D3D11_USAGE_IMMUTABLE) || HasMipMaps) & !MSAA && !FormatBC(format) ? D3D11_BIND_RENDER_TARGET : 0);
     UINT MipMaps      = MSAA ? 1 : (HasMipMaps ? ((mMipMaps == 1) ? 0 : mMipMaps) : 1);
     UINT CPUAccess    = (CPURead    ? D3D11_CPU_ACCESS_READ : 0) | (CPUWrite ? D3D11_CPU_ACCESS_WRITE : 0);
-    D3D11_USAGE Usage = (CPURead    ? D3D11_USAGE_STAGING : (CPUWrite ? D3D11_USAGE_DYNAMIC : (Immutable ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT)));
     UINT Misc         = (HasMipMaps ? (MSAA ? 0 : ((MipMaps <= 1) && !FormatBC(format) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)) : 0) |
                         (IsCube     ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0) | 
                         (ClampMip   ? D3D11_RESOURCE_MISC_RESOURCE_CLAMP : 0) | 
@@ -260,6 +272,46 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
         // Generate mips for texture
         if( (MipMaps <= 1) && HasMipMaps && SubResource && !FormatBC(format) )
             gDirectX->gContext->GenerateMips(pSRV);
+
+        // Create RTV
+        D3D11_RENDER_TARGET_VIEW_DESC desc{};
+        desc.Format = format;
+        desc.ViewDimension = D3D11_RTV_DIMENSION(
+            (dim == 1) ? (D3D11_RTV_DIMENSION_TEXTURE1D + (mArraySize > 1)) :
+            (dim == 2) ? (D3D11_RTV_DIMENSION_TEXTURE2D + (mArraySize > 1)) :
+            (dim == 3) ? D3D11_RTV_DIMENSION_TEXTURE3D :
+            D3D11_RTV_DIMENSION_UNKNOWN
+        );
+
+        //uint32_t mip_levels = ((mMipMaps <= 1) && HasMipMaps) ? -1 : std::max({ 1, (int)mMipMaps - 1 });
+
+        if( dim == 1 ) {
+            desc.Texture1D.MipSlice = 0;
+
+            if( mArraySize > 1 ) {
+                desc.Texture1DArray.FirstArraySlice = 0;
+                desc.Texture1DArray.ArraySize = mArraySize;
+                desc.Texture1DArray.MipSlice = 0;
+            }
+        } else if( dim == 2 ) {
+            desc.Texture2D.MipSlice = 0;
+
+            if( mArraySize > 1 ) {
+                desc.Texture2DArray.MipSlice = 0;
+                desc.Texture2DArray.ArraySize = mArraySize;
+                desc.Texture2DArray.FirstArraySlice = 0;
+            }
+        } else if( dim == 3 ) {
+            desc.Texture3D.FirstWSlice = 0;
+            desc.Texture3D.MipSlice = 0;
+            desc.Texture3D.WSize = GetDepth();
+        }
+
+        // 
+        res = gDirectX->gDevice->CreateRenderTargetView(Choose(pTexture._1D, pTexture._2D, pTexture._3D), &desc, &pRTV);
+        if( FAILED(res) ) {
+            printf_s("[Texture::Create]: Failed to create RTV! [%s]\n", mName.data());
+        }
     }
     
     // 
@@ -273,9 +325,143 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
     Out->mFormat  = format;
     Out->pSRV     = pSRV;
     Out->pUAV     = pUAV;
+    Out->pRTV     = pRTV;
     Out->mFlags   = mFlags;
 
     return Out;
+}
+
+void Texture::GlobalInit() {
+    // Buffers
+    cbTransform = new ConstantBuffer();
+    cbTransform->CreateDefault(sizeof(TransformBuffer));
+
+    cbCamera = new ConstantBuffer();
+    cbCamera->CreateDefault(sizeof(CameraBuffer));
+
+    // Shaders
+    shTransformRTV = new Shader();
+    shTransformRTV->LoadFile("shTexturedQuadAutoVS.cso", Shader::Vertex);
+    shTransformRTV->LoadFile("shTexturedQuadPS.cso", Shader::Pixel);
+
+    shTransformRTV->ReleaseBlobs();
+
+    // Samplers
+    gLinearSampler = new Sampler();
+    gPointSampler  = new Sampler();
+
+    {
+        D3D11_SAMPLER_DESC pDesc{};
+        pDesc.Filter         = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+        pDesc.AddressU       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.AddressV       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.AddressW       = D3D11_TEXTURE_ADDRESS_WRAP;
+        pDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+        pDesc.MaxLOD         = D3D11_FLOAT32_MAX;
+        pDesc.MinLOD         = 0;
+        pDesc.MipLODBias     = 0;
+        pDesc.MaxAnisotropy  = 16;
+
+        // Point sampler
+        gPointSampler->Create(pDesc);
+
+        // Linear sampler
+        pDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        gLinearSampler->Create(pDesc);
+    }
+
+    // Raster
+    rsSimple = new RasterState();
+
+    {
+        D3D11_RASTERIZER_DESC pDesc;
+        ZeroMemory(&pDesc, sizeof(D3D11_RASTERIZER_DESC));
+        pDesc.AntialiasedLineEnable = true;
+        pDesc.CullMode              = D3D11_CULL_NONE;
+        pDesc.DepthBias             = 0;
+        pDesc.DepthBiasClamp        = 0.0f;
+        pDesc.DepthClipEnable       = false;
+        pDesc.FillMode              = D3D11_FILL_SOLID;
+        pDesc.FrontCounterClockwise = false;
+        pDesc.MultisampleEnable     = false;
+        pDesc.ScissorEnable         = false;
+        pDesc.SlopeScaledDepthBias  = 0.0f;
+
+        // Normal
+        rsSimple->Create(pDesc);
+    }
+
+    // Blend
+    bsSimple = new BlendState();
+
+    {
+        D3D11_BLEND_DESC pDesc;
+        pDesc.RenderTarget[0].BlendEnable           = true;
+        pDesc.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
+        pDesc.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
+
+        pDesc.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
+        pDesc.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
+        
+        pDesc.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_INV_SRC_ALPHA;
+        pDesc.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_SRC_ALPHA;
+        
+        pDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+        pDesc.AlphaToCoverageEnable  = false;
+        pDesc.IndependentBlendEnable = false;
+
+        bsSimple->Create(pDesc, { 1.f, 1.f, 1.f, 1.f });
+    }
+
+    // Depth Stencil
+    dsSimple = new DepthStencilState();
+
+    {
+        D3D11_DEPTH_STENCIL_DESC pDesc;
+        pDesc.DepthEnable = true;
+        pDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        pDesc.DepthFunc = D3D11_COMPARISON_GREATER; //D3D11_COMPARISON_LESS
+
+        pDesc.StencilEnable = !true;
+        pDesc.StencilReadMask = 0xFF;
+        pDesc.StencilWriteMask = 0xFF;
+
+        // Stencil operations if pixel is front-facing.
+        pDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        pDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+        pDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        pDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+        // Stencil operations if pixel is back-facing.
+        pDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+        pDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+        pDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+        pDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+        // No RW
+        pDesc.DepthEnable = false;
+        pDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        dsSimple->Create(pDesc, 0);
+    }
+}
+
+void Texture::GlobalRelease() {
+    // Samplers
+    SAFE_RELEASE(gPointSampler);
+
+    // Shaders
+    SAFE_RELEASE(shTransformUAV);
+    SAFE_RELEASE(shTransformRTV);
+
+    // Buffers
+    SAFE_RELEASE(cbTransform);
+    SAFE_RELEASE(cbCamera);
+
+    // States
+    SAFE_RELEASE(bsSimple);
+    SAFE_RELEASE(rsSimple);
+    SAFE_RELEASE(dsSimple);
 }
 
 Texture::Texture(UINT flags, DXGI_FORMAT format, 
@@ -490,6 +676,78 @@ void Texture::CopyS(implTexture* dest, Texture* src, uint32_t dst_x, uint32_t ds
                                               src->GetResource(), src_sub, &box);
 }
 
+void Texture::CopySRot(implTexture* dest, Texture* src, float x, float y, float angle, float total_width, float total_height) {
+    if( dest->pRTV ) {
+        gDirectX->gContext->OMSetRenderTargets(1, &dest->pRTV, nullptr);
+        shTransformRTV->Bind();
+
+        // Store states
+        BlendState::Push();
+        RasterState::Push();
+        STopologyState::Push();
+        DepthStencilState::Push();
+
+        // Bind states
+        bsSimple->Bind();
+        rsSimple->Bind();
+        dsSimple->Bind();
+        STopologyState::Bind(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        D3D11_VIEWPORT vp;
+        vp.MinDepth = 0.f;
+        vp.MaxDepth = 1.f;
+        vp.Width  = total_width;
+        vp.Height = total_height;
+        vp.TopLeftX = 0.f;
+        vp.TopLeftY = 0.f;
+
+        gDirectX->gContext->RSSetViewports(1, &vp);
+
+        {
+            ScopeMapConstantBuffer<TransformBuffer> c(cbTransform);
+
+            float rad = DirectX::XMConvertToRadians(angle + 0*90.f);
+            float sc = sinf(rad), cc = cosf(rad);
+            float W = src->GetWidth();
+            float H = src->GetHeight();
+
+            c.data->mWorld = DirectX::XMMatrixRotationZ(rad); // [-1; 1]
+            c.data->mWorld *= DirectX::XMMatrixScaling(.5f, .5f, 1.f);
+            c.data->mWorld *= DirectX::XMMatrixTranslation(.5f, .5f, 0.f); // [0; 1]
+
+            c.data->mWorld *= DirectX::XMMatrixScaling(W, H, 1.f);
+            c.data->mWorld *= DirectX::XMMatrixTranslation(x + 0*W * .25f, y + 0*H * .5f, 0.f);
+
+            c.data->vPosition = {};
+            c.data->vRotation = {};
+            c.data->vScale    = {};
+        }
+
+        {
+            ScopeMapConstantBuffer<CameraBuffer> c(cbCamera);
+
+            c.data->mView = DirectX::XMMatrixIdentity();
+            c.data->mProj = DirectX::XMMatrixOrthographicOffCenterLH(0.f, total_width, total_height, 0.f, .1f, 10.f);
+        }
+
+        cbTransform->Bind(Shader::Vertex, 0u); // CB
+        cbCamera->Bind(Shader::Vertex, 1u);    // CB
+        src->Bind(Shader::Pixel, 0u, false);   // SRV
+        gPointSampler->Bind(Shader::Pixel, 0); // Sampler
+
+        // Draw call
+        DXDraw(6, 0);
+
+        // Restore states
+        BlendState::Pop();
+        RasterState::Pop();
+        STopologyState::Pop();
+        DepthStencilState::Pop();
+    } else if( dest->pUAV ) {
+
+    }
+}
+
 void Texture::ClearStg(float4 color) {
     implTexture* stg = CreateStaging(color);
     Copy(stg);
@@ -503,53 +761,8 @@ void Texture::ClearStg(uint4 color) {
 }
 
 void Texture::ClearRtv(const float color[4]) const {
-    D3D11_RENDER_TARGET_VIEW_DESC desc{};
-    desc.Format = GetFormat();
-    desc.ViewDimension = D3D11_RTV_DIMENSION(
-        (dim == 1) ? (D3D11_RTV_DIMENSION_TEXTURE1D + (mArraySize > 1)) :
-        (dim == 2) ? (D3D11_RTV_DIMENSION_TEXTURE2D + (mArraySize > 1)) :
-        (dim == 3) ? D3D11_RTV_DIMENSION_TEXTURE3D :
-        D3D11_RTV_DIMENSION_UNKNOWN
-    );
-
-    uint32_t mip_levels = ((mMipMaps <= 1) && HasMipMaps) ? -1 : std::max({ 1, (int)mMipMaps - 1 });
-
-    if( dim == 1 ) {
-        desc.Texture1D.MipSlice = 0;
-
-        if( mArraySize > 1 ) {
-            desc.Texture1DArray.FirstArraySlice = 0;
-            desc.Texture1DArray.ArraySize       = mArraySize;
-            desc.Texture1DArray.MipSlice        = 0;
-        }
-    } else if( dim == 2 ) {
-        desc.Texture2D.MipSlice = 0;
-
-        if( mArraySize > 1 ) {
-            desc.Texture2DArray.MipSlice        = 0;
-            desc.Texture2DArray.ArraySize       = mArraySize;
-            desc.Texture2DArray.FirstArraySlice = 0;
-        }
-    } else if( dim == 3 ) {
-        desc.Texture3D.FirstWSlice = 0;
-        desc.Texture3D.MipSlice    = 0;
-        desc.Texture3D.WSize       = GetDepth();
-    }
-
-    // Create
-    ID3D11RenderTargetView* rtv;
-    HRESULT res = gDirectX->gDevice->CreateRenderTargetView(GetResource(), &desc, &rtv);
-    if( FAILED(res) ) {
-        printf_s("[Texture::ClearRtv]: Failed to create RTV! [%s]\n", mName.data());
-        if( rtv ) rtv->Release();
-        return;
-    }
-
     // Clear
-    gDirectX->gContext->ClearRenderTargetView(rtv, color);
-
-    // Delete
-    rtv->Release();
+    gDirectX->gContext->ClearRenderTargetView(mTextureUnit->pRTV, color);
 }
 
 implTexture* Texture::CreateStaging() const {
@@ -673,13 +886,14 @@ void Texture::Bind(UINT type, UINT slot, bool UAV) {
 }
 
 void Texture::Release() {
-    if( mTextureUnit ) mTextureUnit->Release();
+    SAFE_RELEASE(mTextureUnit);
 
 }
 
 void implTexture::Release() {
     if( pUAV ) pUAV->Release();
     if( pSRV ) pSRV->Release();
+    if( pRTV ) pRTV->Release();
 
     if( dim == 1 ) GetTexture1D()->Release();
     if( dim == 2 ) GetTexture2D()->Release();

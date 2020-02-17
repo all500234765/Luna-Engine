@@ -1,18 +1,7 @@
 #include "pc.h"
-#include "Other/CPUID.h"
 
 // Extensions
-#include "Engine/Extensions/Default.h"
-#include "Engine/Input/Gamepad.h"
-
 #include "Engine Includes/MainInclude.h"
-#include "HighLevel/DirectX/HighLevel.h"
-
-#include "Renderer/RendererDeferred.h"
-
-#include "Engine/Window/SplashScreen.h"
-
-#include "Engine Includes/UI.h"
 
 HighLevel gHighLevel;
 RendererBase *gRenderer;
@@ -82,7 +71,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     dxCFG.Ansel = USE_ANSEL;
 
     // Init DirectX
-    gDirectX = gHighLevel.InitDirectX(dxCFG, !true);
+    gDirectX = gHighLevel.InitDirectX(dxCFG, true);
 
     // Main Loop
     gHighLevel.AppLoop();
@@ -178,7 +167,12 @@ bool _DirectX::Render() {
                 };
 
                 for( int i = 0; i < 10; i++ ) {
+                    UIPrimitive::SetColor({ 0.f, 0.f, 0.f, .5f });
                     UIRoundrect r1(0.f, i * 36.f, 170.f, i * 36.f + 32.f, 6.f);
+
+                    UIPrimitive::SetColor({ 1.f, 1.f, 1.f, 1.f });
+                    UIImageRectangle ir(img[i], 5.f, i * 36.f + 5.f, 24.f, 24.f);
+
                     UIText t0(35.f, 7.f + i * 36.f, items[i]);
                 }
 
@@ -247,6 +241,7 @@ bool _DirectX::Render() {
     
     // Render to screen
     gContext->OMSetRenderTargets(1, &gRTV, nullptr);
+    //UIAtlas::Update();
     UIManager::Screen();
 
     // Debug frame statistics
@@ -383,6 +378,7 @@ void _DirectX::CreateResources() {
     }
 
     // UI Image Atlas initialization
+    gHighLevel.RenderDocCaptureBegin();
     UIAtlas::Init(1024u, 1024u, 1u);
     rd = UIAtlas::Insert("Engine/RenderDoc.png");
     #define TST(i, y) img[i] = UIAtlas::Insert("Engine/" y "Cube.png");
@@ -397,6 +393,7 @@ void _DirectX::CreateResources() {
     TST(8, "Indirect"); // Deferred Accumulation
     TST(9, "Unlit");    // Shading
     UIAtlas::Update();
+    gHighLevel.RenderDocCaptureEnd();
 
     /*gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
                                       [](EntityHandle e, uint32_t index) {

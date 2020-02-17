@@ -93,6 +93,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\ScopedThreadSync.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Other\StaticReference.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)pc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIImageRectangle.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRectangle.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRoundrect.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)UI\Primitives\UIScrollbar.h" />
@@ -152,6 +153,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
       <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIImageRectangle.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRectangle.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIRoundrect.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UI\Primitives\UIScrollbar.cpp" />

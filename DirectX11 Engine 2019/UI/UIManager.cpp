@@ -138,8 +138,8 @@ void UIManager::Init() {
     }
 
     // Samplers
-    gLinearSampler = new Sampler;
-    gPointSampler  = new Sampler;
+    gLinearSampler = new Sampler();
+    gPointSampler  = new Sampler();
 
     {
         D3D11_SAMPLER_DESC pDesc{};
@@ -259,14 +259,18 @@ void UIManager::Render(void(*TextRenderFunction)(void), bool debug_wire) {
         q.data->mProj = DirectX::XMMatrixOrthographicOffCenterLH(0.f, Width(), Height(), 0.f, .1f, float(gMaxLayers));
     }
 
-    // Bind
+    // Bind states
     rtDestination->Bind();
     shPrimitives->Bind();
-    cbVSDataBuffer->Bind(Shader::Vertex, 0u);
 
     // For Lisa
     RasterState::Push();
     (debug_wire ? rsWire : rsDefault)->Bind();
+
+    // Bind resources
+    gPointSampler->Bind(Shader::Pixel, 0u);                // Sampler
+    UIAtlas::GetTexture()->Bind(Shader::Pixel, 0u, false); // SRV
+    cbVSDataBuffer->Bind(Shader::Vertex, 0u);              // CB
 
     for( uint i = 0; i < gLastActiveLayers.size(); i++ ) {
         uint32_t index = gLastActiveLayers[i];

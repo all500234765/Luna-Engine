@@ -3,7 +3,7 @@
 #include "UIRectangle.h"
 
 UIRectangle::UIRectangle(float2 TopLeft, float2 BottomRight) {
-    UIVertex v0, v1, v2;
+    UIVertex v0{}, v1{}, v2{};
     float z = (float)gLayerID;
 
     v0.Color = gColor;
@@ -25,7 +25,7 @@ UIRectangle::UIRectangle(float2 TopLeft, float2 BottomRight) {
 }
 
 UIRectangle::UIRectangle(float x0, float y0, float x1, float y1) {
-    UIVertex v0, v1, v2;
+    UIVertex v0{}, v1{}, v2{};
     float z = (float)gLayerID;
 
     v0.Color = gColor;

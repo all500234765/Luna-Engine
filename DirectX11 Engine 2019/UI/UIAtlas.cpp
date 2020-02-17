@@ -70,7 +70,10 @@ void UIAtlas::Release() {
 UIAtlasItem* UIAtlas::Insert(Texture* texture) {
     UIAtlasItem* item = new UIAtlasItem{};
     item->texture = texture;
+    item->flags   = 0;
+
     item->usable  = false;
+    item->flipped = false;
 
     gAtlasItems.push_back(item);
 
@@ -92,7 +95,12 @@ void UIAtlas::Update() {
     BucketSort(gAtlasItems, 5);
     for( UIAtlasItem* item : gAtlasItems ) {
         InternalUpdateSingle(item);
-        Texture::CopyS(stg, item->texture, item->x, item->y, 0, 0, 0, 0, 0);
+
+        if( item->flipped ) {
+            Texture::CopySRot(stg, item->texture, item->x, item->y, 90.f, gAtlasTexture->GetWidth(), gAtlasTexture->GetHeight());
+        } else {
+            Texture::CopyS(stg, item->texture, item->x, item->y, 0, 0, 0, 0, 0);
+        }
     }
 
     gAtlasTexture->Copy(stg);
@@ -100,8 +108,8 @@ void UIAtlas::Update() {
 }
 
 void UIAtlas::InternalUpdateSingle(UIAtlasItem* item) {
-    float width = item->texture->GetWidth();
-    float height = item->texture->GetHeight();
+    float width  = item->texture->GetWidth(),  _w_ = width;
+    float height = item->texture->GetHeight(), _h_ = height;
 
     // There are three cases:
     // 1. short edge <= long edge <= shelf height. Then store the long edge vertically.
@@ -140,13 +148,13 @@ void UIAtlas::InternalUpdateSingle(UIAtlasItem* item) {
 
     // If flipping didn't help, return failure.
     if( width > gAtlasTexture->GetWidth() || gCurrentY + height > gAtlasTexture->GetHeight() ) {
-        memset(&item, 0, sizeof(UIAtlasItem));
+        //memset(&item, 0, sizeof(UIAtlasItem));
         item->usable = false;
         return;
     }
 
-    item->w = width;
-    item->h = height;
+    item->w = _w_;
+    item->h = _h_;
     item->x = gCurrentX;
     item->y = gCurrentY;
     item->usable = true;

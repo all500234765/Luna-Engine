@@ -45,7 +45,16 @@ extern Gamepad* gGamepad[NUM_GAMEPAD];
 
 #include "Types.h"
 
+#include "HighLevel/DirectX/HighLevel.h"
+#include "Engine/Window/SplashScreen.h"
 #include "Engine/Scene/Scene.h"
+#include "Engine Includes/UI.h"
+
+#include "Other/CPUID.h"
+
+// Renderers
+#include "Renderer/RendererDeferred.h"
+
 
 #ifndef WINMAIN
     #ifdef UNICODE

@@ -7,6 +7,14 @@
 #include "Engine/DirectX/Shader.h"
 #include "Engine/Profiler/ScopedRangeProfiler.h"
 #include "Engine/Utility/Utils.h"
+#include "Engine/DirectX/ConstantBuffer.h"
+#include "Engine/ScopedMapper.h"
+#include "Engine/Scene/Sampler.h"
+
+#include "Engine/States/BlendState.h"
+#include "Engine/States/RasterState.h"
+#include "Engine/States/TopologyState.h"
+#include "Engine/States/DepthStencilState.h"
 
 enum class TResizeFlag {
     // Keep at top-left corner
@@ -70,6 +78,7 @@ struct implTexture {
     // Resource units
     ID3D11UnorderedAccessView *pUAV;
     ID3D11ShaderResourceView  *pSRV;
+    ID3D11RenderTargetView    *pRTV; // For clearing
 
     inline ID3D11Resource* GetTexture1D() const { return std::get<ID3D11Texture1D*>(pTexture); }
     inline ID3D11Resource* GetTexture2D() const { return std::get<ID3D11Texture2D*>(pTexture); }
@@ -81,6 +90,25 @@ struct implTexture {
 class Texture: public DirectXChild {
 protected:
     static uint32_t mMaxMipMapLevels;
+
+    static Shader*         shTransformRTV;
+    static Shader*         shTransformUAV;
+    static ConstantBuffer* cbTransform;
+    static ConstantBuffer* cbCamera;
+    static Sampler*        gPointSampler;
+    static Sampler*        gLinearSampler;
+
+    static BlendState*        bsSimple;
+    static RasterState*       rsSimple;
+    static DepthStencilState* dsSimple;
+
+    struct TransformBuffer {
+        #include "Components/Transform.h"
+    };
+
+    struct CameraBuffer {
+        #include "Components/Camera.h"
+    };
 
 private:
     union {
@@ -146,6 +174,9 @@ private:
                                uint32_t ArraySize=1, implTexture* Out=nullptr) const;
 
 public:
+    static void GlobalInit();
+    static void GlobalRelease();
+
     // Deleted call
     Texture() {};
 
@@ -220,6 +251,8 @@ public:
 
     static void CopyS(implTexture* dest, Texture* src, uint32_t dst_x, uint32_t dst_y, uint32_t dst_z,
                       uint32_t dst_array, uint32_t dst_mip, uint32_t src_mip, uint32_t src_array);
+
+    static void CopySRot(implTexture* dest, Texture* src, float x, float y, float angle, float total_width, float total_height);
 
     void ClearStg(float4 color);
     void ClearStg(uint4 color);

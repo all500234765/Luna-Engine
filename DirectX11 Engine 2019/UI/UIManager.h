@@ -15,7 +15,7 @@
 #include "Engine/ScopedMapper.h"
 #include "Engine/Input/Mouse.h"
 #include "Other/DrawCall.h"
-
+#include "UIAtlas.h"
 
 extern Mouse    *gMouse;
 extern Keyboard *gKeyboard;
@@ -30,6 +30,8 @@ typedef enum class UICFlag : uint32_t {
 struct UIVertex {
     float3 Position;
     float2 Texcoord{};
+    uint   States{};
+    uint Padding{};
     float4 Color;
 };
 

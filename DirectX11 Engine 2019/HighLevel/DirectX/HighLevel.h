@@ -9,6 +9,7 @@
 #include "Engine/RenderTarget/RenderTarget.h"
 #include "Integration/RenderDocManager.h"
 #include "Engine Includes/UI.h"
+#include "Engine/Scene/Texture.h"
 
 //#include "Enums.h"
 #include "Defines.h"
@@ -76,6 +77,7 @@ public:
         RenderTarget2DColor1::GlobalInit();
         UIManager::Init();
         UIText::Init();
+        Texture::GlobalInit();
 
         // Return DirectX object
         return gDirectX;
@@ -122,6 +124,7 @@ public:
         RenderTarget2DColor1::GlobalRelease();
         UIManager::Release();
         UIText::Release();
+        Texture::GlobalRelease();
 
         SAFE_DELETE(gRenderDoc);
         gWindow->Destroy();

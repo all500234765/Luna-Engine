@@ -17,7 +17,7 @@ struct UIAtlasItem: UIAtlasItemGPU {
     union {
         uint flags;
         struct {
-            uint usable : 1;
+            uint usable  : 1;
             uint flipped : 1;
         };
     };
@@ -54,5 +54,9 @@ public:
     static inline float Occupancy() { return (float)gUsedArea / (gAtlasTexture->GetWidth() * gAtlasTexture->GetHeight()); }
 
     static inline Texture* GetTexture() { return gAtlasTexture; }
+
+    // Getters
+    static inline float GetWidth() { return gAtlasTexture->GetWidth(); }
+    static inline float GetHeight() { return gAtlasTexture->GetHeight(); }
 
 };
