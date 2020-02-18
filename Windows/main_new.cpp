@@ -148,6 +148,15 @@ bool _DirectX::Render() {
                 UIRoundrect r0(i * 52.f, 0.f, i * 52.f + 32.f, 32.f, 6.f);
             }
 
+            // Images
+            UIPrimitive::SetColor({ 1.f, 1.f, 1.f, 1.f });
+
+            // RenderDoc
+            UIImageRectangle rdi(rd, 4.f, 4.f, 24.f, 24.f);
+
+            // View
+            UIImageRectangle view(img[0], 52.f + 4.f, 4.f, 24.f, 24.f);
+
             // Switch through render textures
             {
                 UIContainer c1(60.f - 8.f, 116.f - 81.f, 85.f * 4.f, 32.f * 20.f);
@@ -378,7 +387,6 @@ void _DirectX::CreateResources() {
     }
 
     // UI Image Atlas initialization
-    gHighLevel.RenderDocCaptureBegin();
     UIAtlas::Init(1024u, 1024u, 1u);
     rd = UIAtlas::Insert("Engine/RenderDoc.png");
     #define TST(i, y) img[i] = UIAtlas::Insert("Engine/" y "Cube.png");
@@ -393,7 +401,6 @@ void _DirectX::CreateResources() {
     TST(8, "Indirect"); // Deferred Accumulation
     TST(9, "Unlit");    // Shading
     UIAtlas::Update();
-    gHighLevel.RenderDocCaptureEnd();
 
     /*gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
                                       [](EntityHandle e, uint32_t index) {
