@@ -10,7 +10,7 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
 
 # Version 
 # 0.1.
-# 160
+# 200
 * Order Independent Transparency
 # Screenshot here
 * Screen-Door Transparency
@@ -54,9 +54,32 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
     * All other shaders will remain unaffected by this change
     
 * Old camera system will be deprecated soon
-* I work on new camera control system
-    * New component based control system
-    # Add more here
+* New camera control system WIP
+    * Component based
+    * Example of adding first person controls:
+    ```cpp
+    // Create input controller for player camera
+    float fSpeed = 200.f;
+    MovementControlComponent lMovementControlComp{};
+    lMovementControlComp.mAssignedControls = {
+        InputControl(VK_A, GamepadButtonState::_StickL).SetValue(0.f, 0.f, -fSpeed).OrientationDependent(),
+        InputControl(VK_D, GamepadButtonState::_StickL).SetValue(0.f, 0.f, +fSpeed).OrientationDependent(),
+        InputControl(VK_W, GamepadButtonState::_StickL).SetValue(+fSpeed).OrientationDependent(),
+        InputControl(VK_S, GamepadButtonState::_StickL).SetValue(-fSpeed).OrientationDependent(),
+        InputControl(MouseButton::AxisXY).SetValue(1.f, 1.f).OrientationUpdate()
+    };
+
+    // Create cameras
+    gMainScene->MakeCameraFOVH(0, .2f, 10000.f, (float)(gRenderer->Width()), (float)(gRenderer->Height()), 70.f); // Player
+    gMainScene->MakeCameraFOVH(1, .2f, 10000.f, 2048.f, 2048.f, 70.f); // Sun Light camera
+    gMainScene->SetActiveCamera(0);
+    gMainScene->UpdateMadeCameras();
+    gMainScene->GetCamera(0)->cTransf->vPosition = float3(0.f, 10.f, 0.f);
+
+    // Add controls to main camera
+    gMainScene->AddComponent(gMainScene->GetActiveCameraHandle(), &lMovementControlComp);
+    ```
+    
 * New utils
     * File System (WIP)
         * File Mapping
@@ -105,11 +128,104 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
         
         Same goes for ScopedMapResource
     * Fixed CountLines powershell script
+    * Wrapper for ID3D11DeviceContext::Draw* & Dispatch* calls
+    Arguments same as for ID3D11DeviceContext::* versions
+    ```cpp
+        DXDraw(UINT VertexCount, UINT StartVertexLocation);
+        DXDrawAuto();
+        DXDrawIndexed(UINT IndexCount, UINT StartIndexLocation, UINT BaseVertexLocation);
+        DXDrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation);
+        DXDrawIndexedInstancedIndirect(ID3D11Buffer *pBufferForArgs, UINT AlignedByteOffsetForArgs);
+        DXDrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation);
+        DXDrawInstancedIndirect(ID3D11Buffer *pBufferForArgs, UINT AlignedByteOffsetForArgs);
+        DXDispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ);
+        DXDispatchIndirect(ID3D11Buffer *pBufferForArgs, UINT AlignedByteOffsetForArgs);
+    ```
+    
+    * Volumetric Lighting (WIP, Currently Works only for Sun Light)
+<p align="center">
+    <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/Volumetric%20Light.png?raw=true">
+</p>
+
+    * HDR Luma view (WIP)
+<p align="center">
+    <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/HDR%20Luma%20View.png?raw=true">
+</p>
+    (Screenshots were taken with MSAA 8x & full scale Volumetric Lighting)
+    
+    * UI (WIP)
+    * Several basic primitives UIRectangle, UIRoundrect.
+    * Easy to use UIScrollbars(vertical only atm) & UIContainers!
+    * Everything that is inside of the container - will be drawn relative to it's position
+    
+    ```cpp
+    UIContainer c0(8.f, 81.f, 188.f, 256.f);
+    
+    // 
+    UIScrollbar vsb(UIScrollbarType::Vertical);
+    ```
+    
+<p align="center">
+    <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/UIScroll2.gif?raw=true">
+</p>
+    * UIAtlas for UI texture atlas generation.
+    
+    * Deferred Renderer is finally WIP!
+    * Deferred PBR/IBL is WIP
+    * D32S8 depth buffers are now supported by Render Targets.
+    (Doesn't support true-MSAA)
+    * Basic RenderDoc integration is here!
+    
+    ```cpp
+        // Enable RenderDoc
+        // Doing such - will disable DX Debug Layer messages
+        const bool RenderDocEnable = true;
+        gDirectX = gHighLevel.InitDirectX(dxCFG, RenderDocEnable);
+        
+        // 
+        void HighLevel::RenderDocCaptureBegin();
+        void HighLevel::RenderDocCaptureEnd();
+        void HighLevel::RenderDocLaunchUI();
+        bool HighLevel::RenderDocGetUI();
+    ```
+    
+    * Updated up to Assimp 5.0. Now engine supports PBR materials from gltf. (r: Ambient Occlusion, g: Roughness, b: Metallic)
+    * More engine states
+    
+    ```cpp
+    // Game tick function
+    void Tick(float fDeltaTime);
+    
+    // Render frame
+    bool Render();
+    
+    // Render UI; maybe soon deprecated
+    void ComposeUI();
+
+    // Handle resize event
+    void Resize();
+    
+    // Game initialization
+    void InitGameData(); // Allocate memory for resources
+    void CreateResources(); // Will be runned 2nd time on device-lost event
+                            // Desc: Create DX resources here
+    void PostCreateResources(bool Recreated=false);
+
+    // Game unloading
+    void FreeResources(); // Will be runned on device-lost/game end event
+                          // Desc: Release DX resources here
+    void Unload(); // Game is already closing
+
+    void Present(UINT SyncInterval, UINT Flags); // Wrapper for IDXGISwapChain::Present();
+    ```
+    
+    * Added ``shadertoolsconfig.json`` for HLSL Tools Extension for Visual Studio
     
 * Fixed
     * Crash on physics destroy event
     * Some warnings
-    * Working on resolving un released objects at the end of the app
+    * Working on resolving non-released objects at the end of the app
+    * 
 
 # Version 0.1.120
 * Added Attribute Vertex Clouds example. Quick and dirty.
