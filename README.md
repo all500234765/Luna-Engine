@@ -129,7 +129,7 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
         Same goes for ScopedMapResource
     * Fixed CountLines powershell script
     * Wrapper for ID3D11DeviceContext::Draw* & Dispatch* calls
-    Arguments same as for ID3D11DeviceContext::* versions
+        * Arguments same as for ID3D11DeviceContext::* versions
     ```cpp
         DXDraw(UINT VertexCount, UINT StartVertexLocation);
         DXDrawAuto();
@@ -143,37 +143,36 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
     ```
     
     * Volumetric Lighting (WIP, Currently Works only for Sun Light)
-<p align="center">
-    <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/Volumetric%20Light.png?raw=true">
-</p>
-
+    * (Screenshots were taken with MSAA 8x & full scale Volumetric Lighting)
     * HDR Luma view (WIP)
-<p align="center">
-    <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/HDR%20Luma%20View.png?raw=true">
-</p>
-    (Screenshots were taken with MSAA 8x & full scale Volumetric Lighting)
+    
+    ![Volumetric Lighting](Misc/Volumetric%20Light.png)
+    
+    ![HDR Luma View](Misc/HDR%20Luma%20View.png)
+    
     
     * UI (WIP)
     * Several basic primitives UIRectangle, UIRoundrect.
     * Easy to use UIScrollbars(vertical only atm) & UIContainers!
     * Everything that is inside of the container - will be drawn relative to it's position
+    * UIAtlas for UI texture atlas generation.
     
     ```cpp
-    UIContainer c0(8.f, 81.f, 188.f, 256.f);
-    
-    // 
-    UIScrollbar vsb(UIScrollbarType::Vertical);
+        // Container example
+        UIContainer c0(8.f, 81.f, 188.f, 256.f);
+        
+        // Scrollbar example
+        UIScrollbar vsb(UIScrollbarType::Vertical);
     ```
     
 <p align="center">
     <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/UIScroll2.gif?raw=true">
 </p>
-    * UIAtlas for UI texture atlas generation.
     
     * Deferred Renderer is finally WIP!
     * Deferred PBR/IBL is WIP
     * D32S8 depth buffers are now supported by Render Targets.
-    (Doesn't support true-MSAA)
+        * (Doesn't support true-MSAA)
     * Basic RenderDoc integration is here!
     
     ```cpp
