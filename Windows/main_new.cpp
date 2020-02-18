@@ -26,7 +26,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Show splashscreen
-    //SplashScreen::Launch(L"Engine/SplashEditor2.bmp", 1000);
+    SplashScreen::Launch(L"Engine/SplashEditor9.bmp", 2 * 1000);
 
     // Print CPU info
     CPUID cpu;
@@ -112,7 +112,7 @@ bool _DirectX::Render() {
     UIManager::Clear();
     UIText::Clear();
 
-    if( true )
+    if( !true )
     {
         float2 Pos = { 261.f, 146.5f };
         float2 Size = { 844.f, 475.f };
@@ -488,9 +488,9 @@ void _DirectX::CreateResources() {
     });*/
 
     EntityHandleList elist = gMainScene->LoadModelStaticOpaque(//"../Models/Sketchfab/ch basement a/scene.gltf", 
-                                                               "../Models/VolumetricTests/Volumetric Test.obj", 
+                                                               //"../Models/VolumetricTests/Volumetric Test.obj", 
                                                                //"../Models/Sponza/SponzaPBR.gltf",
-                                                               //"../Models/SDKMesh/TankScene.gltf",
+                                                               "../Models/SDKMesh/TankScene.gltf",
                                                                aiProcess_FlipUVs, [](EntityHandle e, uint32_t index) {
         TransformComponent  *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent   *mat    = gMainScene->GetComponent<MaterialComponent>(e);
@@ -499,7 +499,7 @@ void _DirectX::CreateResources() {
         //transf->vRotation = float3(270.f, 0.f, 0.f);
         transf->vRotation = float3(90.f, 0.f, 0.f); // Sponza, TankScene
         //transf->vScale = float3(100.f, 100.f, 100.f);
-        transf->vScale = float3(10.f, 10.f, 10.f); // TankScene
+        //transf->vScale = float3(10.f, 10.f, 10.f); // TankScene
         //transf->vScale    = float3(.125, .125, .125);
         //transf->vPosition = float3(-50.f, 0.f, 50.f);
 
