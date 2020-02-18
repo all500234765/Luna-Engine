@@ -8,13 +8,11 @@
 I made trello panel, so you can see what i want to do, what i already done and what i am working on atm.
 https://trello.com/b/T8T6vkBN/directx-11-engine-2019
 
+# Update VS if you see: is not the pdb file that was used when this precompiled header was created, recreate the precompiled header.
+
 # Version 
-# 0.1.
-# 200
-* Order Independent Transparency
-# Screenshot here
-* Screen-Door Transparency
-# Screenshot here
+# 0.1.200
+* Updated Main Example
 * Splash screen before launching main engine!
     * Some examples are @ Compiled/Windows_Build/Bin/Engine
     * Pretty simple to use!
@@ -25,7 +23,78 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
     This line of code will create splash screen for 5 seconds from specifed image.
     ![Splash Example](Misc/SplashExample.png)
     
-* More 2D drawing functions
+* Deferred Renderer is now WIP!
+    * Rendering setup code is now easy!
+```cpp
+void _DirectX::InitGameData() {
+    gRenderer = new RendererDeferred();
+    
+    // ...
+}
+
+void _DirectX::CreateResources() {
+    // Create renderer's resources
+    gRenderer->Init();
+    
+    // ...
+}
+
+bool _DirectX::Render() {
+    static uint gRenderFrame = 0;
+
+    // Reset counters
+    gDrawCallInstanceCount = 0;
+    gDispatchCallCount = 0;
+    gDrawCallCount = 0;
+
+    // Resize event
+    Resize();
+
+    // Bind and clear RTV
+    gRenderer->ClearMainRT();
+
+    // Render world
+    gRenderer->Render();
+
+    // Render to screen
+    gContext->OMSetRenderTargets(1, &gRTV, gDSV);
+    gRenderer->FinalScreen();
+
+    // Debug
+    gRenderer->DebugHUD();
+    gRenderer->ImGui();
+    
+    // Handle present event
+    Present(1, 0);
+
+    // End of frame
+    gRenderFrame++;
+    return false;
+}
+
+void _DirectX::Resize() {
+    WindowConfig wcfg = gHighLevel.DefaultResize();
+    if( !wcfg.Resized ) return;
+
+    // Resize renderer
+    gRenderer->Resize();
+    
+    // ...
+}
+
+void _DirectX::FreeResources() {
+    // Cleanup
+    gRenderer->Release();
+    
+    // ...
+}
+
+void _DirectX::Unload() {
+    SAFE_RELEASE_RENDERER(RendererDeferred, gRenderer);
+}
+```
+
+* New 2D drawing functions
     * Triangle
     * CircleOuter
     * Texture
@@ -42,7 +111,12 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
     gScene->MakeCameraFOVH(0, .1f, 10000.f, 1366.f, 768.f, 70.f);
     ```
     
-    * Scene stack
+    * Create scene
+    ```cpp
+    gMainScene = new Scene();
+    gMainScene->SetAsActive(); // Bind current scene as active
+    
+    ```
     
 * New ECS based mesh system
     * Now all shaders that will be used for new Scene rendering system, must specify Layout Generator flag before loading shaders
@@ -165,9 +239,7 @@ https://trello.com/b/T8T6vkBN/directx-11-engine-2019
         UIScrollbar vsb(UIScrollbarType::Vertical);
     ```
     
-<p align="center">
-    <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/UIScroll2.gif?raw=true">
-</p>
+    ![UI Scrollbar Example GIF](https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/UIScroll2.gif?raw=true)
     
     * Deferred Renderer is finally WIP!
     * Deferred PBR/IBL is WIP
