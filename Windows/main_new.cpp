@@ -15,6 +15,7 @@ float g_fAvgMS{};
 EntityHandle gTestLight;
 
 UIAtlasItem *rd, *img[10];
+UIAtlas *gUIAtlas;
 
 int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPCMDLINE lpCmdLine, int       snShowCmd) {
@@ -68,16 +69,15 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     dxCFG.UseHDR = false;
     dxCFG.DeferredContext = false;
     dxCFG.Windowed = winCFG.Windowed;
-    dxCFG.Ansel = USE_ANSEL;
+    dxCFG.Ansel = 0;
 
     // Init DirectX
-    gDirectX = gHighLevel.InitDirectX(dxCFG, true);
+    gDirectX = gHighLevel.InitDirectX(dxCFG, !true);
 
     // Main Loop
     gHighLevel.AppLoop();
 
     // 
-    UIAtlas::Release();
     SAFE_DELETE_N(gGamepad, NUM_GAMEPAD);
     SAFE_DELETE(gInput);
     SAFE_RELEASE(gAudioDevice);
@@ -246,11 +246,10 @@ bool _DirectX::Render() {
     UIText::Submit();
     UIManager::Submit();
 
-    UIManager::Render(&UIText::Render, fLaG);
+    UIManager::Render(gUIAtlas, &UIText::Render, fLaG);
     
     // Render to screen
     gContext->OMSetRenderTargets(1, &gRTV, nullptr);
-    //UIAtlas::Update();
     UIManager::Screen();
 
     // Debug frame statistics
@@ -387,9 +386,10 @@ void _DirectX::CreateResources() {
     }
 
     // UI Image Atlas initialization
-    UIAtlas::Init(1024u, 1024u, 1u);
-    rd = UIAtlas::Insert("Engine/RenderDoc.png");
-    #define TST(i, y) img[i] = UIAtlas::Insert("Engine/" y "Cube.png");
+    gUIAtlas = new UIAtlas();
+    gUIAtlas->Init(1024u, 1024u, 1u);
+    rd = gUIAtlas->Insert("Engine/RenderDoc.png");
+    #define TST(i, y) img[i] = gUIAtlas->Insert("Engine/" y "Cube.png");
     TST(0, "Lit");
     TST(1, "Unlit");
     TST(2, "AO");
@@ -400,7 +400,8 @@ void _DirectX::CreateResources() {
     TST(7, "Indirect"); // Deferred
     TST(8, "Indirect"); // Deferred Accumulation
     TST(9, "Unlit");    // Shading
-    UIAtlas::Update();
+    gUIAtlas->Update();
+    gUIAtlas->Bind();
 
     /*gMainScene->LoadModelStaticOpaque("../Models/OpacityTest.obj",
                                       [](EntityHandle e, uint32_t index) {
@@ -556,14 +557,14 @@ void _DirectX::InitGameData() {
     gMainScene->SetAsActive(); // Bind current scene as active
 
     // Create input controller for player camera
-    float fSpeed = 4.f*50.f;
+    float fSpeed = 1.f*50.f;
     MovementControlComponent lMovementControlComp{};
     lMovementControlComp.mAssignedControls = {
         InputControl(VK_A, GamepadButtonState::_StickL).SetValue(0.f, 0.f, -fSpeed).OrientationDependent(),
         InputControl(VK_D, GamepadButtonState::_StickL).SetValue(0.f, 0.f, +fSpeed).OrientationDependent(),
         InputControl(VK_W, GamepadButtonState::_StickL).SetValue(+fSpeed).OrientationDependent(),
         InputControl(VK_S, GamepadButtonState::_StickL).SetValue(-fSpeed).OrientationDependent(),
-        InputControl(MouseButton::AxisXY).SetValue(1.f, 1.f).OrientationUpdate()
+        InputControl(MouseButton::AxisXY).SetValue(4.f, 3.f).OrientationUpdate()
     };
 
     // Create cameras
@@ -592,6 +593,7 @@ void _DirectX::FreeResources() {
 }
 
 void _DirectX::Unload() {
+    SAFE_RELEASE(gUIAtlas);
     SAFE_RELEASE_RENDERER(RendererDeferred, gRenderer);
     SAFE_DELETE(gMainScene);
 }

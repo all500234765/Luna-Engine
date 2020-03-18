@@ -18,14 +18,14 @@
 #include "Physics.h"
 
 // Global game instances
-extern _DirectX       *gDirectX      ;
-extern Window         *gWindow       ;
-extern Input          *gInput        ;
-extern Mouse          *gMouse        ;
-extern Keyboard       *gKeyboard     ;
-extern AudioDevice    *gAudioDevice  ;
+extern _DirectX       *gDirectX;
+extern Window         *gWindow;
+extern Input          *gInput;
+extern Mouse          *gMouse;
+extern Keyboard       *gKeyboard;
+extern AudioDevice    *gAudioDevice;
 extern PhysicsEngine  *gPhysicsEngine;
-extern Gamepad* gGamepad[NUM_GAMEPAD];
+extern Gamepad        *gGamepad[NUM_GAMEPAD];
 
 #include "Models.h"
 #include "RenderBuffers.h"

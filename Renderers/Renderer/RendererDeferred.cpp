@@ -131,6 +131,11 @@ void RendererDeferred::Init() {
 #pragma endregion
 
 #pragma region Samplers
+    s_material.sampl.point       = new Sampler();
+    s_material.sampl.point_comp  = new Sampler();
+    s_material.sampl.linear      = new Sampler();
+    s_material.sampl.linear_comp = new Sampler();
+
     {
         D3D11_SAMPLER_DESC pDesc;
         ZeroMemory(&pDesc, sizeof(D3D11_SAMPLER_DESC));
@@ -145,25 +150,21 @@ void RendererDeferred::Init() {
         pDesc.MaxAnisotropy = 16;
 
         // Point sampler
-        s_material.sampl.point = new Sampler();
         s_material.sampl.point->Create(pDesc);
 
         // Compare point sampler
         pDesc.ComparisonFunc = D3D11_COMPARISON_GREATER;
         pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
-        s_material.sampl.point_comp = new Sampler();
         s_material.sampl.point_comp->Create(pDesc);
 
         // Linear sampler
         pDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
         pDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-        s_material.sampl.linear = new Sampler();
         s_material.sampl.linear->Create(pDesc);
 
         // Compare linear sampler
-        pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+        pDesc.Filter = D3D11_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
         pDesc.ComparisonFunc = D3D11_COMPARISON_GREATER;
-        s_material.sampl.linear_comp = new Sampler();
         s_material.sampl.linear_comp->Create(pDesc);
     }
 #pragma endregion
@@ -358,7 +359,14 @@ void RendererDeferred::Init() {
 
 #undef ___LITIMG
 
-    // HDR Debug View
+    // Debug View
+    cbDebugDataGBuffer = new ConstantBuffer();
+    cbDebugDataGBuffer->CreateDefault(sizeof(DebugDataGBuffer));
+
+    mMipmappingLerpLUT = new Texture("../Textures/MipMapLevel LUT.dds", tf_Immutable);
+    mMipmappingLUT     = new Texture("../Textures/MipMapLevels.dds"   , tf_Immutable);
+
+    // HDR Luma View
     mHDRGradationLUT = new Texture("../Textures/GradLUTMapHDR.dds", tf_Immutable);
     cbGradationLUT = new ConstantBuffer();
     cbGradationLUT->CreateDefault(sizeof(HDRDebugSettings));
@@ -617,6 +625,8 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(mDepthI);
     SAFE_RELEASE(mDSSDOAccumulation);
     SAFE_RELEASE(mHDRGradationLUT);
+    SAFE_RELEASE(mMipmappingLerpLUT);
+    SAFE_RELEASE(mMipmappingLUT);
 
     // Samplers
     SAFE_RELEASE(s_material.sampl.point      );
@@ -653,6 +663,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(cbBlurFilter);
     SAFE_RELEASE(cbDSSDOSettings);
     SAFE_RELEASE(cbGradationLUT);
+    SAFE_RELEASE(cbDebugDataGBuffer);
 
     // Meshes
     s_mesh.Release();
@@ -861,6 +872,7 @@ void RendererDeferred::ImGui() {
     bDebugHUD  ^= ImGui::Button("Debug buffers");
     bUseHDRLUT ^= ImGui::Button("HDR LUT View");
     bUseHDRLUT ^= ImGui::Button("Use Avg Lum per frame") << 1;
+    tUseMipMapLUT = ((tUseMipMapLUT + ImGui::Button("Mip map debug")) % 3);
 
     ImGui::SliderFloat("HDR LUT Scale", &fHDRLUTScale, .001f, 2.f);
     ImGui::SliderFloat("HDR LUT Max Lum", &fHDRLUTMaxLum, .1f, 1000.f);
@@ -1330,7 +1342,22 @@ void RendererDeferred::GBuffer() {
     UINT dc = gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount;
 
     {
-        mScene->Render(RendererFlags::OpaquePass, Shader::Vertex);
+        uint32_t debug_flags = 0u;
+        {
+            ScopeMapConstantBuffer<DebugDataGBuffer> q(cbDebugDataGBuffer);
+            q.data->tUseMipMapLUT = tUseMipMapLUT;
+        }
+
+        cbDebugDataGBuffer->Bind(Shader::Pixel, 3);
+        s_material.sampl.linear->Bind(Shader::Pixel, 15);
+        if( tUseMipMapLUT ) {
+            if( tUseMipMapLUT == 1u ) mMipmappingLerpLUT->Bind(Shader::Pixel, 15);
+            if( tUseMipMapLUT == 2u ) mMipmappingLUT->Bind(Shader::Pixel, 15);
+        } else {
+            s_material.ti.tex.checkboard->Bind(Shader::Pixel, 15);
+        }
+
+        mScene->Render(RendererFlags::OpaquePass | debug_flags, Shader::Vertex);
     }
 
     mOpaqueAmount = (gDrawCallCount + gDrawCallInstanceCount + gDispatchCallCount) - dc;

@@ -177,6 +177,27 @@ size_t FileSystem::FileAccess::gets(char* dest) {
     return i - beg; // TODO: Check
 }
 
+bool FileSystem::FileAccess::cread(char* dest, size_t len) const {
+    if( is_mapped() ) {
+        memcpy_s(&dest[0], len, &mBuffer[mCurrentPos], len);
+        return true;
+    }
+
+    DWORD ind = mRed + len;
+    bool q = ReadFile(mFile, &dest[0], len, &ind, 0);
+    return q;
+}
+
+char FileSystem::FileAccess::cgetch() const {
+    // TODO: Check mBuffer[pos]
+    if( is_mapped() ) { return mBuffer[mCurrentPos]; }
+
+    char dest;
+    DWORD ind = mRed + 1;
+    ReadFile(mFile, &dest, 1, &ind, 0);
+    return dest;
+}
+
 char* FileSystem::FileAccess::getline(size_t& len) {
     char dest[1024]{};
 
@@ -330,6 +351,16 @@ bool FileSystem::FileAccess::operator<<(char* src) {
 
 bool FileSystem::FileAccess::operator<<(char src) {
     return write(&src, 1);
+}
+
+bool FileSystem::FileAccess::is_eol() const {
+    if( is_mapped() ) {
+        return mBuffer[mCurrentPos] == '\n';
+    }
+
+    char ch;
+    cread(&ch, 1);
+    return ch == '\n';
 }
 
 bool FileSystem::FileAccess::is_eof() const {

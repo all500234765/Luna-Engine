@@ -140,6 +140,10 @@ namespace FileSystem {
         char getch(); // Read char
         size_t gets(char* dest); // Read char*
 
+        bool cread(char* dest, size_t len) const; // Read data
+        char cgetch() const;                      // Read char
+        size_t cgets(char* dest) const;           // Read char*
+
         char* getline(size_t& len); // Read whole line
 
         template<typename T>

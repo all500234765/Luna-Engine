@@ -105,12 +105,14 @@ bool Mouse::IsReleased(MouseButton mkey) {
 void Mouse::SetState(WPARAM w, bool Down) {
     if( w < 0 || w > Count ) return;
     auto ptr = reinterpret_cast<bool*>(&mState);
-    unsigned int bf = 1u << (w & 0x1f);
+    unsigned int bf = 1u << (w & 0x1f); // 1u << (w & 0x1f);
 
     if( Down ) {
-        ptr[(w >> 5)] |= bf;
+        //mState.val[w] |= bf;
+        mState.val |= bf;
     } else {
-        ptr[(w >> 5)] &= ~bf;
+        //mState.val[w] &= ~bf;
+        mState.val &= ~bf;
     }
 }
 

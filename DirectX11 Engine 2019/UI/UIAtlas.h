@@ -4,6 +4,7 @@
 
 #include "Engine/DirectX/StructuredBuffer.h"
 #include "Engine/Scene/Texture.h"
+#include "Engine/States/PipelineState.h"
 
 struct UIAtlasItemGPU {
     float x, y, w, h;
@@ -23,40 +24,44 @@ struct UIAtlasItem: UIAtlasItemGPU {
     };
 };
 
-class UIAtlas {
+class UIAtlas: public PipelineState<UIAtlas> {
 protected:
-    static StructuredBuffer<UIAtlasItemGPU> sbAtlasItems;
-    static std::vector<UIAtlasItem*>        gAtlasItems;
-    static Texture*                         gAtlasTexture;
+    StructuredBuffer<UIAtlasItemGPU> sbAtlasItems{};
+    std::vector<UIAtlasItem*>        gAtlasItems{};
+    Texture*                         gAtlasTexture{};
 
-    static float gCurrentX;
-    static float gCurrentY;
-    static float gUsedArea;
-    static float gShelfHeight;
+    float gCurrentX{};
+    float gCurrentY{};
+    float gUsedArea{};
+    float gShelfHeight{};
 
     using UIItemList = std::vector<UIAtlasItem*>;
 
 private:
-    static UIItemList BucketSort(UIItemList list, uint32_t bucket_num);
-    static void InternalUpdateSingle(UIAtlasItem* item);
+    UIItemList BucketSort(UIItemList list, uint32_t bucket_num);
+    void InternalUpdateSingle(UIAtlasItem* item);
 
 public:
-    static void Init(uint32_t width, uint32_t height, uint32_t array_size=1u);
-    static void Release();
+    UIAtlas() { gState = this; }
 
-    static UIAtlasItem* Insert(Texture* texture);
-    static UIAtlasItem* Insert(const char* file);
-    static void Remove(const UIAtlasItem* item);
+    void Init(uint32_t width, uint32_t height, uint32_t array_size=1u);
+    void Release();
 
-    static void Update();
+    UIAtlasItem* Insert(Texture* texture);
+    UIAtlasItem* Insert(const char* file);
+    void Remove(UIAtlasItem* item);
+
+    void Update();
+
+    void Bind() { gState = this; }
 
     // Compute ratio of used surface area.
-    static inline float Occupancy() { return (float)gUsedArea / (gAtlasTexture->GetWidth() * gAtlasTexture->GetHeight()); }
+    inline float Occupancy() { return (float)gUsedArea / (gAtlasTexture->GetWidth() * gAtlasTexture->GetHeight()); }
 
-    static inline Texture* GetTexture() { return gAtlasTexture; }
+    inline Texture* GetTexture() { return gAtlasTexture; }
 
     // Getters
-    static inline float GetWidth() { return gAtlasTexture->GetWidth(); }
-    static inline float GetHeight() { return gAtlasTexture->GetHeight(); }
+    inline float GetWidth() { return gAtlasTexture->GetWidth(); }
+    inline float GetHeight() { return gAtlasTexture->GetHeight(); }
 
 };

@@ -23,7 +23,7 @@
         #define DXDRAWDISPATCH                 7u // no
         #define DXDRAWDISPATCHINDIRECT         8u // no
         
-        #define _ShDefault_(type, name, def) type name = def;
+        #define _ShDefault_(type, name, def) type name = (def);
         #define _Shader_(x) Shader* x = 0;
         #define _Texture2D Texture* 
         #define SamplerState Sampler* 

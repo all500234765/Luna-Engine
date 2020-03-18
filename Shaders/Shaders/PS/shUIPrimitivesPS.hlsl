@@ -13,5 +13,6 @@ float4 main(PS In) : SV_Target0 {
     [flatten] if( In.States & 0x1 ) Out *= _Atlas.Sample(_Sm, In.Texcoord);
     //[flatten] if( In.States & 0x1 ) Out = float4(In.Texcoord, 0.f, 1.f);
     
+    [flatten] if( Out.a <= .01f ) discard;
     return Out;
 }

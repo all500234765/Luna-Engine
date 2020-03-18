@@ -3,14 +3,14 @@
 #include "UIAtlas.h"
 
 // Render
-Texture*                      UIAtlas::gAtlasTexture{};
+/*Texture*                      UIAtlas::gAtlasTexture{};
 std::vector<UIAtlasItem*>     UIAtlas::gAtlasItems{};
 
 // State
 float UIAtlas::gCurrentX{};
 float UIAtlas::gCurrentY{};
 float UIAtlas::gUsedArea{};
-float UIAtlas::gShelfHeight{};
+float UIAtlas::gShelfHeight{};*/
 
 UIAtlas::UIItemList UIAtlas::BucketSort(UIItemList list, uint32_t bucket_num) {
     using Item = UIAtlasItem*;
@@ -92,16 +92,23 @@ void UIAtlas::Update() {
 
     implTexture* stg = gAtlasTexture->CreateStaging();
 
-    BucketSort(gAtlasItems, 5);
-    for( UIAtlasItem* item : gAtlasItems ) {
-        InternalUpdateSingle(item);
+    Push();
+    Bind();
 
-        if( item->flipped ) {
-            Texture::CopySRot(stg, item->texture, item->x, item->y, 90.f, gAtlasTexture->GetWidth(), gAtlasTexture->GetHeight());
-        } else {
-            Texture::CopyS(stg, item->texture, item->x, item->y, 0, 0, 0, 0, 0);
+    {
+        BucketSort(gAtlasItems, 5);
+        for( UIAtlasItem* item : gAtlasItems ) {
+            InternalUpdateSingle(item);
+
+            if( item->flipped ) {
+                Texture::CopySRot(stg, item->texture, item->x, item->y, 90.f, gAtlasTexture->GetWidth(), gAtlasTexture->GetHeight());
+            } else {
+                Texture::CopyS(stg, item->texture, item->x, item->y, 0, 0, 0, 0, 0);
+            }
         }
     }
+
+    Pop();
 
     gAtlasTexture->Copy(stg);
     SAFE_RELEASE(stg);

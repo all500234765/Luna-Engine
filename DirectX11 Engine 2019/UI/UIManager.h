@@ -72,10 +72,6 @@ protected:
         bool started;
     };
 
-    struct VSDataBuffer {
-        #include "Shaders/Common/UIInclude.h"
-    };
-
     // Per layer data for vertex buffer gen
     static std::array<VertexBuffer*, gMaxLayers>         gVBLayer;
     static std::array<uint64_t, gMaxLayers>              gDCLayer; // DataCounter
@@ -88,7 +84,6 @@ protected:
     static std::array<float3, gMaxLayers>                                   gContainerOffsetLayer;
 
     // Rendering
-    static ConstantBuffer                *cbVSDataBuffer, *cbPSDataBuffer;
     static RenderTarget2DColor1DepthMSAA* rtDestination;
     static Shader*                        shPrimitives;
     static Shader*                        shScreen;
@@ -105,16 +100,22 @@ protected:
     static uint32_t gCirclePrecision;
 
 public:
-    static void Init();                                 // Init buffers
-    static void Clear();                                    // 0. Reset state
-    static void Submit();                                   // 1. Generate buffers
-    static void Render(void(*f)(void), bool dw=false);      // 2. Render to buffer
-    static void Screen();                                   // 3. Render to screen
-    static void Release();                              // Clean up buffers
+    static ConstantBuffer                *cbVSDataBuffer, *cbPSDataBuffer;
+    struct VSDataBuffer {
+        #include "Shaders/Common/UIInclude.h"
+    };
+
+    static void Init();                                                  // Init buffers
+    static void Clear();                                                     // 0. Reset state
+    static void Submit();                                                    // 1. Generate buffers
+    static void Render(UIAtlas* atlas, void(*f)(void), bool dw=false);       // 2. Render to buffer
+    static void Screen();                                                    // 3. Render to screen
+    static void Release();                                               // Clean up buffers
 
     //static void Resize(UINT Width, UINT Height);
 
     static float3 GetOffset();
+    static std::vector<UIVertex> GetVertexData(uint32_t LID) { return gVertexLayer[LID]; }
 
     static float Width();
     static float Height();

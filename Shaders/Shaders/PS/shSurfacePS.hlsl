@@ -8,7 +8,12 @@ cbuffer cbAmbientLight : register(b1) {
 
 cbuffer cbBasicFog : register(b2) {
     #include "BasicFog.h"    
-}
+};
+
+cbuffer cbDebugDataGBuffer : register(b3) {
+    uint tUseMipMapLUT;
+    uint3 align;
+};
 
 #include "MaterialTextures.h"
 
@@ -23,6 +28,9 @@ SamplerState _NoiseSampler      : register(s9);
 
 TextureCube<float3> _CubemapTexture : register(t10);
 SamplerState        _CubemapSampler : register(s10);
+
+Texture2D _MipMapDebugTexture : register(t15);
+SamplerState _MipMapDebugSamp : register(s15);
 
 struct PS {
     float4   Position : SV_Position;
@@ -150,6 +158,18 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
     float3 Albedo   = pow(_AlbedoTex.Sample(_AlbedoSampl, In.Texcoord).rgb, 2.2f) * _AlbedoMul;
     //float1 AOccl    = _AmbientOcclusionTex.Sample(_AmbientOcclusionSampl, In.Texcoord).r * _AmbientOcclusionMul;
     float3 ORM      = _MetallicTex.Sample(_MetallicSampl, In.Texcoord).rgb;
+    
+#ifdef _DEBUG
+    [flatten] if( tUseMipMapLUT & 0x1 ) {
+        float4 a = _MipMapDebugTexture.Sample(_MipMapDebugSamp, In.Texcoord);
+        Albedo = lerp(Albedo, a.rgb, a.a);
+    }
+    
+    [flatten] if( tUseMipMapLUT & 0x2 ) {
+        float4 a = _MipMapDebugTexture.Sample(_MipMapDebugSamp, In.Texcoord);
+        Albedo = a.rgb;
+    }
+#endif
     
     float1 AOccl = 1.f, Metallic, Rougness;
     [branch] if( _Metal & 4 ) {

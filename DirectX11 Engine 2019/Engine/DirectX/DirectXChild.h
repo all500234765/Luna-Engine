@@ -16,4 +16,5 @@ protected:
 
 public:
     static void SetDirectX(_DirectX* dx);
+    static _DirectX* GetDirectX() { return gDirectX; }
 };

@@ -19,7 +19,7 @@ struct PS {
 
 PS main(VS In) {
     PS Out;
-        Out.Position = mul(mProj, float4(In.Position, 1.f));
+        Out.Position = mul(mProj, mul(mView, mul(mWorld, float4(In.Position, 1.f))));
         Out.Color    = In.Color;
         Out.States   = In.States;
         Out.Texcoord = In.Texcoord;

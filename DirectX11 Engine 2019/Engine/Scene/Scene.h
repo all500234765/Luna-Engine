@@ -240,6 +240,7 @@ private:
     // 
     bool mMeshSRV{};
 
+#pragma region Model loading
     MaterialComponent DefaultMaterialComp() const {
         MaterialComponent mat{};
         mat._UseVertexColor = false;
@@ -274,7 +275,9 @@ private:
     }
 
     typedef std::map<std::string, std::pair<aiTextureType, std::vector<uint32_t>>> LoaderTextureList;
-    EntityHandleList LoadModelExternalStatic(const char* fname, ECS* ecs, uint32_t flags) {
+
+    template<class MeshTypeComponent=MeshStaticComponent>
+    EntityHandleList LoadModelExternal(const char* fname, ECS* ecs, uint32_t flags, bool Anim) {
 
         TransformComponent transform = DefaultTransformComp();
 
@@ -289,12 +292,13 @@ private:
         }
 
         // Process scene
-        std::vector<MeshStaticComponent> mMeshList;
+        std::vector<MeshTypeComponent> mMeshList;
         std::vector<MaterialComponent> mMatList;
+        std::vector<AnimationComponent> mAnimList;
         LoaderTextureList mTextureFileList;
 
         uint32_t index = 0u;
-        ProcessNodeStatic(scene->mRootNode, scene, &mMeshList, &mMatList, &mTextureFileList, index);
+        ProcessNode(scene->mRootNode, scene, &mMeshList, &mMatList, &mTextureFileList, index, Anim);
 
         // Get current model's directory
         char drive[_MAX_DRIVE];
@@ -362,50 +366,186 @@ private:
 
         // Done
         if( mMeshList.size() == 1 ) {
-            return { ecs->MakeEntity(transform, mMeshList[0], mMatList[0]) };
+            if( Anim ) return { ecs->MakeEntity(transform, mMeshList[0], mMatList[0], mAnimList[0]) }; // Animated
+                       return { ecs->MakeEntity(transform, mMeshList[0], mMatList[0]) };               // Static
         }
 
         // Return list of entites
         EntityHandleList list;
         list.reserve(mMeshList.size());
         for( uint32_t i = 0; i < mMeshList.size(); i++ ) {
-            list.push_back(ecs->MakeEntity(transform, mMeshList[i], mMatList[i]));
+            if( Anim ) list.push_back(ecs->MakeEntity(transform, mMeshList[i], mMatList[i], mAnimList[i]));
+            else       list.push_back(ecs->MakeEntity(transform, mMeshList[i], mMatList[i]));
         }
 
         // Done
         return list;
     }
 
-    void ProcessNodeStatic(aiNode* node, const aiScene* scene, std::vector<MeshStaticComponent>* MeshList, 
-                           std::vector<MaterialComponent>* MatList, 
-                           LoaderTextureList* TextureList,
-                           uint32_t& index) {
+    template<class MeshTypeComponent=MeshStaticComponent>
+    void ProcessNode(aiNode* node, const aiScene* scene, std::vector<MeshTypeComponent>* MeshList,
+                     std::vector<MaterialComponent>* MatList, 
+                     LoaderTextureList* TextureList,
+                     uint32_t& index, bool Anim) {
         // Process meshes
 //#pragma omp parallel for num_threads(4)
         for( int32_t i = 0; i < (int32_t)node->mNumMeshes; i++ ) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-            MeshList->push_back(ProcessMeshStatic(mesh, scene, MatList, TextureList, index));
+            MeshList->push_back(ProcessMesh(mesh, scene, MatList, TextureList, index, Anim));
             index++;
         }
 
         // Process children
         for( size_t i = 0; i < node->mNumChildren; i++ ) {
-            ProcessNodeStatic(node->mChildren[i], scene, MeshList, MatList, TextureList, index);
+            ProcessNode(node->mChildren[i], scene, MeshList, MatList, TextureList, index, Anim);
         }
     }
 
-    MeshStaticComponent ProcessMeshStatic(aiMesh* inMesh, const aiScene* scene, 
-                           std::vector<MaterialComponent>* MatList, 
-                           LoaderTextureList* TextureList, 
-                           uint32_t index) {
+    struct BoneDataInternal {
+        uint ID[3];
+        float W[3];
+
+        void AddBoneData(uint index, float w) {
+            for( uint i = 0; i < 3; i++ ) {
+                if( W[i] == 0.f ) {
+                    ID[i] = index;
+                    W[i] = w;
+                    return;
+                }
+            }
+        }
+    };
+
+    // Bone Transformation
+    struct BoneInfoInternal {
+        mfloat4x4 mOffset;
+        mfloat4x4 mFinal;
+    };
+
+    void LoadAnimatedMeshInternal(aiMesh* inMesh, const aiScene* scene, uint32_t index, 
+                                  std::vector<float[3]>& DataW, std::vector<uint[3]>& DataJ) {
+        std::map<std::string, uint>   BoneMapping;
+        std::vector<BoneInfoInternal> BoneInfo;
+        std::vector<BoneDataInternal> BoneData;
+
+        uint32_t NumBones = 0;
+
+        LoadBones(inMesh, scene, BoneMapping, BoneInfo, BoneData);
+    }
+
+    void ReadNodeHeirarchy(const aiScene* scene, float time, const aiNode* pNode, mfloat4x4 mat) {
+        /*std::string NodeName(pNode->mName.data);
+
+        const aiAnimation* pAnimation = m_pScene->mAnimations[0];
+
+        mfloat4x4 NodeTransformation(pNode->mTransformation);
+
+        const aiNodeAnim* pNodeAnim = FindNodeAnim(pAnimation, NodeName);
+
+        if( pNodeAnim ) {
+            // Interpolate scaling and generate scaling transformation matrix
+            aiVector3D Scaling;
+            CalcInterpolatedScaling(Scaling, time, pNodeAnim);
+            Matrix4f ScalingM;
+            ScalingM.InitScaleTransform(Scaling.x, Scaling.y, Scaling.z);
+
+            // Interpolate rotation and generate rotation transformation matrix
+            aiQuaternion RotationQ;
+            CalcInterpolatedRotation(RotationQ, time, pNodeAnim);
+            Matrix4f RotationM = Matrix4f(RotationQ.GetMatrix());
+
+            // Interpolate translation and generate translation transformation matrix
+            aiVector3D Translation;
+            CalcInterpolatedPosition(Translation, time, pNodeAnim);
+            Matrix4f TranslationM;
+            TranslationM.InitTranslationTransform(Translation.x, Translation.y, Translation.z);
+
+            // Combine the above transformations
+            NodeTransformation = TranslationM * RotationM * ScalingM;
+        }
+
+        Matrix4f GlobalTransformation = ParentTransform * NodeTransformation;
+
+        if( m_BoneMapping.find(NodeName) != m_BoneMapping.end() ) {
+            uint BoneIndex = m_BoneMapping[NodeName];
+            m_BoneInfo[BoneIndex].FinalTransformation = m_GlobalInverseTransform * GlobalTransformation * m_BoneInfo[BoneIndex].BoneOffset;
+        }
+
+        for( uint i = 0; i < pNode->mNumChildren; i++ ) {
+            ReadNodeHeirarchy(scene, time, pNode->mChildren[i], GlobalTransformation);
+        }*/
+    }
+
+    mfloat4x4 BoneTransform(const aiScene* scene, std::vector<BoneInfoInternal>& info, 
+                            std::vector<mfloat4x4>& transform, float time) {
+        mfloat4x4 Identity = DirectX::XMMatrixIdentity();
+
+        float TicksPerSecond = scene->mAnimations[0]->mTicksPerSecond != 0 ?
+                               scene->mAnimations[0]->mTicksPerSecond : 30.f;
+        float TimeInTicks = time * TicksPerSecond;
+        float AnimationTime = fmod(TimeInTicks, scene->mAnimations[0]->mDuration);
+
+        ReadNodeHeirarchy(scene, AnimationTime, scene->mRootNode, Identity);
+
+        transform.resize(info.size());
+
+        for( uint i = 0; i < info.size(); i++ ) {
+            transform[i] = info[i].mFinal;
+        }
+    }
+
+    void LoadBones(const aiMesh* inMesh, const aiScene* scene, 
+                   std::map<std::string, uint>& BoneMapping, 
+                   std::vector<BoneInfoInternal>& BoneInfo, 
+                   std::vector<BoneDataInternal>& Bones) {
+        Bones.resize(inMesh->mNumVertices, {});
+        for( uint i = 0, j = 0; i < inMesh->mNumBones; i++ ) {
+            std::string name(inMesh->mBones[i]->mName.data);
+
+            uint32_t k = j;
+            if( BoneMapping.find(name) == BoneMapping.end() ) {
+                j++;
+                BoneInfoInternal bi;
+                BoneInfo.push_back(bi);
+            } else {
+                k = BoneMapping[name];
+            }
+
+            // Copy matrix
+            BoneMapping[name] = k;
+            memcpy(&BoneInfo[k].mOffset.r[0], inMesh->mBones[i]->mOffsetMatrix[0], sizeof(aiMatrix4x4));
+
+            // Add bones
+            for( uint j = 0; j < LunaEngine::Math::min(3, inMesh->mBones[i]->mNumWeights); j++ ) {
+                uint VertexID = inMesh->mBones[i]->mWeights[k].mVertexId;
+                float Weight = inMesh->mBones[i]->mWeights[k].mWeight;
+                Bones[VertexID].AddBoneData(k, Weight);
+            }
+        }
+    }
+    
+#if MAX_AFFECTING_JOINTS_PER_VERTEX == 3
+    using WeightT=float3;
+    using JointT=uint3;
+#elif MAX_AFFECTING_JOINTS_PER_VERTEX == 2
+
+#endif
+
+    template<class MeshTypeComponent=MeshStaticComponent>
+    MeshTypeComponent ProcessMesh(aiMesh* inMesh, const aiScene* scene,
+                                  std::vector<MaterialComponent>* MatList, 
+                                  LoaderTextureList* TextureList, 
+                                  uint32_t index, bool Anim) {
         MaterialComponent mat = DefaultMaterialComp();
-        MeshStaticComponent mesh{};
+        MeshTypeComponent mesh{};
 
         // 
         std::vector<float3> Position;
         std::vector<float2> Texcoord;
         std::vector<float3> Normal;
         std::vector<float3> Tangent;
+        std::vector<WeightT> Weights;
+        std::vector<JointT>  Indices;
 
         std::vector<uint32_t> Index;
         
@@ -414,7 +554,12 @@ private:
         Texcoord.reserve(inMesh->mNumVertices);
         Tangent.reserve( inMesh->mNumVertices);
         Normal.reserve(  inMesh->mNumVertices);
+        if( Anim ) {
+            Weights.reserve(inMesh->mNumVertices * MAX_AFFECTING_JOINTS_PER_VERTEX);
+            Indices.reserve(inMesh->mNumVertices * MAX_AFFECTING_JOINTS_PER_VERTEX);
+        }
 
+        // Process mesh vertices
         for( size_t i = 0; i < inMesh->mNumVertices; i++ ) {
             Position.push_back({ inMesh->mVertices[i].x, inMesh->mVertices[i].y, inMesh->mVertices[i].z });
             Normal  .push_back({ inMesh->mNormals [i].x, inMesh->mNormals [i].y, inMesh->mNormals [i].z });
@@ -430,6 +575,11 @@ private:
             } else {
                 Texcoord.push_back({ 0, 0 });
             }
+        }
+
+        // Joints & Weights
+        if( Anim ) {
+            LoadAnimatedMeshBonesInternal(mesh, Weights, Indices, scene, inMesh, index);
         }
 
         // Process indices
@@ -507,13 +657,15 @@ private:
         AddTexture(aiTextureType_DIFFUSE, 1);*/
 
         // Create buffers
+        mesh.mReferenced  = false;
+
         mesh.mIndexBuffer = new IndexBuffer();
         mesh.mVBPosition  = new VertexBuffer();
         mesh.mVBTexcoord  = new VertexBuffer();
         mesh.mVBNormal    = new VertexBuffer();
         mesh.mVBTangent   = new VertexBuffer();
-        mesh.mReferenced  = false;
 
+        // [Enable] SRV
         mesh.mVBPosition->SetSRV(mMeshSRV);
         mesh.mVBTexcoord->SetSRV(mMeshSRV);
         mesh.mVBTangent->SetSRV(mMeshSRV);
@@ -526,6 +678,11 @@ private:
         mesh.mVBTangent->CreateDefault( Tangent .size(), sizeof(float3), &Tangent [0]);
         mesh.mVBNormal->CreateDefault(  Normal  .size(), sizeof(float3), &Normal  [0]);
 
+        // If we are loading animated mesh
+        if( Anim ) {
+            LoadAnimatedMeshCompInternal(mesh, Weights, Indices);
+        }
+
         mesh.mIndexBuffer->CreateDefault(IndexNum, &Index[0]);
         
         // Add material
@@ -534,6 +691,32 @@ private:
         // Done
         return mesh;
     }
+
+    void LoadAnimatedMeshCompInternal(MeshStaticComponent& mesh, const std::vector<WeightT>& Weights, const std::vector<JointT>& Indices) {}
+    void LoadAnimatedMeshCompInternal(MeshAnimatedComponent& mesh, const std::vector<WeightT>& Weights,
+                                      const std::vector<JointT>& Indices) {
+        mesh.mVBWeights = new VertexBuffer();
+        mesh.mVBJoints  = new VertexBuffer();
+
+        mesh.mVBWeights->CreateDefault(Weights.size(), sizeof(float3), Weights.data());
+        mesh.mVBJoints->CreateDefault( Indices.size(), sizeof( uint3), Indices.data());
+
+        mesh.mVBWeights->SetSRV(mMeshSRV);
+        mesh.mVBJoints->SetSRV(mMeshSRV);
+    }
+
+
+    void LoadAnimatedMeshBonesInternal(MeshStaticComponent& mesh, const std::vector<WeightT>& Weights, const std::vector<JointT>& Indices, const aiScene* scene, aiMesh* inMesh, uint32_t index) {}
+    void LoadAnimatedMeshBonesInternal(MeshAnimatedComponent& mesh, const std::vector<WeightT>& Weights,
+                                       const std::vector<JointT>& Indices, const aiScene* scene, aiMesh* inMesh, 
+                                       uint32_t index) {
+        mesh.mRootInvTransf = scene->mRootNode->mTransformation.Inverse();
+
+        //LoadBones(inMesh, scene, );
+
+    }
+
+#pragma endregion
 
 public:
     enum MaterialLayers {
@@ -680,7 +863,7 @@ public:
                     SAFE_RELEASE(static_mesh->mVBNormal);
                 }
             } else if( anim_mesh ) {
-                if( !static_mesh->mReferenced ) {
+                if( !anim_mesh->mReferenced ) {
                     SAFE_RELEASE(anim_mesh->mIndexBuffer);
 
                     SAFE_RELEASE(anim_mesh->mVBPosition);
@@ -803,7 +986,6 @@ public:
         float4x4 mInvViewF;
         DirectX::XMStoreFloat4x4(&mInvViewF, mInvView);
 
-        // TODO: Get Rid of Roll Pitch Yaw
         WorldLightComponent* comp  = GetComponent<WorldLightComponent>(mWorldLight);
         comp->_WorldLightPosition  = Pos;
         comp->_WorldLightDirection = { mInvViewF.m[2][0], mInvViewF.m[2][1], mInvViewF.m[2][2] };
@@ -944,11 +1126,11 @@ public:
         std::string_view ext = path_ext(fname);
 
         if( ext == "obj" || ext == "dae" || ext == "fbx" || ext == "gltf" ) {
-            return LoadModelExternalStatic(fname, ecs, flags);
+            return LoadModelExternal<MeshStaticComponent>(fname, ecs, flags, false);
         }
 
         // Other file types
-        printf_s("[Scene::LoadModel]: Unsupported model format %s\n", ext.data());
+        printf_s("[Scene::LoadModelStatic]: Unsupported model format %s\n", ext.data());
         return {};
     }
 
@@ -1012,7 +1194,7 @@ public:
     void MakeCameraOrtho(uint32_t CameraIndex, float _near, float _far, float width, float height) {
         if( mCamera[CameraIndex] != NULL_HANDLE ) mECS.RemoveEntity(mCamera[CameraIndex]);
 
-        TransformComponent transf;
+        TransformComponent transf{};
         transf.vPosition = {};
         transf.vRotation = {};
         transf.mWorld = DirectX::XMMatrixIdentity();

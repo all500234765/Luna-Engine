@@ -61,8 +61,8 @@
     <Import Project="..\EngineIncludes\EngineIncludes.vcxitems" Label="Shared" />
     <Import Project="..\Physics Engine\Physics Engine.vcxitems" Label="Shared" />
     <Import Project="..\Renderers\Renderers.vcxitems" Label="Shared" />
-    <Import Project="..\Vendor\Vendor.vcxitems" Label="Shared" />
     <Import Project="..\ECS\ECS.vcxitems" Label="Shared" />
+    <Import Project="..\Vendor\Vendor.vcxitems" Label="Shared" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -89,7 +89,7 @@
     <OutDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</OutDir>
     <IntDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Intermediate\</IntDir>
     <TargetName>$(ProjectName)_$(PlatformShortName)</TargetName>
-    <IncludePath>$(SolutionDir)..\DirectX 11 Engine 2019\Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)Vendor\Vendor\Bullet3\;$(SolutionDir)Vendor\Vendor\</IncludePath>
+    <IncludePath>$(SolutionDir)..\DirectX 11 Engine 2019\Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)Vendor\Vendor\Bullet3\;$(SolutionDir)Vendor\Vendor\;$(SolutionDir)..\DirectX 11 Engine 2019\Vendor\Vendor\Ansel\</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

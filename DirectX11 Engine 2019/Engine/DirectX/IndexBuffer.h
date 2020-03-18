@@ -13,7 +13,7 @@ public:
 
     inline ID3D11ShaderResourceView* GetSRV() const { return pSRV; }
 
-    void CreateDefault(UINT Num, void* indices, bool staging=false) {
+    void CreateDefault(UINT Num, const void* indices, bool staging=false) {
         // Create default index buffer
         D3D11_BUFFER_DESC desc;
         desc.Usage = staging ? D3D11_USAGE_STAGING : (bSRV ? D3D11_USAGE_DEFAULT : D3D11_USAGE_IMMUTABLE);

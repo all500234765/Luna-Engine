@@ -1,7 +1,7 @@
 #include "pc.h"
 #include "VertexBuffer.h"
 
-void VertexBuffer::CreateDefault(size_t Num, size_t _Stride, void* vertices, bool staging, DXGI_FORMAT format) {
+void VertexBuffer::CreateDefault(size_t Num, size_t _Stride, const void* vertices, bool staging, DXGI_FORMAT format) {
     // Create default index buffer
     D3D11_BUFFER_DESC desc{};
     desc.Usage               = staging ? D3D11_USAGE_STAGING : (bSRV ? D3D11_USAGE_DEFAULT : D3D11_USAGE_IMMUTABLE);

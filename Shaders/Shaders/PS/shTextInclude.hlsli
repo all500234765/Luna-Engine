@@ -45,6 +45,9 @@ float SDF(float2 uv) {
     //float total = lerp(val, 1., BorderVal);
 
     // lerp(_OutlineColor, _Color, val / total);
+
+
+    [flatten] if( val <= .01f ) discard;
     return val /*/ total*/;
 }
 

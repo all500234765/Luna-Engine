@@ -2,8 +2,9 @@
 
 // Fuck...
 //#pragma once
-#ifndef ___SAFE_GUARD_TYPE_OPERATORS2___3333
-#define ___SAFE_GUARD_TYPE_OPERATORS2___3333
+#if 1
+//#ifndef ___SAFE_GUARD_TYPE_OPERATORS2___3333
+//#define ___SAFE_GUARD_TYPE_OPERATORS2___3333
 
 //////////////////////////////////////// float3 x float3
 #ifdef _____________TYPE_FLOAT_OPERATORS22____3333
@@ -11,10 +12,19 @@
     float3 __cdecl operator op(float3 lhs, float3 rhs) { \
         return { lhs.x op rhs.x, lhs.y op rhs.y, lhs.z op rhs.z}; \
     }
+
+#define OPERATOR2(op) \
+    float3& __cdecl operator op(float3& lhs, float3 rhs) { \
+        lhs.x op rhs.x; \
+        lhs.y op rhs.y; \
+        lhs.z op rhs.z; \
+        return lhs; \
+    }
 #pragma message("LOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKK ATTTT MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
 #else 
-    #define OPERATOR(op) \
-    float3 __cdecl operator op(float3 lhs, float3 rhs);
+    #define OPERATOR(op) float3 __cdecl operator op(float3 lhs, float3 rhs);
+    #define OPERATOR2(op) float3& __cdecl operator op(float3& lhs, float3 rhs);
+    
 #endif
 
 OPERATOR(+)
@@ -22,7 +32,14 @@ OPERATOR(-)
 OPERATOR(*)
 OPERATOR(/ )
 
+
+OPERATOR2(+=)
+OPERATOR2(-=)
+OPERATOR2(*=)
+OPERATOR2(/=)
+
 #undef OPERATOR
+#undef OPERATOR2
 
 //////////////////////////////////////// float3 x float
 #ifdef _____________TYPE_FLOAT_OPERATORS22____3333
@@ -30,9 +47,21 @@ OPERATOR(/ )
     float3 __cdecl operator op(float3 lhs, float rhs) { \
         return { lhs.x op rhs, lhs.y op rhs, lhs.z op rhs }; \
     }
+
+    #define OPERATOR2(op) \
+    float3& __cdecl operator op(float3& lhs, float rhs) { \
+        lhs.x op rhs; \
+        lhs.y op rhs; \
+        lhs.z op rhs; \
+        return lhs; \
+    }
 #else
     #define OPERATOR(op) \
     float3 __cdecl operator op(float3 lhs, float rhs);
+    
+    
+    #define OPERATOR2(op) \
+    float3& __cdecl operator op(float3& lhs, float rhs);
 #endif
 
 OPERATOR(+)
@@ -40,7 +69,14 @@ OPERATOR(-)
 OPERATOR(*)
 OPERATOR(/ )
 
+
+OPERATOR2(+=)
+OPERATOR2(-=)
+OPERATOR2(*=)
+OPERATOR2(/=)
+
 #undef OPERATOR
+#undef OPERATOR2
 #endif // ___SAFE_GUARD_TYPE_OPERATORS2___3333
 
 #ifdef ___SAFE_GUARD_TYPE_OPERATORS___

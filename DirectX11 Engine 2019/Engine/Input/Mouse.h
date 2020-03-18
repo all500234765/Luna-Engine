@@ -29,11 +29,19 @@ typedef unsigned int uint32_t;
 class Mouse {
 private:
     struct State {
-        bool mLeftButton   : 1;
-        bool mRightButton  : 1;
-        bool mMiddleButton : 1;
-        bool mX1Button     : 1;
-        bool mX2Button     : 1;
+        union {
+            struct {
+                uint32_t val;
+            };
+
+            struct {//*/
+                uint32_t mLeftButton   : 1;
+                uint32_t mRightButton  : 1;
+                uint32_t mMiddleButton : 1;
+                uint32_t mX1Button     : 1;
+                uint32_t mX2Button     : 1;
+            };
+        };//*/
     };
 
     State mState;
@@ -83,8 +91,8 @@ public:
 
     float GetDX() const { return dx; }
     float GetDY() const { return dy; }
-    float GetX() const { return x; }
-    float GetY() const { return y; }
+    float GetX() const { return (float)x; }
+    float GetY() const { return (float)y; }
     float2 GetXY() const { return float2((float)x, (float)y); }
     bool InRect(float x1, float y1, float w, float h) const {
         float x2 = x1 + w;
@@ -92,6 +100,8 @@ public:
         return (x >= x1) && (x <= x2)
             && (y >= y1) && (y <= y2);
     }
+
+    ButtonState GetState(MouseButton mb) const { return _mStates.KeyState(mb); }
 
     bool IsPressed(MouseButton mkey);
     bool IsDown(MouseButton mkey);

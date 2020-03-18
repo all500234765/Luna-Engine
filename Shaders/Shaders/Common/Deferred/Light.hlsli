@@ -54,6 +54,8 @@ struct Surface {
     float3 ViewPos;
     float3 ViewDir;
     float2 UV;
+    float Depth;
+    float LinDepth;
 };
 
 Surface GetSurface(float2 uv, float2 ClipSpace) {
@@ -62,7 +64,9 @@ Surface GetSurface(float2 uv, float2 ClipSpace) {
         surf.Indirect = _IndirectTexture.Sample(_IndirectSampler, uv);
         surf.Shading  = _ShadingTexture.Sample(_ShadingSampler, uv);
         surf.Normal   = NormalDecode(_NormalTexture.Sample(_NormalSampler, uv));
-        surf.WorldPos = GetWorldPos(ClipSpace, Depth2Linear(1.f - _DepthTexture.Sample(_DepthSampler, uv)));
+        surf.Depth    = 1.f - _DepthTexture.Sample(_DepthSampler, uv);
+        surf.LinDepth = Depth2Linear(surf.Depth);
+        surf.WorldPos = GetWorldPos(ClipSpace, surf.LinDepth);
         
         surf.ViewPos  = _mInvView._m03_m13_m23;
         surf.UV       = uv;
@@ -110,6 +114,8 @@ float GSmith(float3 N, float3 V, float3 L, float _Rougness) {
 }
 
 float4 DeferredPBR(Surface surf, PointLight light) {
+    [flatten] if( surf.LinDepth >= .99f ) return float4(surf.Albedo.rgb, 1.f);
+    
     // Vectors
     float3 L = normalize(light._LightPosition - surf.WorldPos);
     float3 V = normalize(surf.ViewDir);
@@ -154,6 +160,8 @@ float4 DeferredPBR(Surface surf, PointLight light) {
 }
 
 float3 PBRAccumullation(Surface surf, float3 Light) {
+    [flatten] if( surf.LinDepth >= .99f ) return surf.Albedo.rgb;
+    
     // Vectors
     float3 V = normalize(surf.ViewDir);
     float3 N = surf.Normal;
@@ -178,5 +186,5 @@ float3 PBRAccumullation(Surface surf, float3 Light) {
     
     // Accumulation                  Shadows
     float3 Acc = (Ambient + Light) * surf.Albedo.w;
-    return Acc;
+    return surf.Albedo.w;
 }

@@ -1,5 +1,6 @@
 #include "pc.h"
 #include "Scene.h"
+#include "Other/FloatTypeMath.h"
 
 float fsignf(float x) { return (x < 0.f ? -1.f : 1.f); }
 
@@ -37,7 +38,7 @@ void StaticMeshRenderSystem::UpdateComponents(float dt, BaseECSComponent** comp)
     // or material layer mask doesn't have at least one bit with current renderable material layer
     //      Skip rendering
     if( material->_IsTransparent != scene->IsTransparentPass()
-       || (!(material->_MaterialLayer &  scene->GetEnabledMaterialLayers()) && material->_MaterialLayer) ) return;
+       || (!(material->_MaterialLayer & scene->GetEnabledMaterialLayers()) && material->_MaterialLayer) ) return;
 
     // Get flags
     uint32_t flags = ieee_uint32(dt);
@@ -178,8 +179,8 @@ void MovementControlIntegrationSystem::UpdateComponents(float dt, BaseECSCompone
 
                 //if( fabsf(dx) > 0.f || fabsf(dy) > 0.f ) printf_s("%f %f \n", dx, dy);
 
-                fValue.x += dy * (Control.mMouseButton & MouseButton::AxisY);
-                fValue.y += dx * (Control.mMouseButton & MouseButton::AxisX);
+                fValue.x += dy * ((Control.mMouseButton & MouseButton::AxisY) == MouseButton::AxisY);
+                fValue.y += dx * ((Control.mMouseButton & MouseButton::AxisX) == MouseButton::AxisX);
             }
 
             if( gMouse->IsDown(Control.mMouseButton) & MouseButton::Mask ) fValue = { 1.f, 1.f, 1.f };

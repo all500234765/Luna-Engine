@@ -127,14 +127,25 @@ private:
         uint _Padding;
     };
 
-    // HDR Gradation View
+    // Debug views
+    struct DebugDataGBuffer {
+        uint tUseMipMapLUT;
+        uint3 align;
+    };
+
+    ConstantBuffer* cbDebugDataGBuffer;
+    Texture *mMipmappingLerpLUT;
+    Texture *mMipmappingLUT;
+    uint tUseMipMapLUT = 0u; // 0 - Disabled, 1 - Lerp with alpha, 2 - MipMaps
+
+
+    // HDR Luma View
     struct HDRDebugSettings {
         float _LumScale;
         uint _UseAvg;
         float _MaxLum;
         float1 dummy;
     };
-
     Texture *mHDRGradationLUT;
     ConstantBuffer *cbGradationLUT;
     uint bUseHDRLUT = 0u; // 1st bit - UseHDRLUT; 2nd bit - UseAvg lum Per frame

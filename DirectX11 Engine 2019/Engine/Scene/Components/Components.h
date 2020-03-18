@@ -302,6 +302,9 @@ struct MeshAnimatedComponent: ECSComponent<MeshAnimatedComponent>, MeshComponent
     VertexBuffer *mVBWeights;
     VertexBuffer *mVBJoints;
     
+    //mfloat4x4
+    aiMatrix4x4 mRootInvTransf;
+
     void Bind() {
         ID3D11Buffer *buffs[6] = { mVBPosition->GetBuffer(), mVBTexcoord->GetBuffer(), 
                                    mVBNormal->GetBuffer(),   mVBTangent->GetBuffer(),
@@ -314,6 +317,39 @@ struct MeshAnimatedComponent: ECSComponent<MeshAnimatedComponent>, MeshComponent
 
         gDirectX->gContext->IASetVertexBuffers(0, ARRAYSIZE(buffs), buffs, strides, offsets);
         gDirectX->gContext->IASetIndexBuffer(mIndexBuffer->GetBuffer(), DXGI_FORMAT_R32_UINT, 0);
+    }
+};
+
+// Some defines
+#define MAX_ANIMATIONS_PER_MESH         8
+#define MAX_AFFECTING_JOINTS_PER_VERTEX 3
+#define DEFAULT_ANIMATION_SPEED         30.f
+
+struct AnimationInstance {
+    float mDuration;
+    float mTPS; // Ticks Per Second
+    
+
+
+    void Build(float time) {
+
+    }
+};
+
+struct AnimationUpdateEntry {
+
+};
+
+struct AnimationComponent: ECSComponent<AnimationComponent> {
+    // TODO: Multiple animations
+    AnimationInstance *pAnimation;
+    //std::array<AnimationInstance*, 8> apAnimation;
+    //std::array<float, 8> mBlend;
+
+    float mTime;
+
+    std::array<AnimationUpdateEntry, MAX_ANIMATIONS_PER_MESH> PrepareData() {
+
     }
 };
 

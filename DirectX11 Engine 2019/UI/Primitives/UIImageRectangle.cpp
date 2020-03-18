@@ -7,10 +7,14 @@ UIImageRectangle::UIImageRectangle(UIAtlasItem* img, float2 TopLeft, float2 Bott
 }
 
 UIImageRectangle::UIImageRectangle(UIAtlasItem* img, float x0, float y0, float w, float h) {
+    UIImageRectangle(img, x0, y0, w, h, 0.f);
+}
+
+UIImageRectangle::UIImageRectangle(UIAtlasItem* img, float x0, float y0, float w, float h, float z2) {
     if( !img->usable ) return;
 
-    float t_width  = UIAtlas::GetWidth();
-    float t_height = UIAtlas::GetHeight();
+    float t_width  = UIAtlas::Current()->GetWidth();
+    float t_height = UIAtlas::Current()->GetHeight();
 
     float flip   = img->flipped;
     float w_     = w;
@@ -42,7 +46,7 @@ UIImageRectangle::UIImageRectangle(UIAtlasItem* img, float x0, float y0, float w
     float y1 = y0 + h_;
 
     UIVertex v_0{}, v_1{}, v_2{};
-    float z = (float)gLayerID;
+    float z = (float)gLayerID + z2;
 
     v_0.Color = gColor; v_0.States = 0x1;
     v_1.Color = gColor; v_1.States = 0x1;

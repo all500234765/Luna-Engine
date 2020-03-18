@@ -248,20 +248,26 @@ void UIManager::Submit() {
     for( uint i = 0; i < gLastActiveLayers.size(); i++ ) {
         uint32_t index = gLastActiveLayers[i];
 
-        gVBLayer[index]->CreateDefault(gDCLayer[index], sizeof(UIVertex), &gVertexLayer[index][0]);
+        if( gDCLayer[index] )
+            gVBLayer[index]->CreateDefault(gDCLayer[index], sizeof(UIVertex), &gVertexLayer[index][0]);
     }
 }
 
 // TODO: Custom (w/ shaders)
-void UIManager::Render(void(*TextRenderFunction)(void), bool debug_wire) {
+void UIManager::Render(UIAtlas* atlas, void(*TextRenderFunction)(void), bool debug_wire) {
     {
         ScopeMapConstantBuffer<VSDataBuffer> q(cbVSDataBuffer);
-        q.data->mProj = DirectX::XMMatrixOrthographicOffCenterLH(0.f, Width(), Height(), 0.f, .1f, float(gMaxLayers));
+        q.data->mProj  = DirectX::XMMatrixOrthographicOffCenterLH(0.f, Width(), Height(), 0.f, .1f, float(gMaxLayers));
+        q.data->mView  = DirectX::XMMatrixIdentity();
+        q.data->mWorld = DirectX::XMMatrixIdentity();
     }
 
     // Bind states
     rtDestination->Bind();
     shPrimitives->Bind();
+
+    // Clear depth
+    rtDestination->Clear(1.f, 0, D3D11_CLEAR_DEPTH);
 
     // For Lisa
     RasterState::Push();
@@ -269,7 +275,7 @@ void UIManager::Render(void(*TextRenderFunction)(void), bool debug_wire) {
 
     // Bind resources
     gPointSampler->Bind(Shader::Pixel, 0u);                // Sampler
-    UIAtlas::GetTexture()->Bind(Shader::Pixel, 0u, false); // SRV
+    atlas->GetTexture()->Bind(Shader::Pixel, 0u, false);   // SRV
     cbVSDataBuffer->Bind(Shader::Vertex, 0u);              // CB
 
     for( uint i = 0; i < gLastActiveLayers.size(); i++ ) {

@@ -30,10 +30,13 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
 
     // 
     HRESULT res = S_FALSE;
-    D3D11_USAGE Usage = (CPURead    ? D3D11_USAGE_STAGING : (CPUWrite ? D3D11_USAGE_DYNAMIC : (Immutable ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT)));
+    D3D11_USAGE Usage = (CPURead ? D3D11_USAGE_STAGING : 
+                            (CPUWrite ? D3D11_USAGE_DYNAMIC : 
+                                (Immutable ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT)));
     UINT BindFlags = D3D11_BIND_SHADER_RESOURCE | 
                      (HasUAV ? D3D11_BIND_UNORDERED_ACCESS : 0)
-                   | (((Usage!= D3D11_USAGE_STAGING && Usage != D3D11_USAGE_IMMUTABLE) || HasMipMaps) & !MSAA && !FormatBC(format) ? D3D11_BIND_RENDER_TARGET : 0);
+                   | (((Usage != D3D11_USAGE_STAGING && Usage != D3D11_USAGE_IMMUTABLE) && 
+                        !MSAA && !FormatBC(format)) ? D3D11_BIND_RENDER_TARGET : 0);
     UINT MipMaps      = MSAA ? 1 : (HasMipMaps ? ((mMipMaps == 1) ? 0 : mMipMaps) : 1);
     UINT CPUAccess    = (CPURead    ? D3D11_CPU_ACCESS_READ : 0) | (CPUWrite ? D3D11_CPU_ACCESS_WRITE : 0);
     UINT Misc         = (HasMipMaps ? (MSAA ? 0 : ((MipMaps <= 1) && !FormatBC(format) ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0)) : 0) |
@@ -274,43 +277,43 @@ implTexture* Texture::CreateTexture(DXGI_FORMAT format, D3D11_SUBRESOURCE_DATA *
             gDirectX->gContext->GenerateMips(pSRV);
 
         // Create RTV
-        D3D11_RENDER_TARGET_VIEW_DESC desc{};
-        desc.Format = format;
-        desc.ViewDimension = D3D11_RTV_DIMENSION(
-            (dim == 1) ? (D3D11_RTV_DIMENSION_TEXTURE1D + (mArraySize > 1)) :
-            (dim == 2) ? (D3D11_RTV_DIMENSION_TEXTURE2D + (mArraySize > 1)) :
-            (dim == 3) ? D3D11_RTV_DIMENSION_TEXTURE3D :
-            D3D11_RTV_DIMENSION_UNKNOWN
-        );
+        if( BindFlags & D3D11_BIND_RENDER_TARGET ) {
+            D3D11_RENDER_TARGET_VIEW_DESC desc{};
+            desc.Format = format;
+            desc.ViewDimension = D3D11_RTV_DIMENSION(
+                (dim == 1) ? (D3D11_RTV_DIMENSION_TEXTURE1D + (mArraySize > 1)) :
+                (dim == 2) ? (D3D11_RTV_DIMENSION_TEXTURE2D + (mArraySize > 1)) :
+                (dim == 3) ? D3D11_RTV_DIMENSION_TEXTURE3D :
+                D3D11_RTV_DIMENSION_UNKNOWN
+            );
 
-        //uint32_t mip_levels = ((mMipMaps <= 1) && HasMipMaps) ? -1 : std::max({ 1, (int)mMipMaps - 1 });
+            if( dim == 1 ) {
+                desc.Texture1D.MipSlice = 0;
 
-        if( dim == 1 ) {
-            desc.Texture1D.MipSlice = 0;
+                if( mArraySize > 1 ) {
+                    desc.Texture1DArray.FirstArraySlice = 0;
+                    desc.Texture1DArray.ArraySize = mArraySize;
+                    desc.Texture1DArray.MipSlice = 0;
+                }
+            } else if( dim == 2 ) {
+                desc.Texture2D.MipSlice = 0;
 
-            if( mArraySize > 1 ) {
-                desc.Texture1DArray.FirstArraySlice = 0;
-                desc.Texture1DArray.ArraySize = mArraySize;
-                desc.Texture1DArray.MipSlice = 0;
+                if( mArraySize > 1 ) {
+                    desc.Texture2DArray.MipSlice = 0;
+                    desc.Texture2DArray.ArraySize = mArraySize;
+                    desc.Texture2DArray.FirstArraySlice = 0;
+                }
+            } else if( dim == 3 ) {
+                desc.Texture3D.FirstWSlice = 0;
+                desc.Texture3D.MipSlice = 0;
+                desc.Texture3D.WSize = GetDepth();
             }
-        } else if( dim == 2 ) {
-            desc.Texture2D.MipSlice = 0;
 
-            if( mArraySize > 1 ) {
-                desc.Texture2DArray.MipSlice = 0;
-                desc.Texture2DArray.ArraySize = mArraySize;
-                desc.Texture2DArray.FirstArraySlice = 0;
+            // 
+            res = gDirectX->gDevice->CreateRenderTargetView(Choose(pTexture._1D, pTexture._2D, pTexture._3D), &desc, &pRTV);
+            if( FAILED(res) ) {
+                printf_s("[Texture::Create]: Failed to create RTV! [%s]\n", mName.data());
             }
-        } else if( dim == 3 ) {
-            desc.Texture3D.FirstWSlice = 0;
-            desc.Texture3D.MipSlice = 0;
-            desc.Texture3D.WSize = GetDepth();
-        }
-
-        // 
-        res = gDirectX->gDevice->CreateRenderTargetView(Choose(pTexture._1D, pTexture._2D, pTexture._3D), &desc, &pRTV);
-        if( FAILED(res) ) {
-            printf_s("[Texture::Create]: Failed to create RTV! [%s]\n", mName.data());
         }
     }
     
@@ -651,6 +654,8 @@ void Texture::CopyS(Texture* dest, Texture* src, uint32_t dst_x, uint32_t dst_y,
 
 void Texture::CopyS(implTexture* dest, Texture* src, uint32_t dst_x, uint32_t dst_y, uint32_t dst_z,
                     uint32_t dst_array, uint32_t dst_mip, uint32_t src_mip, uint32_t src_array) {
+    if( !ChooseS(dest) || !src->GetTexture() ) return;
+
     D3D11_BOX box{};
     box.left = 0;
     box.right = src->GetWidth() >> src_mip;
@@ -887,7 +892,6 @@ void Texture::Bind(UINT type, UINT slot, bool UAV) {
 
 void Texture::Release() {
     SAFE_RELEASE(mTextureUnit);
-
 }
 
 void implTexture::Release() {

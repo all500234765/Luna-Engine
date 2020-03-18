@@ -37,6 +37,7 @@ RenderDocManager::RenderDocManager(HWND p_Handle, LPCSTR pCapturePath, bool bRen
 
     // Set default settings
     m_API->SetCaptureOptionU32(eRENDERDOC_Option_AllowFullscreen, 1u);
+    m_API->SetCaptureOptionU32(eRENDERDOC_Option_RefAllResources, 1u);
     m_API->SetCaptureOptionU32(eRENDERDOC_Option_AllowVSync     , 1u);
 
     // 

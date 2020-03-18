@@ -89,17 +89,17 @@
     <OutDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</OutDir>
     <IntDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Intermediate\</IntDir>
     <TargetName>$(ProjectName)_$(PlatformShortName)</TargetName>
-    <IncludePath>$(SolutionDir)Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)Vendor\Vendor\Bullet3\</IncludePath>
+    <IncludePath>$(SolutionDir)..\DirectX 11 Engine 2019\Vendor\Vendor\;$(SolutionDir)..\DirectX 11 Engine 2019\Vendor\Vendor\Ansel\;$(SolutionDir)Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)Vendor\Vendor\Bullet3\</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</OutDir>
     <IntDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Intermediate\</IntDir>
     <TargetName>$(ProjectName)_$(PlatformShortName)</TargetName>
     <IncludePath>$(SolutionDir)Vendor\Vendor\;$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)Vendor\Vendor\Bullet3\</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Bin\</OutDir>
     <IntDir>$(SolutionDir)Compiled\$(ProjectName)_Build\Intermediate\</IntDir>
     <TargetName>$(ProjectName)_$(PlatformShortName)</TargetName>
@@ -131,6 +131,7 @@
       <ShaderModel>5.0</ShaderModel>
       <AdditionalOptions>/Gfp %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -159,6 +160,7 @@
       <ShaderModel>5.0</ShaderModel>
       <AdditionalOptions>/Gfp %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -183,13 +185,14 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Vendor\Vendor\</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
-      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\Deferred\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_RELEASE</PreprocessorDefinitions>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -214,13 +217,14 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Vendor\Vendor\</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ObjectFileOutput>$(SolutionDir)Compiled/$(ProjectName)_Build/Shaders/%(Filename).cso</ObjectFileOutput>
       <ShaderModel>5.0</ShaderModel>
-      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\Deferred\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Shaders\Shaders\Common\;$(ProjectDir)..\DirectX11 Engine 2019\Engine\Scene\Components\;$(ProjectDir)..\Renderers\Renderer\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_RELEASE</PreprocessorDefinitions>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
