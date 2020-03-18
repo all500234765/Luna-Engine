@@ -1,6 +1,6 @@
 # Luna-Engine
 <p align="center">
-    <img src="https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/Luna150.png?raw=true">
+    <img src="https://github.com/all500234765/Luna-Engine/blob/master/Misc/Luna150.png?raw=true">
 </p>
  
  Luna Engine is DirectX 11 based engine that i develop. Main reason why is that i want to learn more and try it all by myself
@@ -238,7 +238,7 @@ void _DirectX::Unload() {
         UIScrollbar vsb(UIScrollbarType::Vertical);
     ```
     
-    ![UI Scrollbar Example GIF](https://github.com/all500234765/Luna-Engine/blob/ecs-scene-system/Misc/UIScroll2.gif?raw=true)
+    ![UI Scrollbar Example GIF](https://github.com/all500234765/Luna-Engine/blob/master/Misc/UIScroll2.gif?raw=true)
     
     * Deferred Renderer is finally WIP!
     * Deferred PBR/IBL is WIP
