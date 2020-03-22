@@ -36,6 +36,15 @@ float3 GetWorldPos(float2 ClipSpace, float z) {
     return mul(_mInvView, float4(ClipSpace * _ProjValues.zw * z, z, 1.)).xyz;
 }
 
+float4 ClipSpaceUVs(float3 ClipXYW) {
+    float2 Clip = ClipXYW.xy / ClipXYW.z;
+    float2 UV = Clip * .5f;
+    UV.x += .5f;
+    UV.y = .5f - UV.y;
+    
+    return float4(UV, Clip);
+}
+
 struct Surface {
     //                  | Red         | Green        | Blue        | Alpha        | Format   
     //                  +-------------+--------------+-------------+--------------+----------
@@ -78,6 +87,10 @@ struct PointLight {
     #include "PointLight.h"
 };
 
+struct SpotLight {
+    #include "SpotLight.h"
+};
+
 #define InvPI (1.f / kPI)
 
 // IBL / PBR
@@ -113,6 +126,47 @@ float GSmith(float3 N, float3 V, float3 L, float _Rougness) {
     return ggx1 * ggx2;
 }
 
+struct BRDF {
+    float3 Spec;
+    float3 KD;
+};
+
+struct PBR {
+    float3 F0;
+    float Dist, invD;
+    float3 Radiance;
+};
+
+float3 CalculateLight(float3 LightColor, float3 SurfaceAlbedo, float3 Radiance, float NL, BRDF brdf) {
+    return LightColor * (brdf.KD * SurfaceAlbedo * InvPI + brdf.Spec) * Radiance * NL;
+}
+
+BRDF CookTorranceBRDF(float3 N, float3 H, float3 L, float3 V, float3 F0, float Roughness, float Metallic, float NV, float NL) {
+    BRDF brdf;
+        float  NDF = DistrGGX(N, H, Roughness);
+        float  G   = GSmith(N, V, L, Roughness);
+        float3 F   = FresnelShlick(saturate(dot(H, V)), F0, Roughness);
+
+        float3 KS = F;
+        brdf.KD = (1.f - KS) * (1.f - Metallic); // TODO: MAD
+        
+        float3 N_ = NDF * G * F;
+        float1 D  = mad(4.f * NV, NL, .001f); // .001f: Prevent division by zero
+        brdf.Spec = N_ / D;
+    return brdf;
+}
+
+PBR PBRPrepare(float3 LightPosition, float LightRadius, float3 SurfacePos, float3 SurfaceAlbedo, float Metallic) {
+    PBR pbr;
+        pbr.F0 = lerp((.04f).xxx, SurfaceAlbedo, Metallic);
+        
+        pbr.Dist = length(LightPosition - SurfacePos) / LightRadius;
+        pbr.invD = saturate(1.f - pbr.Dist * 1.f); //1.f / (Dist * Dist); // TODO: Use inverse sqrt (rsqrt)
+        
+        pbr.Radiance = /*_WorldLightColor */ pbr.invD.xxx; // + Dist + 0*Dist / 20.f; //invD;
+    return pbr;
+}
+
 float4 DeferredPBR(Surface surf, PointLight light) {
     [flatten] if( surf.LinDepth >= .99f ) return float4(surf.Albedo.rgb, 1.f);
     
@@ -128,39 +182,72 @@ float4 DeferredPBR(Surface surf, PointLight light) {
     float AmbientOcclusion = surf.Shading.b;
     
     // Cosines
-    float NdotV = dot(N, V);
-    float NdotL = dot(N, L);
+    float NdotV = saturate(dot(N, V));
+    float NdotL = saturate(dot(N, L));
 
     // PBR
-    float3 F0 = lerp((.04f).xxx, surf.Albedo.rgb, Metallic);
-    
-    float Dist = length(light._LightPosition - surf.WorldPos) / (light._LightRadius);
-    float invD = saturate(1.f - Dist * 1.f); //1.f / (Dist * Dist); // TODO: Use inverse sqrt (rsqrt)
-    
-    float3 Radiance = /*_WorldLightColor */ invD.xxx; // + Dist + 0*Dist / 20.f; //invD;
+    PBR pbr = PBRPrepare(light._LightPosition.xyz, light._LightRadius, surf.WorldPos.xyz, surf.Albedo.rgb, Metallic);
 
     // Cook-Torrance BRDF
-    float  NDF = DistrGGX(N, H, Roughness);
-    float  G   = GSmith(N, V, L, Roughness);
-    float3 F   = FresnelShlick(saturate(dot(H, V)), F0, Roughness);
-
-    float3 KS = F;
-    float3 KD = (1.f - KS) * (1.f - Metallic); // TODO: MAD
-    
-    float3 N_ = NDF * G * F;
-    float1 D  = mad(4.f * saturate(NdotV), saturate(NdotL), .001f); // .001f: Prevent division by zero
-    float3 Spec = N_ / D;
+    BRDF brdf = CookTorranceBRDF(N, H, L, V, pbr.F0, Roughness, Metallic, NdotV, NdotL);
     
     // Light
-    float3 Light = light._LightColor * (KD * surf.Albedo.rgb * InvPI + Spec) * Radiance * saturate(NdotL);
+    float3 Light = CalculateLight(light._LightColor, surf.Albedo.rgb, pbr.Radiance, NdotL, brdf);
     
 //return float4((1.f - Dist).xxx, 1.f);
     
     return float4(Light, 1.f);
 }
 
+float4 DeferredPBR(Surface surf, SpotLight light) {
+    //[flatten] if( surf.LinDepth >= .99f ) return float4(surf.Albedo.rgb, 1.f);
+    
+    // Vectors
+    float3 P = light._LightPosition - surf.WorldPos;
+    float3 L = normalize(P);
+    float3 V = normalize(surf.ViewDir);
+    float3 H = normalize(L + V);
+    float3 N = surf.Normal;
+    
+    // Shading parameters
+    float Roughness        = surf.Shading.g;
+    float Metallic         = surf.Shading.r;
+    float AmbientOcclusion = surf.Shading.b;
+    
+    // Cosines
+    float NdotV = saturate(dot(N, V));
+    float NdotL = saturate(dot(N, L));
+    float theta = saturate(dot(L, normalize(-light._LightDirection)));
+    
+    // Outside of the spot light
+    //[flatten] if( theta <= light._LightCutOff ) return float4(0.f, 0.f, 0.f, 1.f);
+    //return float4(theta.xxx, 1.f);
+    //return float4(0.f, 0.f, 1.f, 1.f);
+    
+    float epsilon   = light._LightCutOff - light._LightOutCutOff;
+    float intensity = saturate((theta    - light._LightOutCutOff) / epsilon);
+    //return float4(intensity.xxx, 1.f);
+    // PBR
+    PBR pbr = PBRPrepare(light._LightPosition.xyz, light._LightDistance, surf.WorldPos.xyz, surf.Albedo.rgb, Metallic);
+
+    // Cook-Torrance BRDF
+    BRDF brdf = CookTorranceBRDF(N, H, L, V, pbr.F0, Roughness, Metallic, NdotV, NdotL);
+    
+    // Light
+    float dist2  = dot(P, P);
+    float dist1  = sqrt(dist2);
+    float att    = 1.f / (.09f * dist1 + .032f * dist2); //saturate(1.f - pbr.Dist * 1.f)//1.f / dist;
+    float3 Light = att * intensity * light._LightPower * CalculateLight(light._LightColor, surf.Albedo.rgb, pbr.Radiance, NdotL, brdf);
+    
+    return float4(Light, 1.f);
+}
+
 float3 PBRAccumullation(Surface surf, float3 Light) {
-    [flatten] if( surf.LinDepth >= .99f ) return surf.Albedo.rgb;
+    //return surf.LinDepth;
+    //[flatten] if( surf.LinDepth >= .99f ) return surf.Albedo.rgb;
+    //[flatten] if( surf.LinDepth >= .999f ) return surf.Albedo.rgb;
+    //[flatten] if( surf.LinDepth <= (1.f - .99f) ) return surf.Albedo.rgb;
+    [flatten] if( surf.LinDepth >= 7000.f ) return surf.Albedo.rgb; // HARDCODED: LIGHT ACCUMULATION ENDS HERE
     
     // Vectors
     float3 V = normalize(surf.ViewDir);
@@ -186,5 +273,5 @@ float3 PBRAccumullation(Surface surf, float3 Light) {
     
     // Accumulation                  Shadows
     float3 Acc = (Ambient + Light) * surf.Albedo.w;
-    return surf.Albedo.w;
+    return Acc; //surf.Albedo.w;
 }

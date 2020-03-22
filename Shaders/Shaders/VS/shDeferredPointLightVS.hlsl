@@ -16,11 +16,10 @@ struct VS {
 
 struct PS {
     float4 Position  : SV_Position0;
-    float2 Texcoord  : TEXCOORD0;
-    float4 LightPos  : TEXCOORD1;
-	float4 Color     : TEXCOORD2;
-    uint InstanceID  : TEXCOORD3;
-    float2 ClipSpace : TEXCOORD4;
+    float4 LightPos  : TEXCOORD0;
+	float4 Color     : TEXCOORD1;
+    uint InstanceID  : TEXCOORD2;
+    float3 ClipSpace : TEXCOORD3;
 };
 
 PS main(VS In, uint Instance : SV_InstanceID) {
@@ -33,11 +32,6 @@ PS main(VS In, uint Instance : SV_InstanceID) {
         Out.InstanceID = Instance;
         Out.Color      = float4(light._LightColor, light._LightPower);
         Out.LightPos   = float4(light._LightPosition, light._LightRadius);
-        //Out.Texcoord   = In.Texcoord;
-        
-        Out.ClipSpace = Out.Position.xy / Out.Position.w;
-        Out.Texcoord  = Out.ClipSpace * .5f;
-        Out.Texcoord.x += .5f;
-        Out.Texcoord.y = .5f - Out.Texcoord.y;
+        Out.ClipSpace = Out.Position.xyw;
     return Out;
 }

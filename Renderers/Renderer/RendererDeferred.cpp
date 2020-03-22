@@ -53,6 +53,11 @@ void RendererDeferred::Init() {
     shDeferredPointLights->LoadFile("shDeferredPointLightPS.cso", Shader::Pixel  );
     shDeferredPointLights->LoadFile("shDeferredPointLightCS.cso", Shader::Compute);
 
+    shDeferredSpotLights = new Shader();
+    shDeferredSpotLights->LoadFile("shDeferredSpotLightVS.cso", Shader::Vertex);
+    shDeferredSpotLights->LoadFile("shDeferredSpotLightPS.cso", Shader::Pixel);
+    shDeferredSpotLights->LoadFile("shDeferredSpotLightCS.cso", Shader::Compute);
+
     shDeferredAccumulation = new Shader();
     shDeferredAccumulation->LoadFile("shTexturedQuadSimpliestVS.cso", Shader::Vertex);
     shDeferredAccumulation->LoadFile("shDeferredAccumulationPS.cso", Shader::Pixel);
@@ -69,6 +74,7 @@ void RendererDeferred::Init() {
     shHorizontalFilterDepth->ReleaseBlobs();
     shDSSDOAccumulate->ReleaseBlobs();
     shDeferredPointLights->ReleaseBlobs();
+    shDeferredSpotLights->ReleaseBlobs();
     shDeferredAccumulation->ReleaseBlobs();
     shHDRView->ReleaseBlobs();
 #pragma endregion
@@ -184,6 +190,7 @@ void RendererDeferred::Init() {
     s_states.blend.normal   = new BlendState;
     s_states.blend.add      = new BlendState;
     s_states.blend.no_blend = new BlendState;
+    s_states.blend.one_one  = new BlendState;
 
     {
         D3D11_BLEND_DESC pDesc;
@@ -223,8 +230,18 @@ void RendererDeferred::Init() {
         s_states.blend.no_blend->Create(pDesc, { 1.f, 1.f, 1.f, 1.f });
 
         // 
+        pDesc.RenderTarget[0].BlendEnable           = false;
+        pDesc.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
+        pDesc.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
 
-        //s_states.blend.add->Create(pDesc, { 1.f, 1.f, 1.f, 1.f });
+        pDesc.RenderTarget[0].DestBlend             = D3D11_BLEND_ONE;
+        pDesc.RenderTarget[0].SrcBlend              = D3D11_BLEND_ONE;
+        
+        pDesc.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_ONE;
+        pDesc.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ONE;
+        
+
+        s_states.blend.one_one->Create(pDesc, { 1.f, 1.f, 1.f, 1.f });
     }
 #pragma endregion
 
@@ -325,10 +342,10 @@ void RendererDeferred::Init() {
 
         // Normal + Scissors
         pDesc.ScissorEnable = true;
+        pDesc.CullMode = D3D11_CULL_NONE;
         s_states.raster.normal_scissors->Create(pDesc);
 
         // Wireframe + Scissors
-        pDesc.CullMode = D3D11_CULL_NONE;
         pDesc.FillMode = D3D11_FILL_WIREFRAME;
         s_states.raster.wire_scissors->Create(pDesc);
 
@@ -421,6 +438,7 @@ void RendererDeferred::Init() {
 
     // Load default models
     s_mesh.unit_sphere = LoadModelExternal("../Models/UVUnitSphere.obj", 0u)[0];
+    s_mesh.unit_cone   = LoadModelExternal("../Models/ConeShape.obj", 0u)[0];
     //LoadMeshInternal("../Data/model.vb");
     
     // Default CSM Settings
@@ -599,6 +617,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(shHorizontalFilterDepth);
     SAFE_RELEASE(shDSSDOAccumulate);
     SAFE_RELEASE(shDeferredPointLights);
+    SAFE_RELEASE(shDeferredSpotLights);
     SAFE_RELEASE(shDeferredAccumulation);
     SAFE_RELEASE(shHDRView);
 
@@ -646,6 +665,7 @@ void RendererDeferred::Release() {
     SAFE_RELEASE(s_states.blend.normal  );
     SAFE_RELEASE(s_states.blend.add     );
     SAFE_RELEASE(s_states.blend.no_blend);
+    SAFE_RELEASE(s_states.blend.one_one );
     SAFE_RELEASE(s_states.raster.normal         );
     SAFE_RELEASE(s_states.raster.wire           );
     SAFE_RELEASE(s_states.raster.normal_scissors);
@@ -792,7 +812,7 @@ void RendererDeferred::ImGui() {
     }
     ImGui::End();
 
-    if( false )
+    if( true )
     {
         static const std::vector<std::vector<const char*>> items = {
             {
@@ -1418,9 +1438,9 @@ void RendererDeferred::Deferred() {
     BlendState::Push();
     RasterState::Push();
     DepthStencilState::Push();
-    s_states.blend.normal->Bind();
-    s_states.depth.ro_lt->Bind();
-    s_states.raster.normal_cback->Bind();
+    s_states.blend.one_one->Bind(); //normal
+    s_states.depth.ro_lt->Bind(); //ro_lt
+    s_states.raster.normal_cback->Bind(); //normal_cback
 
     {
         ScopedRangeProfiler s2(L"Lights");
@@ -1499,6 +1519,23 @@ void RendererDeferred::Deferred() {
             point.sb  = mScene->ListPointLightDynamicBuffer();
             
             DeferredLights(point);
+
+            // Update states
+            //s_states.depth.ro_get->Bind(); //ro_lt
+            s_states.raster.normal->Bind(); //normal_cback
+
+            // Static lights
+            LightDescriptor<SpotLightBuff> spot{};
+            spot.num = mScene->GetStaticSpotLightCount();
+            spot.sb  = mScene->ListSpotLightStaticBuffer();
+
+            DeferredLights(spot);
+
+            // Dynamic lights
+            spot.num = mScene->GetDynamicSpotLightCount();
+            spot.sb  = mScene->ListSpotLightDynamicBuffer();
+
+            DeferredLights(spot);
         }
 
         //if( mTransparencyAmount )
@@ -1577,6 +1614,46 @@ void RendererDeferred::DeferredLights(const LightDescriptor<PointLightBuff>& poi
     // Spot lights
     {
 
+    }
+
+    // Line lights (GPU Pro 3)
+    {
+
+    }
+
+    // TODO: Maybe interchangable with line lights
+    // Capsule lights
+    {
+
+    }
+
+    // Area lights
+    {
+
+    }
+}
+
+void RendererDeferred::DeferredLights(const LightDescriptor<SpotLightBuff>& spot) {
+    // Spot lights
+    if( spot.num > 0u ) {
+        ScopedRangeProfiler s2(L"Spot");
+        shDeferredSpotLights->Bind();
+        s_mesh.Bind(s_mesh.unit_cone);
+
+        // Update CB
+        {
+            //ScopeMapConstantBuffer<DeferredLight> map(cbDeferredLight);
+        }
+
+        // TODO: Frustum Culling with Compute Shader
+        spot.sb->Bind(Shader::Vertex, 0u);       // SRV
+        //cbDeferredLight->Bind(Shader::Pixel, 1u); // CB
+
+        // TODO: Indirect Instanced
+        DXDrawIndexedInstanced(s_mesh.unit_cone.mIndexBuffer->GetNumber(), spot.num, 0, 0, 0);
+
+        // TODO: 
+        //DXDrawInstanced(2, CulledLightCount, 0, 0);
     }
 
     // Line lights (GPU Pro 3)

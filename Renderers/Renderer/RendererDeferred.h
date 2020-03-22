@@ -53,13 +53,14 @@ private:
             BlendState *normal;
             BlendState *add;
             BlendState *no_blend;
+            BlendState *one_one;
         } blend;
 
         struct {
             // Depth test/write, no stencil
             DepthStencilState *normal; // RW; Greater Than | Default
             DepthStencilState *norw;   // No RW
-            DepthStencilState *ro;     // Read Only
+            DepthStencilState *ro;     // Read Only; Greater
             DepthStencilState *ro_eq;  // Read Only; Equal
             DepthStencilState *ro_get; // Read Only; Greater Equal Than
             DepthStencilState *ro_lt;  // Read Only; Less Than
@@ -79,12 +80,18 @@ private:
 
     struct {
         MeshComponent unit_sphere;
+        MeshComponent unit_cone;
+
+        void ReleaseMesh(MeshComponent& mesh) {
+            SAFE_RELEASE(mesh.mIndexBuffer);
+            SAFE_RELEASE(mesh.mVBPosition);
+            SAFE_RELEASE(mesh.mVBTangent);
+            SAFE_RELEASE(mesh.mVBTexcoord);
+        }
 
         void Release() {
-            SAFE_RELEASE(unit_sphere.mIndexBuffer);
-            SAFE_RELEASE(unit_sphere.mVBPosition );
-            SAFE_RELEASE(unit_sphere.mVBTangent  );
-            SAFE_RELEASE(unit_sphere.mVBTexcoord );
+            ReleaseMesh(unit_sphere);
+            ReleaseMesh(unit_cone);
         }
 
 #define GET_BUFFER(x) ((x) ? (x)->GetBuffer() : nullptr)
@@ -211,7 +218,7 @@ private:
     Texture *mDSSDOAccumulation{};
 
     Shader *shSurface{}, *shVertexOnly{}, *shGUI{}, *shPostProcess{}, *shCombinationPass{};
-    Shader *shDeferredPointLights{}, *shDeferredAccumulation{};
+    Shader *shDeferredPointLights{}, *shDeferredAccumulation{}, *shDeferredSpotLights{};
     Shader *shVolumetricLight;
     Shader *shSimpleGUI{}, *shHDRView{};
     Shader *shHorizontalFilterDepth{}, *shVerticalFilterDepth{};
@@ -267,7 +274,8 @@ private:
 
     // Screen-Space Passes
     void Deferred();
-    void DeferredLights(const LightDescriptor<PointLightBuff>& point);
+    void DeferredLights(const LightDescriptor<PointLightBuff>&);
+    void DeferredLights(const LightDescriptor<SpotLightBuff>&);
     
     void SSAO();
     void SSLR();

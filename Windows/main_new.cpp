@@ -12,7 +12,7 @@ Shader *shSkybox{};
 bool g_bMouseHUD{};
 float g_fAvgMS{};
 
-EntityHandle gTestLight;
+EntityHandle gTestLight, gTestLight2;
 
 UIAtlasItem *rd, *img[10];
 UIAtlas *gUIAtlas;
@@ -27,7 +27,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Show splashscreen
-    SplashScreen::Launch(L"Engine/SplashEditor9.bmp", 2 * 1000);
+    //SplashScreen::Launch(L"Engine/SplashEditor9.bmp", 2 * 1000);
 
     // Print CPU info
     CPUID cpu;
@@ -72,7 +72,7 @@ int WINAPI WINMAIN(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     dxCFG.Ansel = 0;
 
     // Init DirectX
-    gDirectX = gHighLevel.InitDirectX(dxCFG, !true);
+    gDirectX = gHighLevel.InitDirectX(dxCFG, true);
 
     // Main Loop
     gHighLevel.AppLoop();
@@ -310,8 +310,35 @@ void _DirectX::Tick(float fDeltaTime) {
 
     if( !g_bMouseHUD ) {
         // Clamp camera pitch
-        TransformComponent *Transform = gMainScene->GetCamera(0)->cTransf;
+        CameraData* data = gMainScene->GetCamera(0);
+        TransformComponent *Transform = data->cTransf;
         Transform->vRotation.x = LunaEngine::Math::clamp(Transform->vRotation.x, -84.f, 84.f);
+
+        // Update spot light
+        SpotLightComponent* s = gMainScene->GetComponent<SpotLightComponent>(gTestLight2);
+        //float4x4 mViewInv; DirectX::XMStoreFloat4x4(&mViewInv, DirectX::XMMatrixTranspose(data->cCam->mInvView));
+        //s->_LightDirection = { mViewInv._13, mViewInv._23, mViewInv._33 }; // Forward vector
+        //s->_LightPosition  = Transform->vPosition + s->_LightDirection * float3(1.f, 1.f, 1.f) * data->cCam->fNear * 0.f;
+        
+        // Set the yaw (Y axis), pitch (X axis), and roll (Z axis) rotations in radians.
+        //float pitch = -Transform->vRotation.x * 0.0174532925f;
+        //float yaw   = (Transform->vRotation.y + 180.f) * 0.0174532925f;
+        //float roll  = Transform->vRotation.z * 0.0174532925f;
+
+        float pitch = -40.f * 0.0174532925f;
+        float yaw   = 0.f   * 0.0174532925f;
+        float roll  = 0.f   * 0.0174532925f;
+
+        // Create the rotation matrix from the yaw, pitch, and roll values.
+        mfloat4x4 rotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(pitch, yaw, roll);
+        DirectX::XMStoreFloat3x3(&s->_LightRotMat, rotationMatrix);
+
+        mfloat4 v = DirectX::XMVector4Transform(DirectX::XMVectorSet(0.f, 0.f, -1.f, 0.f), rotationMatrix);
+        DirectX::XMStoreFloat3(&s->_LightDirection, v);
+        //s->_LightDirection *= float3(-1.f, -1.f, -1.f);
+        s->_LightPosition = { 2.f, 20.f, 2.f };
+        
+        //forward: _m02_m12_m22 in hlsl
 
         // Set mouse at center of the screen
         RECT rect = gWindow->GetRect();
@@ -372,10 +399,10 @@ void _DirectX::CreateResources() {
         // Static
         PointLightBuff light{};
         light._LightColor    = float3(.7f, .9f, 0.f);
-        light._LightPosition = float3(0.f, 100.f, 0.f);
+        light._LightPosition = float3(-3.f, 0.f, -2.f);
         light._LightPower    = 1.f;
         light._LightRadius   = 128.f;
-        gMainScene->InsertStaticPointLight(light);
+        //gMainScene->InsertStaticPointLight(light);
         
         // Dynamic
         light._LightColor    = float3(.4f, .3f, .6f);
@@ -383,6 +410,16 @@ void _DirectX::CreateResources() {
         light._LightPower    = 1.f;
         light._LightRadius   = 25.f;
         gTestLight = gMainScene->InsertDynamicPointLight(light);
+
+        SpotLightBuff spot{};
+        spot._LightColor     = float3(0.f, 1.f, 0.f);
+        spot._LightPosition  = {};
+        spot._LightDirection = {};
+        spot._LightDistance  = 100.f;
+        spot._LightPower     = 30.f;
+        spot._LightCutOff    = cosf(DirectX::XMConvertToRadians(12.5f));
+        spot._LightOutCutOff = cosf(DirectX::XMConvertToRadians(17.5f));
+        gTestLight2 = gMainScene->InsertDynamicSpotLight(spot);
     }
 
     // UI Image Atlas initialization
@@ -492,6 +529,7 @@ void _DirectX::CreateResources() {
                                                                //"../Models/VolumetricTests/Volumetric Test.obj", 
                                                                //"../Models/Sponza/SponzaPBR.gltf",
                                                                "../Models/SDKMesh/TankScene.gltf",
+                                                               //"../Models/BrickRoom/BrickRoom.gltf",
                                                                aiProcess_FlipUVs, [](EntityHandle e, uint32_t index) {
         TransformComponent  *transf = gMainScene->GetComponent<TransformComponent>(e);
         MaterialComponent   *mat    = gMainScene->GetComponent<MaterialComponent>(e);
@@ -500,7 +538,7 @@ void _DirectX::CreateResources() {
         //transf->vRotation = float3(270.f, 0.f, 0.f);
         transf->vRotation = float3(90.f, 0.f, 0.f); // Sponza, TankScene
         //transf->vScale = float3(100.f, 100.f, 100.f);
-        //transf->vScale = float3(10.f, 10.f, 10.f); // TankScene
+        transf->vScale = float3(10.f, 10.f, 10.f); // TankScene
         //transf->vScale    = float3(.125, .125, .125);
         //transf->vPosition = float3(-50.f, 0.f, 50.f);
 
@@ -533,7 +571,7 @@ void _DirectX::CreateResources() {
         MaterialComponent *mat = gMainScene->GetComponent<MaterialComponent>(e);
 
         transf->vPosition = { 0.f, 0.f, 0.f };
-        transf->vRotation = { -90.f, 0.f, 0.f };
+        transf->vRotation = { 0*-90.f, 0.f, 0.f };
         transf->vScale = float3(10000.f, 10000.f, 10000.f);
         transf->Build();
 

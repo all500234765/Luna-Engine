@@ -214,9 +214,15 @@ private:
 
     ECS mECS{};
 
+    // Camera data
+    uint32_t mMainCamera{};
+    uint32_t bUpdatedCameraLists{};
+    uint32_t bIsTransparentPass{};
     std::array<CameraData*, SCENE_MAX_CAMERA_COUNT> mCameraData{};
     std::array<ConstantBuffer*, SCENE_MAX_CAMERA_COUNT> cbCameraData{};
-    ConstantBuffer* cbTransform    = nullptr;
+    ConstantBuffer* cbTransform = nullptr;
+
+    // Main lights
     ConstantBuffer* cbMaterial     = nullptr;
     ConstantBuffer* cbAmbientLight = nullptr;
     ConstantBuffer* cbWorldLight   = nullptr;
@@ -224,18 +230,18 @@ private:
     EntityHandle mAmbientLight{};
     EntityHandle mWorldLight{};
 
-    uint32_t mMainCamera{};
-    uint32_t bUpdatedCameraLists{};
-    uint32_t bIsTransparentPass{};
+    uint32_t mMaterialLayerStates = 0xFFFFFFFF;
 
     Texture *mSkybox;
-
-    uint32_t mMaterialLayerStates = 0xFFFFFFFF;
 
     // Lights
     EntityHandleList mPointLightStaticList, mPointLightDynamicList;
     StructuredBuffer<PointLightBuff> *sbPointLightStaticBuffer, *sbPointLightDynamicBuffer;
     uint mPointLightListStaticUpdate = true;
+
+    EntityHandleList mSpotLightStaticList, mSpotLightDynamicList;
+    StructuredBuffer<SpotLightBuff> *sbSpotLightStaticBuffer, *sbSpotLightDynamicBuffer;
+    uint mSpotLightListStaticUpdate = true;
 
     // 
     bool mMeshSRV{};
@@ -812,6 +818,12 @@ public:
         sbPointLightDynamicBuffer = new StructuredBuffer<PointLightBuff>();
         sbPointLightDynamicBuffer->CreateDefault(256, nullptr, false, D3D11_CPU_ACCESS_WRITE);
 
+        sbSpotLightStaticBuffer = new StructuredBuffer<SpotLightBuff>();
+        sbSpotLightStaticBuffer->CreateDefault(256, nullptr, false, D3D11_CPU_ACCESS_WRITE);
+
+        sbSpotLightDynamicBuffer = new StructuredBuffer<SpotLightBuff>();
+        sbSpotLightDynamicBuffer->CreateDefault(256, nullptr, false, D3D11_CPU_ACCESS_WRITE);
+
         // 
         ResetLists();
     }
@@ -819,6 +831,9 @@ public:
     ~Scene() {
         SAFE_RELEASE(sbPointLightStaticBuffer);
         SAFE_RELEASE(sbPointLightDynamicBuffer);
+
+        SAFE_RELEASE(sbSpotLightStaticBuffer);
+        SAFE_RELEASE(sbSpotLightDynamicBuffer);
 
         for( auto cb : cbCameraData )
             if( cb ) {
@@ -1014,6 +1029,9 @@ public:
     size_t GetStaticPointLightCount() const { return mPointLightStaticList.size(); };
     size_t GetDynamicPointLightCount() const { return mPointLightDynamicList.size(); };
 
+    size_t GetStaticSpotLightCount() const { return mSpotLightStaticList.size(); };
+    size_t GetDynamicSpotLightCount() const { return mSpotLightDynamicList.size(); };
+
     EntityHandle InsertStaticPointLight(PointLightBuff light) {
         PointLightComponent L{ light };
         EntityHandle E = mECS.MakeEntity(L);
@@ -1080,6 +1098,74 @@ public:
 
         mPointLightListStaticUpdate = false;
         return sbPointLightStaticBuffer;
+    }
+
+    EntityHandle InsertStaticSpotLight(SpotLightBuff light) {
+        SpotLightComponent L{ light };
+        EntityHandle E = mECS.MakeEntity(L);
+        mSpotLightStaticList.push_back(E);
+        return E;
+    }
+
+    EntityHandle InsertDynamicSpotLight(SpotLightBuff light) {
+        SpotLightComponent L{ light };
+        EntityHandle E = mECS.MakeEntity(L);
+        mSpotLightDynamicList.push_back(E);
+        return E;
+    }
+
+    StructuredBuffer<SpotLightBuff>* ListSpotLightDynamicBuffer() {
+        if( !mSpotLightDynamicList.size() ) { return sbSpotLightDynamicBuffer; }
+
+        // Collect data
+        std::vector<SpotLightBuff> lights;
+        lights.reserve(mSpotLightDynamicList.size());
+
+        uint32_t i = 0;
+        for( EntityHandle light : mSpotLightDynamicList ) {
+            lights.push_back(GetComponent<SpotLightComponent>(light)->GetBuff());
+            i++;
+        }
+
+        // Fill rest with empties
+        /*for( uint32_t j = i; j < sbSpotLightDynamicBuffer->GetNumber(); j++ )
+            lights.push_back({});*/
+
+            // Send new data
+        if( gKeyboard->IsDown(VK_F11) )
+            printf_s("[SEGV]: LOVI SEGFAULT\n");
+
+        {
+            ScopedMapCopy—ount<SpotLightBuff, StructuredBuffer<SpotLightBuff>> map(sbSpotLightDynamicBuffer, lights.data(), (uint32_t)lights.size());
+        }
+
+        return sbSpotLightDynamicBuffer;
+    }
+
+    StructuredBuffer<SpotLightBuff>* ListSpotLightStaticBuffer() {
+        if( !mSpotLightListStaticUpdate ) return sbSpotLightStaticBuffer;
+
+        // Collect data
+        std::vector<SpotLightBuff> lights;
+        lights.reserve(mSpotLightStaticList.size());
+
+        uint32_t i = 0;
+        for( EntityHandle light : mSpotLightStaticList ) {
+            lights.push_back(GetComponent<SpotLightComponent>(light)->GetBuff());
+            i++;
+        }
+
+        // Fill rest with empties
+        /*for( uint32_t j = i; j < sbSpotLightStaticBuffer->GetNumber(); j++ )
+            lights.push_back({});*/
+
+            // Send new data
+        {
+            ScopedMapCopy—ount<SpotLightBuff, StructuredBuffer<SpotLightBuff>> map(sbSpotLightStaticBuffer, lights.data(), (uint32_t)lights.size());
+        }
+
+        mSpotLightListStaticUpdate = false;
+        return sbSpotLightStaticBuffer;
     }
 
     // TODO: 

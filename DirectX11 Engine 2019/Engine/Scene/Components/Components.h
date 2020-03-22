@@ -47,8 +47,28 @@ struct VolumetricLightComponent: ECSComponent<VolumetricLightComponent> {
 };
 
 struct ShadowLightComponent: ECSComponent<ShadowLightComponent> {};
+
 struct SpotLightComponent: ECSComponent<SpotLightComponent> {
     #include "SpotLight.h"
+
+    SpotLightComponent(const SpotLightBuff& buff) {
+        memcpy((void*)&this->_LightColor.x, &buff._LightColor.x, sizeof(SpotLightBuff));
+    }
+
+    SpotLightBuff GetBuff() const {
+        SpotLightBuff b{};
+        memcpy(&b._LightColor.x, (void*)&this->_LightColor.x, sizeof(SpotLightBuff));
+        return b;
+    }
+
+    void Bind(ConstantBuffer* cb, uint32_t types, uint32_t slot) const {
+        {
+            // Update CB
+            ScopeMapConstantBufferCopy<SpotLightBuff> q(cb, (void*)&this->_LightColor.x);
+        }
+
+        cb->Bind(types, slot);
+    }
 };
 
 struct PointLightComponent: ECSComponent<PointLightComponent> {

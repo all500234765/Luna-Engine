@@ -199,6 +199,6 @@ GBuffer main(PS In, bool bIsFront : SV_IsFrontFace, uint SampleIndex : SV_Sample
         Out.Shading  = float4(Metallic, Rougness, AOccl, 1.f);
         Out.Normal   = float4(EncodeNormal(N), 0., 1.);
         Out.Emission = float4(_EmissionTex.Sample(_EmissionSampl, In.Texcoord).rgb * _EmissionMul, 1.f);
-        Out.Indirect = float4(_CubemapTexture.SampleLevel(_CubemapSampler, N.xzy, 1), 1.f);
+        Out.Indirect = float4(_CubemapTexture.SampleLevel(_CubemapSampler, N.xyz, 1), 1.f);
     return Out;
 }

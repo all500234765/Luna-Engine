@@ -25,6 +25,9 @@ struct PS {
 
 [domain("quad")]
 PS main(HSConstant In, float2 uv : SV_DomainLocation, const OutputPatch<HS, 4> quad) {
+    float _LightCosA = 0.f;
+    float _LightSinA = 0.f;
+    
     // Transform UVs to clip space
     float2 clip = uv * float2(2.f, -2.f) + float2(-1.f, 1.f);
     

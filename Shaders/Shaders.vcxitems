@@ -122,6 +122,9 @@
       <FileType>Document</FileType>
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDeferredSpotLightPS.hlsl">
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\PS\shDepthAlphaPS.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
@@ -148,6 +151,9 @@
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDeferredPointLightVS.hlsl">
       <FileType>Document</FileType>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDeferredSpotLightVS.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="$(MSBuildThisFileDirectory)Shaders\VS\shDepthAlphaVS.hlsl">
